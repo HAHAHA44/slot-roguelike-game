@@ -99,6 +99,38 @@ func test_offer_selection_transitions_through_event_draft() -> void:
 	assert_eq(scene.get_active_state_name(), "player_turn")
 	assert_true(scene.get_active_contract_summary().contains("Goal"))
 
+func test_add_reward_changes_the_next_token_you_place() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	var board_grid: Node = scene.get_node("%BoardGrid")
+	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
+	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
+
+	for index in [0, 1, 2]:
+		var cell := board_grid.get_child(index) as Button
+		cell.emit_signal("pressed")
+
+	settle_button.emit_signal("pressed")
+	await _wait_for_state(scene, "offer_choice")
+
+	offer_button.emit_signal("pressed")
+
+	var rewarded_token_id: String = scene.get_active_placement_token_id()
+	assert_ne(rewarded_token_id, "pulse_seed")
+	assert_eq(scene.get_active_state_name(), "event_draft")
+
+	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
+	event_button.emit_signal("pressed")
+
+	assert_eq(scene.get_active_state_name(), "player_turn")
+
+	var new_cell := board_grid.get_child(3) as Button
+	new_cell.emit_signal("pressed")
+
+	assert_eq(new_cell.tooltip_text, rewarded_token_id)
+
 func _spawn_run_screen():
 	var packed_scene: PackedScene = load("res://scenes/run/run_screen.tscn")
 	assert_not_null(packed_scene)

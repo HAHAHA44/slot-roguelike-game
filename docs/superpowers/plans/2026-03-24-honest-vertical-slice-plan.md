@@ -8,6 +8,12 @@
 
 **Tech Stack:** Godot 4.6.1-stable, GDScript, GUT, Godot State Charts
 
+**Execution Status (2026-03-24):**
+- Task 0 is complete.
+- The settlement autoplay gap is closed, so `Settle -> offer -> event -> next turn` is now playable.
+- Reward mutation is being executed as its own playable-first step before contract lifecycle.
+- The next planned implementation step after this document update is contract lifecycle.
+
 ---
 
 ## 1. Working File Map
@@ -101,7 +107,7 @@
 - Modify: `tests/integration/test_run_screen_flow.gd`
 - Modify: `README.md`
 
-- [ ] **Step 1: Add a dedicated smoke-path integration test that represents “the game is still playable”**
+- [x] **Step 1: Add a dedicated smoke-path integration test that represents “the game is still playable”**
 
 ```gdscript
 func test_smoke_playable_path_still_works() -> void:
@@ -119,7 +125,7 @@ func test_smoke_playable_path_still_works() -> void:
 	assert_true(scene.get_active_state_name() in ["settling", "offer_choice", "event_draft", "player_turn"])
 ```
 
-- [ ] **Step 2: Run the smoke test and verify the current build passes it**
+- [x] **Step 2: Run the smoke test and verify the current build passes it**
 
 Run:
 
@@ -129,14 +135,14 @@ Run:
 
 Expected: PASS on the existing prototype before deeper refactors begin.
 
-- [ ] **Step 3: Update `README.md` with a short “playable smoke check” section**
+- [x] **Step 3: Update `README.md` with a short “playable smoke check” section**
 
 - Add:
   - unit test command
   - integration test command
   - short note that every task in this phase must keep the smoke path green
 
-- [ ] **Step 4: Re-run the smoke test after doc edits**
+- [x] **Step 4: Re-run the smoke test after doc edits**
 
 Run:
 
@@ -146,7 +152,7 @@ Run:
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add tests/integration/test_run_screen_flow.gd README.md
@@ -299,18 +305,16 @@ git add scripts/core/services/run_progression_service.gd autoload/run_session.gd
 git commit -m "feat: add deterministic checkpoint progression and endless handoff"
 ```
 
-### Task 3: Make Reward Offers And Contracts Mutate Real Run State
+### Task 3A: Make Reward Offers Mutate Real Run State
 
 **Files:**
 - Modify: `scripts/core/services/reward_offer_service.gd`
-- Modify: `scripts/core/services/contract_service.gd`
 - Modify: `autoload/run_session.gd`
 - Modify: `scripts/ui/run_screen.gd`
 - Modify: `tests/unit/core/test_reward_offer_service.gd`
-- Modify: `tests/unit/core/test_contract_service.gd`
 - Modify: `tests/integration/test_run_screen_flow.gd`
 
-- [ ] **Step 1: Write failing tests for reward application and contract advancement**
+- [x] **Step 1: Write failing tests for reward application**
 
 ```gdscript
 extends GutTest
@@ -318,6 +322,53 @@ extends GutTest
 func test_random_offer_returns_a_real_token_candidate() -> void:
 	var offers := RewardOfferService.new().build_turn_offer(RunSession.new(), ContentRegistry.new())
 	assert_true(offers[2].has("token_candidates"))
+```
+
+- [x] **Step 2: Run targeted tests to verify failure**
+
+Run:
+
+```powershell
+& $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/core/test_reward_offer_service.gd -gexit
+```
+
+Expected: FAIL because offers do not include real content yet.
+
+- [x] **Step 3: Implement reward resolution in an additive order**
+
+- `RewardOfferService` must:
+  - accept `ContentRegistry`
+  - pick concrete token candidates
+  - preserve the fixed three-choice shape
+- `RunScreen` must:
+  - apply chosen reward
+  - mutate session state in a player-visible way
+  - keep at least one safe reward path usable even before richer reward logic is complete
+- Playable constraint for this step:
+  - reward selection changes the active placement token
+  - the next placement after the event flow must reflect the rewarded token
+  - the turn loop must remain `settle -> offer -> event -> player_turn`
+
+**Exit condition for Task 3A:** PASS, and the integration flow shows reward selection changing actual run state without breaking the smoke path.
+
+```powershell
+& $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/core/test_reward_offer_service.gd -gexit
+& $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/integration/test_run_screen_flow.gd -gexit
+```
+
+### Task 3B: Implement Contract Lifecycle
+
+**Files:**
+- Modify: `scripts/core/services/contract_service.gd`
+- Modify: `autoload/run_session.gd`
+- Modify: `scripts/ui/run_screen.gd`
+- Modify: `tests/unit/core/test_contract_service.gd`
+- Modify: `tests/integration/test_run_screen_flow.gd`
+
+- [ ] **Step 1: Write failing tests for contract advancement**
+
+```gdscript
+extends GutTest
 
 func test_contract_turns_tick_down_and_fail_cleanly() -> void:
 	var service := ContractService.new()
@@ -336,24 +387,12 @@ func test_contract_turns_tick_down_and_fail_cleanly() -> void:
 Run:
 
 ```powershell
-& $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/core/test_reward_offer_service.gd -gexit
 & $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/core/test_contract_service.gd -gexit
 ```
 
-Expected: FAIL because offers do not include real content and contracts do not advance yet.
+Expected: FAIL because contracts do not advance yet.
 
-- [ ] **Step 3: Implement reward resolution in an additive order**
-
-- `RewardOfferService` must:
-  - accept `ContentRegistry`
-  - pick concrete token candidates
-  - preserve the fixed three-choice shape
-- `RunScreen` must:
-  - apply chosen reward
-  - mutate session / board state
-  - keep at least one safe reward path usable even before richer reward logic is complete
-
-- [ ] **Step 4: Implement contract lifecycle**
+- [ ] **Step 3: Implement contract lifecycle**
 
 - `ContractService` must support:
   - `advance_contract()`
@@ -363,7 +402,7 @@ Expected: FAIL because offers do not include real content and contracts do not a
 - Reward and penalty execution must be deterministic and testable
 - If a contract is unsupported in a given intermediate build, it must degrade to a safe no-op summary instead of breaking the turn loop
 
-- [ ] **Step 5: Re-run contract/reward tests plus the playable smoke flow, then commit**
+- [ ] **Step 4: Re-run contract/reward tests plus the playable smoke flow, then commit**
 
 Run:
 
@@ -373,7 +412,7 @@ Run:
 & $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/integration/test_run_screen_flow.gd -gexit
 ```
 
-Expected: PASS, and the integration flow shows reward selection changing actual run state.
+Expected: PASS, and the integration flow keeps reward mutation while contracts also advance cleanly.
 
 ```powershell
 git add scripts/core/services/reward_offer_service.gd scripts/core/services/contract_service.gd autoload/run_session.gd scripts/ui/run_screen.gd tests/unit/core/test_reward_offer_service.gd tests/unit/core/test_contract_service.gd tests/integration/test_run_screen_flow.gd

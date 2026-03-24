@@ -86,14 +86,14 @@ func _ready() -> void:
 func get_active_state_name() -> String:
 	return _active_state_name
 
-func _default_token_tags() -> PackedStringArray:
-	return PackedStringArray(["Grow"])
-
 func get_settlement_log_entries() -> Array[String]:
 	var entries: Array[String] = []
 	for index in _settlement_log_list.item_count:
 		entries.append(_settlement_log_list.get_item_text(index))
 	return entries
+
+func get_active_placement_token_id() -> String:
+	return run_session.get_active_token_id()
 
 func get_active_contract_summary() -> String:
 	if _active_contract.is_empty():
@@ -222,7 +222,7 @@ func _select_mode(mode_name: String) -> void:
 		"mode": mode_name,
 		"turn": run_session.current_turn,
 	})
-	_mode_label.text = "Mode %s" % mode_name.capitalize()
+	_sync_run_labels()
 
 func _on_cell_pressed(pos: Vector2i) -> void:
 	if _active_state_name != "player_turn":
@@ -233,13 +233,15 @@ func _on_cell_pressed(pos: Vector2i) -> void:
 		if _board_service.has_token(pos):
 			return
 
-		var token = TokenInstanceScript.new(DEFAULT_TOKEN_ID, _default_token_tags())
+		var token := _make_active_token_instance()
 		if _board_service.place_token(pos, token):
 			run_session.operation_history.append({
 				"kind": "place_token",
+				"token_id": token.definition_id,
 				"position": {"x": pos.x, "y": pos.y},
 				"turn": run_session.current_turn,
 			})
+			run_session.advance_token_cursor()
 	elif current_mode == "remove":
 		var removed = _board_service.remove_token(pos)
 		if removed != null:
@@ -268,9 +270,12 @@ func _on_offer_button_pressed(index: int) -> void:
 		return
 
 	var offer: Dictionary = _active_offers[index]
+	var reward_resolution := _reward_offer_service.apply_offer(run_session, offer)
 	run_session.operation_history.append({
 		"kind": "offer_selected",
 		"offer_kind": offer.get("kind", ""),
+		"token_id": reward_resolution.get("token_id", ""),
+		"active_token_id": reward_resolution.get("active_token_id", ""),
 		"turn": run_session.current_turn,
 	})
 	var draft: Dictionary = _event_draft_service.build_offer(
@@ -349,6 +354,17 @@ func _make_effect(source_token: String, phase_name: String, score_delta: int) ->
 		"message_key": phase_name,
 	}
 
+func _make_active_token_instance() -> TokenInstance:
+	var token_id := run_session.get_active_token_id()
+	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
+	if definition == null:
+		return TokenInstanceScript.new(DEFAULT_TOKEN_ID, PackedStringArray(["Grow"]))
+	return TokenInstanceScript.new(
+		definition.id,
+		definition.tags,
+		definition.state_fields.duplicate(true)
+	)
+
 func _append_log_entry(step) -> void:
 	var delta_text := "%+d" % step.score_delta
 	_settlement_log_list.add_item("%02d | %s | %s" % [step.sequence_index, step.phase, delta_text])
@@ -357,7 +373,7 @@ func _complete_settlement() -> void:
 	if _active_state_name != "settling":
 		return
 
-	_active_offers = _reward_offer_service.build_turn_offer(run_session)
+	_active_offers = _reward_offer_service.build_turn_offer(run_session, _content_registry)
 	_state_chart.send_event("settlement_complete")
 	_sync_offer_buttons()
 
@@ -397,7 +413,7 @@ func _sync_run_labels() -> void:
 	_turn_label.text = "Turn %d" % run_session.current_turn
 	_score_label.text = "Score %d / %d" % [run_session.current_score, run_session.phase_target]
 	_contract_label.text = "Contract %s" % (get_active_contract_summary() if not _active_contract.is_empty() else "None")
-	_mode_label.text = "Mode %s" % _get_mode_name().capitalize()
+	_mode_label.text = "Mode %s | Next %s" % [_get_mode_name().capitalize(), _format_token_name(get_active_placement_token_id())]
 
 func _sync_offer_buttons() -> void:
 	var buttons := _offer_buttons()
@@ -434,10 +450,22 @@ func _event_buttons() -> Array[Button]:
 	return [_event_button_1, _event_button_2, _event_button_3]
 
 func _format_offer(offer: Dictionary) -> String:
-	return String(offer.get("kind", "offer")).replace("_", " ").capitalize()
+	var label := String(offer.get("kind", "offer")).replace("_", " ").capitalize()
+	var token_id := String(offer.get("token_id", ""))
+	if not token_id.is_empty():
+		label += " %s" % _format_token_name(token_id)
+	return label
 
 func _format_event(event_data: Dictionary) -> String:
 	return "%s [%s]" % [event_data.get("name", event_data.get("id", "Event")), event_data.get("primary_tag", "Tag")]
+
+func _format_token_name(token_id: String) -> String:
+	if token_id.is_empty():
+		return "No-op"
+	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
+	if definition != null:
+		return definition.name
+	return token_id.replace("_", " ").capitalize()
 
 func _get_mode_name() -> String:
 	if _remove_mode_button.button_pressed:
