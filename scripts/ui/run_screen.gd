@@ -159,9 +159,9 @@ func _build_state_chart() -> void:
 	_run_failed_state.state_entered.connect(_on_state_entered.bind("run_failed"))
 	_run_cleared_state.state_entered.connect(_on_state_entered.bind("run_cleared"))
 
-func _make_state(name: String):
+func _make_state(state_name: String):
 	var state = AtomicStateScript.new()
-	state.name = name
+	state.name = state_name
 	return state
 
 func _add_transition(from_state, transition_name: String, target_path: NodePath, event_name: StringName = "") -> void:
