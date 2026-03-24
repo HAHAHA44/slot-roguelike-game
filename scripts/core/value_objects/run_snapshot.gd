@@ -19,4 +19,3 @@ func to_dict() -> Dictionary:
 
 static func from_dict(data: Dictionary) -> RunSnapshot:
 	return RunSnapshot.new(data.get("phase_effects", {}))
-

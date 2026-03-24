@@ -10,4 +10,3 @@ func _init(initial_x: int = 0, initial_y: int = 0) -> void:
 
 func to_vector2i() -> Vector2i:
 	return Vector2i(x, y)
-
