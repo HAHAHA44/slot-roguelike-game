@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "pulse_seed"
+name = "Pulse Seed"
+rarity = "Common"
+type = "Engine"
+tags = PackedStringArray("Grow", "Charge")
+base_value = 1
+trigger_rules = {
+"charge_from_tags": PackedStringArray("Grow", "Charge")
+}
+state_fields = {
+"charge": 0,
+"max_charge": 2
+}
+spawn_rules = {
+"weight": 1.0
+}
+remove_rules = {}
+

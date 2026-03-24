@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hollow_shell"
+name = "Hollow Shell"
+rarity = "Common"
+type = "Breaker"
+tags = PackedStringArray("Break")
+base_value = 1
+trigger_rules = {
+"on_remove": "spawn_fragments"
+}
+state_fields = {}
+spawn_rules = {
+"weight": 1.0
+}
+remove_rules = {
+"spawn_fragment_score": 2
+}
+

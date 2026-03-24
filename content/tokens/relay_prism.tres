@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "relay_prism"
+name = "Relay Prism"
+rarity = "Uncommon"
+type = "Support"
+tags = PackedStringArray("Link")
+base_value = 2
+trigger_rules = {
+"copy_row_trigger": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.75
+}
+remove_rules = {}
+
