@@ -1,0 +1,7 @@
+.godot/
+.import/
+.vscode/
+export_presets.cfg
+*.translation
+mono_crash.*
+data_*

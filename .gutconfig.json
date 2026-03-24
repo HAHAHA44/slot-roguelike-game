@@ -1,0 +1,12 @@
+{
+  "dirs": [
+    "res://tests/unit",
+    "res://tests/integration"
+  ],
+  "include_subdirs": true,
+  "should_exit": true,
+  "should_exit_on_success": false,
+  "log_level": 2,
+  "compact_mode": true
+}
+
