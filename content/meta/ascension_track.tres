@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MetaUnlockDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/meta_unlock_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ascension_track"
+name = "Unlock Ascension Track"
+unlock_type = "difficulty"
+cost = 1
+rewards = {
+"difficulty_id": "ascension_1"
+}

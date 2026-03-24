@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wild_harmonics"
+name = "Wild Harmonics"
+type = "lasting"
+primary_tag = "Wild"
+stability = "risky"
+weight = 0.8
+description = "Wild pieces spike harder, but the contract margin tightens."
+tags_affected = PackedStringArray("Wild", "Link")
+duration = 3
+contract_template = {
+"goal_type": "reach_score",
+"goal_value": 16,
+"turns_remaining": 3
+}
+reward_bundle = {
+"score_bonus": 6
+}
+penalty_bundle = {
+"score_penalty": 3
+}

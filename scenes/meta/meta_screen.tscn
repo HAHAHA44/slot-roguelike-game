@@ -1,0 +1,34 @@
+[gd_scene format=3]
+
+[node name="MetaScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer"]
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBox"]
+text = "Meta Progression"
+
+[node name="SummaryLabel" type="Label" parent="MarginContainer/VBox"]
+text = "Unlocked heroes, ascension tracks, and anomaly systems appear here."
+autowrap_mode = 3
+
+[node name="UnlockList" type="ItemList" parent="MarginContainer/VBox"]
+size_flags_vertical = 3

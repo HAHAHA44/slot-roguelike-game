@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bulwark_tax"
+name = "Bulwark Tax"
+type = "crisis"
+primary_tag = "Guard"
+stability = "risky"
+weight = 0.85
+description = "High Guard pressure yields a better contract reward."
+tags_affected = PackedStringArray("Guard", "Grow")
+duration = 2
+contract_template = {
+"goal_type": "hold_tokens",
+"goal_value": 3,
+"turns_remaining": 2
+}
+reward_bundle = {
+"score_bonus": 7
+}
+penalty_bundle = {
+"score_penalty": 3
+}

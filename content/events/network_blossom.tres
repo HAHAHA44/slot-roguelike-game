@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "network_blossom"
+name = "Network Blossom"
+type = "lasting"
+primary_tag = "Link"
+stability = "stable"
+weight = 0.9
+description = "Link and Grow both score if you keep the network tidy."
+tags_affected = PackedStringArray("Link", "Grow")
+duration = 3
+contract_template = {
+"goal_type": "maintain_links",
+"goal_value": 2,
+"turns_remaining": 4
+}
+reward_bundle = {
+"score_bonus": 5
+}
+penalty_bundle = {
+"score_penalty": 2
+}

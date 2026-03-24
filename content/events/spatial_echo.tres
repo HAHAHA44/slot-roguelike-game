@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spatial_echo"
+name = "Spatial Echo"
+type = "instant"
+primary_tag = "Spatial"
+stability = "volatile"
+weight = 0.7
+description = "Rare spatial pieces can cash out for a large swing."
+tags_affected = PackedStringArray("Spatial", "Link")
+duration = 1
+contract_template = {
+"goal_type": "hold_tokens",
+"goal_value": 1,
+"turns_remaining": 2
+}
+reward_bundle = {
+"score_bonus": 8
+}
+penalty_bundle = {
+"score_penalty": 4
+}

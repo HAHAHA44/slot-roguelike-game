@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "garden_protocol"
+name = "Garden Protocol"
+type = "lasting"
+primary_tag = "Grow"
+stability = "stable"
+weight = 1.0
+description = "Reward compact Grow setups over the next few turns."
+tags_affected = PackedStringArray("Grow", "Guard")
+duration = 3
+contract_template = {
+"goal_type": "hold_chain",
+"goal_value": 3,
+"turns_remaining": 4
+}
+reward_bundle = {
+"score_bonus": 5
+}
+penalty_bundle = {
+"score_penalty": 1
+}

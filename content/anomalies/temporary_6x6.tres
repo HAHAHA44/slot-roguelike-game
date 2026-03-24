@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AnomalyDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/anomaly_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "temporary_6x6"
+name = "Temporary 6x6"
+anomaly_type = "board_shape"
+tags = PackedStringArray("Spatial", "Expansion")
+rules = {
+"board_height": 6,
+"board_width": 6,
+"temporary": true
+}

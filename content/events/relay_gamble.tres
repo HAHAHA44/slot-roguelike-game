@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "relay_gamble"
+name = "Relay Gamble"
+type = "crisis"
+primary_tag = "Link"
+stability = "risky"
+weight = 0.95
+description = "Push for a bigger link payoff before the relay collapses."
+tags_affected = PackedStringArray("Link", "Wild")
+duration = 2
+contract_template = {
+"goal_type": "reach_score",
+"goal_value": 15,
+"turns_remaining": 2
+}
+reward_bundle = {
+"score_bonus": 6
+}
+penalty_bundle = {
+"score_penalty": 3
+}

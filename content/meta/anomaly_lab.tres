@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MetaUnlockDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/meta_unlock_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "anomaly_lab"
+name = "Unlock Anomaly Lab"
+unlock_type = "anomaly"
+cost = 2
+rewards = {
+"anomaly_pool": "core"
+}

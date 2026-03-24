@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "grow_surge"
+name = "Grow Surge"
+type = "instant"
+primary_tag = "Grow"
+stability = "stable"
+weight = 1.2
+description = "Lean into Grow lines for a steady score spike."
+tags_affected = PackedStringArray("Grow")
+duration = 1
+contract_template = {
+"goal_type": "reach_score",
+"goal_value": 12,
+"turns_remaining": 3
+}
+reward_bundle = {
+"score_bonus": 4
+}
+penalty_bundle = {
+"score_penalty": 2
+}

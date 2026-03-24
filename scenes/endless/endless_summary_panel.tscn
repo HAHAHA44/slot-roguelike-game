@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[node name="EndlessSummaryPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(320, 0)
+size_flags_horizontal = 4
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer"]
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBox"]
+text = "Endless Summary"
+
+[node name="LoopLabel" type="Label" parent="MarginContainer/VBox"]
+text = "Loop 1"
+
+[node name="TargetLabel" type="Label" parent="MarginContainer/VBox"]
+text = "Next Target 25"
+
+[node name="AnomalyLabel" type="Label" parent="MarginContainer/VBox"]
+text = "Active Anomaly None"
+autowrap_mode = 3

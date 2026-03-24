@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AnomalyDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/anomaly_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "twin_slot_spawn"
+name = "Twin Slot Spawn"
+anomaly_type = "spawn_rule"
+tags = PackedStringArray("Spatial", "Twin")
+rules = {
+"extra_spawn_count": 1,
+"spawn_shape": "2x1",
+"temporary": false
+}

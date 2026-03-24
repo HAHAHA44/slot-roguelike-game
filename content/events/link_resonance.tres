@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "link_resonance"
+name = "Link Resonance"
+type = "instant"
+primary_tag = "Link"
+stability = "stable"
+weight = 1.1
+description = "Link lines gain a clean, reliable payoff."
+tags_affected = PackedStringArray("Link")
+duration = 1
+contract_template = {
+"goal_type": "link_chain",
+"goal_value": 2,
+"turns_remaining": 3
+}
+reward_bundle = {
+"score_bonus": 4
+}
+penalty_bundle = {
+"score_penalty": 1
+}

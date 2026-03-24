@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DifficultyModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/difficulty_modifier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ascension_1"
+name = "Ascension 1"
+description = "Slightly harsher event pool."
+modifiers = {
+"crisis_weight_bonus": 0.25,
+"stable_weight_multiplier": 0.95,
+"quality_penalty": 0.1
+}

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "guard_watch"
+name = "Guard Watch"
+type = "instant"
+primary_tag = "Guard"
+stability = "stable"
+weight = 1.0
+description = "Stable payoff for keeping Guard pieces on the board."
+tags_affected = PackedStringArray("Guard")
+duration = 1
+contract_template = {
+"goal_type": "hold_tokens",
+"goal_value": 2,
+"turns_remaining": 3
+}
+reward_bundle = {
+"score_bonus": 4
+}
+penalty_bundle = {
+"score_penalty": 1
+}

@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/run_screen.gd" id="1_run_screen"]
 [ext_resource type="PackedScene" path="res://scenes/run/board_grid.tscn" id="2_board_grid"]
 [ext_resource type="PackedScene" path="res://scenes/run/turn_controls.tscn" id="3_turn_controls"]
 [ext_resource type="PackedScene" path="res://scenes/run/settlement_log_panel.tscn" id="4_log_panel"]
+[ext_resource type="PackedScene" path="res://scenes/run/event_draft_panel.tscn" id="5_event_draft_panel"]
 
 [node name="RunScreen" type="Control"]
 layout_mode = 3
@@ -46,6 +47,10 @@ text = "Turn 1"
 unique_name_in_owner = true
 text = "Score 0 / 10"
 
+[node name="ContractLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
+unique_name_in_owner = true
+text = "Contract None"
+
 [node name="ContentRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -62,6 +67,7 @@ theme_override_constants/separation = 16
 
 [node name="TurnControls" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("3_turn_controls")]
 
+[node name="EventDraftPanel" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("5_event_draft_panel")]
+
 [node name="SettlementLogPanel" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("4_log_panel")]
 unique_name_in_owner = true
-

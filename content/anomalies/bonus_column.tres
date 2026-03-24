@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AnomalyDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/anomaly_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bonus_column"
+name = "Bonus Column"
+anomaly_type = "board_shape"
+tags = PackedStringArray("Spatial", "Reward")
+rules = {
+"board_height": 5,
+"board_width": 6,
+"bonus_columns": 1,
+"temporary": true
+}

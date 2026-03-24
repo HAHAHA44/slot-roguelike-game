@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "shatter_drive"
+name = "Shatter Drive"
+type = "instant"
+primary_tag = "Break"
+stability = "risky"
+weight = 1.0
+description = "Break shells on cue for a fast payout."
+tags_affected = PackedStringArray("Break")
+duration = 1
+contract_template = {
+"goal_type": "remove_tokens",
+"goal_value": 2,
+"turns_remaining": 2
+}
+reward_bundle = {
+"score_bonus": 5
+}
+penalty_bundle = {
+"score_penalty": 2
+}

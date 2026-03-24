@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="HeroDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/hero_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "insight_archivist"
+name = "Insight Archivist"
+starting_passive = "See one extra stable event option."
+attribute_bias = "Insight"
+event_weight_modifiers = {
+"Grow": 0.5,
+"Link": 0.25,
+"stable_visibility_bonus": 1.0
+}

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="HeroDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/hero_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "flux_nomad"
+name = "Flux Nomad"
+starting_passive = "Anomalies and Wild events show up more often."
+attribute_bias = "Flux"
+event_weight_modifiers = {
+"Wild": 0.75,
+"Spatial": 0.75,
+"Link": 0.25
+}

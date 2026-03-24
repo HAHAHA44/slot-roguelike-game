@@ -16,6 +16,12 @@ func validate_definition(definition: Resource, existing_ids: Dictionary) -> Arra
 		_validate_event_definition(definition, errors)
 	elif definition is HeroDefinition:
 		_validate_hero_definition(definition, errors)
+	elif definition is DifficultyModifier:
+		_validate_difficulty_modifier(definition, errors)
+	elif definition is MetaUnlockDefinition:
+		_validate_meta_unlock_definition(definition, errors)
+	elif definition is AnomalyDefinition:
+		_validate_anomaly_definition(definition, errors)
 
 	return errors
 
@@ -42,6 +48,10 @@ func _validate_event_definition(definition: EventDefinition, errors: Array[Strin
 		errors.append("name must not be empty")
 	if definition.type not in EventDefinition.ALLOWED_TYPES:
 		errors.append("type must be one of %s" % ", ".join(EventDefinition.ALLOWED_TYPES))
+	if definition.primary_tag.strip_edges().is_empty():
+		errors.append("primary_tag must not be empty")
+	if definition.stability not in EventDefinition.ALLOWED_STABILITIES:
+		errors.append("stability must be one of %s" % ", ".join(EventDefinition.ALLOWED_STABILITIES))
 	if definition.tags_affected == null:
 		errors.append("tags_affected must not be null")
 	if definition.contract_template == null:
@@ -60,3 +70,29 @@ func _validate_hero_definition(definition: HeroDefinition, errors: Array[String]
 		errors.append("attribute_bias must be one of %s" % ", ".join(HeroDefinition.ALLOWED_ATTRIBUTES))
 	if definition.event_weight_modifiers == null:
 		errors.append("event_weight_modifiers must not be null")
+
+func _validate_difficulty_modifier(definition: DifficultyModifier, errors: Array[String]) -> void:
+	if definition.name.strip_edges().is_empty():
+		errors.append("name must not be empty")
+	if definition.description.strip_edges().is_empty():
+		errors.append("description must not be empty")
+	if definition.modifiers == null:
+		errors.append("modifiers must not be null")
+
+func _validate_meta_unlock_definition(definition: MetaUnlockDefinition, errors: Array[String]) -> void:
+	if definition.name.strip_edges().is_empty():
+		errors.append("name must not be empty")
+	if definition.unlock_type.strip_edges().is_empty():
+		errors.append("unlock_type must not be empty")
+	if definition.rewards == null:
+		errors.append("rewards must not be null")
+
+func _validate_anomaly_definition(definition: AnomalyDefinition, errors: Array[String]) -> void:
+	if definition.name.strip_edges().is_empty():
+		errors.append("name must not be empty")
+	if definition.anomaly_type.strip_edges().is_empty():
+		errors.append("anomaly_type must not be empty")
+	if definition.tags == null:
+		errors.append("tags must not be null")
+	if definition.rules == null:
+		errors.append("rules must not be null")

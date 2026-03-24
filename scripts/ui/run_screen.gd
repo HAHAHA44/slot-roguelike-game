@@ -10,6 +10,10 @@ const RunSnapshotScript := preload("res://scripts/core/value_objects/run_snapsho
 const SettlementResolverScript := preload("res://scripts/core/services/settlement_resolver.gd")
 const RewardOfferServiceScript := preload("res://scripts/core/services/reward_offer_service.gd")
 const RunSessionScript := preload("res://autoload/run_session.gd")
+const ContentRegistryScript := preload("res://autoload/content_registry.gd")
+const EventDraftServiceScript := preload("res://scripts/core/services/event_draft_service.gd")
+const ContractServiceScript := preload("res://scripts/core/services/contract_service.gd")
+const RunModifierServiceScript := preload("res://scripts/core/services/run_modifier_service.gd")
 
 const StateChartScript := preload("res://addons/godot_state_charts/state_chart.gd")
 const CompoundStateScript := preload("res://addons/godot_state_charts/compound_state.gd")
@@ -22,10 +26,18 @@ var run_session = RunSessionScript.new()
 var _board_service = BoardServiceScript.new(BOARD_WIDTH, BOARD_HEIGHT)
 var _settlement_resolver = SettlementResolverScript.new()
 var _reward_offer_service = RewardOfferServiceScript.new()
+var _content_registry = ContentRegistryScript.new()
+var _event_draft_service
+var _contract_service = ContractServiceScript.new()
+var _run_modifier_service = RunModifierServiceScript.new()
+var _selected_hero: HeroDefinition
+var _selected_difficulty: DifficultyModifier
 
 var _cell_buttons_by_pos: Dictionary = {}
 var _pending_steps: Array = []
 var _active_offers: Array = []
+var _active_event_options: Array = []
+var _active_contract: Dictionary = {}
 var _active_state_name: String = ""
 
 var _state_chart
@@ -41,6 +53,7 @@ var _run_cleared_state
 @onready var _run_state_label: Label = %RunStateLabel
 @onready var _turn_label: Label = %TurnLabel
 @onready var _score_label: Label = %ScoreLabel
+@onready var _contract_label: Label = %ContractLabel
 @onready var _mode_label: Label = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeLabel")
 @onready var _place_mode_button: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/PlaceModeButton")
 @onready var _remove_mode_button: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/RemoveModeButton")
@@ -49,15 +62,25 @@ var _run_cleared_state
 @onready var _offer_button_1: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1")
 @onready var _offer_button_2: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton2")
 @onready var _offer_button_3: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton3")
+@onready var _event_draft_panel: PanelContainer = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel")
+@onready var _event_summary_label: Label = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/SummaryLabel")
+@onready var _event_button_1: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1")
+@onready var _event_button_2: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton2")
+@onready var _event_button_3: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton3")
 @onready var _settlement_log_list: ItemList = get_node("MainMargin/MainLayout/ContentRow/Sidebar/SettlementLogPanel/MarginContainer/VBox/SettlementLogList")
 
 func _ready() -> void:
+	_content_registry.load_all()
+	_event_draft_service = EventDraftServiceScript.new(_content_registry)
+	_selected_hero = _content_registry.heroes.get("resolve_specialist")
+	_selected_difficulty = _content_registry.difficulty_modifiers.get("ascension_1")
 	_build_state_chart()
 	_wire_ui()
 	_build_board_grid()
 	_sync_board_ui()
 	_sync_run_labels()
 	_sync_offer_buttons()
+	_sync_event_draft_ui()
 
 func get_active_state_name() -> String:
 	return _active_state_name
@@ -70,6 +93,11 @@ func get_settlement_log_entries() -> Array[String]:
 	for index in _settlement_log_list.item_count:
 		entries.append(_settlement_log_list.get_item_text(index))
 	return entries
+
+func get_active_contract_summary() -> String:
+	if _active_contract.is_empty():
+		return ""
+	return _contract_service.summarize_contract(_active_contract)
 
 func advance_settlement_playback() -> bool:
 	if _active_state_name != "settling":
@@ -118,7 +146,8 @@ func _build_state_chart() -> void:
 	_add_transition(_boot_state, "BootToPlayerTurn", NodePath("../../PlayerTurn"))
 	_add_transition(_player_turn_state, "PlayerTurnToSettling", NodePath("../../Settling"), "settle")
 	_add_transition(_settling_state, "SettlingToOfferChoice", NodePath("../../OfferChoice"), "settlement_complete")
-	_add_transition(_offer_choice_state, "OfferChoiceToPlayerTurn", NodePath("../../PlayerTurn"), "offer_selected")
+	_add_transition(_offer_choice_state, "OfferChoiceToEventDraft", NodePath("../../EventDraft"), "offer_selected")
+	_add_transition(_event_draft_state, "EventDraftToPlayerTurn", NodePath("../../PlayerTurn"), "event_selected")
 
 	add_child(_state_chart)
 
@@ -149,6 +178,9 @@ func _wire_ui() -> void:
 	_offer_button_1.pressed.connect(_on_offer_button_pressed.bind(0))
 	_offer_button_2.pressed.connect(_on_offer_button_pressed.bind(1))
 	_offer_button_3.pressed.connect(_on_offer_button_pressed.bind(2))
+	_event_button_1.pressed.connect(_on_event_button_pressed.bind(0))
+	_event_button_2.pressed.connect(_on_event_button_pressed.bind(1))
+	_event_button_3.pressed.connect(_on_event_button_pressed.bind(2))
 
 func _build_board_grid() -> void:
 	for child in _board_grid.get_children():
@@ -169,10 +201,13 @@ func _on_state_entered(state_name: String) -> void:
 	_active_state_name = state_name
 	if state_name != "offer_choice":
 		_active_offers.clear()
+	if state_name != "event_draft":
+		_active_event_options.clear()
 	if state_name == "settling" and _pending_steps.is_empty():
 		call_deferred("_complete_settlement")
 	_sync_run_labels()
 	_sync_offer_buttons()
+	_sync_event_draft_ui()
 
 func _select_mode(mode_name: String) -> void:
 	_place_mode_button.set_pressed_no_signal(mode_name == "place")
@@ -233,21 +268,55 @@ func _on_offer_button_pressed(index: int) -> void:
 		"offer_kind": offer.get("kind", ""),
 		"turn": run_session.current_turn,
 	})
-	run_session.current_turn += 1
-	_active_offers.clear()
+	var draft: Dictionary = _event_draft_service.build_offer(
+		_build_snapshot_from_board(),
+		_run_modifier_service.hero_tag_modifiers(_selected_hero) if _selected_hero != null else {},
+		_run_modifier_service.difficulty_tag_modifiers(_selected_difficulty) if _selected_difficulty != null else {}
+	)
+	_active_event_options = draft["options"]
 	_state_chart.send_event("offer_selected")
 	_sync_run_labels()
 	_sync_offer_buttons()
+	_sync_event_draft_ui()
+
+func _on_event_button_pressed(index: int) -> void:
+	if _active_state_name != "event_draft":
+		return
+	if index < 0 or index >= _active_event_options.size():
+		return
+
+	var event_data: Dictionary = _active_event_options[index]
+	_active_contract = _contract_service.build_contract(event_data)
+	if _selected_hero != null:
+		_active_contract["penalty_bundle"] = _run_modifier_service.apply_hero_to_penalty(
+			_selected_hero,
+			_active_contract.get("penalty_bundle", {})
+		)
+	run_session.operation_history.append({
+		"kind": "event_selected",
+		"event_id": event_data.get("id", ""),
+		"turn": run_session.current_turn,
+	})
+	run_session.active_modifiers = [_active_contract.duplicate(true)]
+	run_session.current_turn += 1
+	_state_chart.send_event("event_selected")
+	_sync_run_labels()
+	_sync_event_draft_ui()
 
 func _build_snapshot_from_board():
 	var tokens_in_order: Array = []
+	var board_tags: Dictionary = {}
 	for row in BOARD_HEIGHT:
 		for column in BOARD_WIDTH:
 			var pos := Vector2i(column, row)
 			if _board_service.has_token(pos):
-				tokens_in_order.append(_board_service.get_token(pos))
+				var token = _board_service.get_token(pos)
+				tokens_in_order.append(token)
+				for tag in token.tags:
+					board_tags[tag] = int(board_tags.get(tag, 0)) + 1
 
 	var phase_effects: Dictionary = {}
+	phase_effects["board_tags"] = board_tags
 	if tokens_in_order.size() > 0:
 		phase_effects["base_output"] = [
 			_make_effect(tokens_in_order[0].definition_id, "base_output", 1)
@@ -302,6 +371,7 @@ func _sync_run_labels() -> void:
 	_run_state_label.text = "State %s" % _active_state_name
 	_turn_label.text = "Turn %d" % run_session.current_turn
 	_score_label.text = "Score %d / %d" % [run_session.current_score, run_session.phase_target]
+	_contract_label.text = "Contract %s" % (get_active_contract_summary() if not _active_contract.is_empty() else "None")
 	_mode_label.text = "Mode %s" % _get_mode_name().capitalize()
 
 func _sync_offer_buttons() -> void:
@@ -316,11 +386,33 @@ func _sync_offer_buttons() -> void:
 		button.disabled = not has_offer
 		button.text = _format_offer(_active_offers[index]) if has_offer else ""
 
+func _sync_event_draft_ui() -> void:
+	var buttons := _event_buttons()
+	var show_panel := _active_state_name == "event_draft"
+
+	_event_draft_panel.visible = show_panel
+	_event_summary_label.text = "Choose an event."
+	if show_panel and not _active_event_options.is_empty():
+		_event_summary_label.text = String(_active_event_options[0].get("description", "Choose an event."))
+
+	for index in buttons.size():
+		var button: Button = buttons[index]
+		var has_event := show_panel and index < _active_event_options.size()
+		button.visible = has_event
+		button.disabled = not has_event
+		button.text = _format_event(_active_event_options[index]) if has_event else ""
+
 func _offer_buttons() -> Array[Button]:
 	return [_offer_button_1, _offer_button_2, _offer_button_3]
 
+func _event_buttons() -> Array[Button]:
+	return [_event_button_1, _event_button_2, _event_button_3]
+
 func _format_offer(offer: Dictionary) -> String:
 	return String(offer.get("kind", "offer")).replace("_", " ").capitalize()
+
+func _format_event(event_data: Dictionary) -> String:
+	return "%s [%s]" % [event_data.get("name", event_data.get("id", "Event")), event_data.get("primary_tag", "Tag")]
 
 func _get_mode_name() -> String:
 	if _remove_mode_button.button_pressed:

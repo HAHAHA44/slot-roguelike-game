@@ -513,7 +513,7 @@ git commit -m "feat: add playable board ui and run flow"
 - Test: `tests/unit/core/test_event_draft_service.gd`
 - Test: `tests/unit/core/test_contract_service.gd`
 
-- [ ] **Step 1: 写失败测试，确保事件三选一按盘面标签加权**
+- [x] **Step 1: 写失败测试，确保事件三选一按盘面标签加权**
 
 ```gdscript
 extends GutTest
@@ -523,7 +523,7 @@ func test_event_draft_biases_towards_board_tags() -> void:
 	assert_true(draft.options.any(func(event): return event.primary_tag == "Grow"))
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run:
 
@@ -533,7 +533,7 @@ Run:
 
 Expected: FAIL
 
-- [ ] **Step 3: 实现事件系统 MVP**
+- [x] **Step 3: 实现事件系统 MVP**
 - 支持：
   - `instant`
   - `lasting`
@@ -547,11 +547,11 @@ Expected: FAIL
   - 失败惩罚
 - 失败惩罚不能直接结束本局
 
-- [ ] **Step 4: 做首批 12~15 个事件内容并跑通测试**
+- [x] **Step 4: 做首批 12~15 个事件内容并跑通测试**
 - 每类事件至少 4 个
 - 覆盖 Grow / Break / Link / Guard / Wild 标签倾向
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add scripts/core/services scenes/run/event_draft_panel.tscn content/events tests/unit/core
@@ -569,7 +569,7 @@ git commit -m "feat: add event draft and risk contracts"
 - Create: `tests/unit/core/test_hero_modifiers.gd`
 - Create: `tests/unit/core/test_difficulty_modifiers.gd`
 
-- [ ] **Step 1: 写失败测试，确认主角会影响事件权重或保底**
+- [x] **Step 1: 写失败测试，确认主角会影响事件权重或保底**
 
 ```gdscript
 extends GutTest
@@ -579,7 +579,7 @@ func test_resolve_hero_reduces_crisis_penalty() -> void:
 	assert_lt(result.modified_penalty, result.base_penalty)
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run:
 
@@ -589,16 +589,16 @@ Run:
 
 Expected: FAIL
 
-- [ ] **Step 3: 实现 3 名主角原型**
+- [x] **Step 3: 实现 3 名主角原型**
 - `Insight` 倾向：提高信息质量与可见性
 - `Resolve` 倾向：降低危机惩罚，强化保底稳定性
 - `Flux` 倾向：提高随机收益与异常事件权重
 
-- [ ] **Step 4: 接入 Ascension 1~3**
+- [x] **Step 4: 接入 Ascension 1~3**
 - 每层只增加 1~2 条明确修正
 - 难度修正走数据层，不写死在 UI
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add content/heroes content/difficulty scripts/content tests/unit/core
@@ -615,7 +615,7 @@ git commit -m "feat: add heroes and ascension modifiers"
 - Create: `tests/integration/test_meta_save_load.gd`
 - Install later: `addons/locker/`
 
-- [ ] **Step 1: 写失败测试，确认一次 run 结果能解锁局外节点**
+- [x] **Step 1: 写失败测试，确认一次 run 结果能解锁局外节点**
 
 ```gdscript
 extends GutTest
@@ -626,7 +626,7 @@ func test_win_result_unlocks_meta_node() -> void:
 	assert_true(service.is_unlocked("hero_flux"))
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run:
 
@@ -636,7 +636,7 @@ Run:
 
 Expected: FAIL
 
-- [ ] **Step 3: 接入 Meta 与存档**
+- [x] **Step 3: 接入 Meta 与存档**
 - 先做抽象接口 `SaveService`
 - 若纯 JSON 存档已经足够，先自己实现极简版
 - 当出现以下任一条件，再接入 `Locker`：
@@ -645,14 +645,14 @@ Expected: FAIL
   - 异步大数据写入
   - 难度/角色/解锁跨版本兼容
 
-- [ ] **Step 4: 做存档回归测试**
+- [x] **Step 4: 做存档回归测试**
 - 覆盖：
   - 新档创建
   - Run 结束写回
   - 解锁节点保留
   - 版本号变更后的向前兼容
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add autoload/save_service.gd scripts/meta scenes/meta content/meta tests/integration/test_meta_save_load.gd
@@ -671,7 +671,7 @@ git commit -m "feat: add meta progression and save flow"
 - Create: `tests/unit/core/test_endless_service.gd`
 - Create: `tests/unit/core/test_anomaly_rules.gd`
 
-- [ ] **Step 1: 写失败测试，确认 Endless 难度会继续抬升**
+- [x] **Step 1: 写失败测试，确认 Endless 难度会继续抬升**
 
 ```gdscript
 extends GutTest
@@ -681,7 +681,7 @@ func test_endless_target_increases_predictably() -> void:
 	assert_gt(service.get_target_for_loop(2), service.get_target_for_loop(1))
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run:
 
@@ -691,7 +691,7 @@ Run:
 
 Expected: FAIL
 
-- [ ] **Step 3: 实现后期系统**
+- [x] **Step 3: 实现后期系统**
 - Endless：标准通关后沿用当前盘面继续抬压
 - 异常事件：
   - 临时扩展列
@@ -700,7 +700,7 @@ Expected: FAIL
   - 临时 `6x6`
 - 所有异常规则必须走模块化声明，不污染基础 5x5 实现
 
-- [ ] **Step 4: 做平衡专项回归**
+- [x] **Step 4: 做平衡专项回归**
 - 覆盖：
   - 复制闭环上限
   - 永久成长上限
@@ -708,7 +708,7 @@ Expected: FAIL
   - Wild Token 不成为所有流派通吃件
   - 多格 Token 不直接成为最优解
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add scripts/core/services/endless_service.gd content/anomalies scenes/endless docs/engineering/balance-checklist.md tests/unit/core

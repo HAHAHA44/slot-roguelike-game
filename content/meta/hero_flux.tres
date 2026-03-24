@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MetaUnlockDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/meta_unlock_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hero_flux"
+name = "Unlock Flux Nomad"
+unlock_type = "hero"
+cost = 1
+rewards = {
+"hero_id": "flux_nomad"
+}
