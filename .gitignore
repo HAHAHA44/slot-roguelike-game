@@ -1,6 +1,7 @@
 .godot/
 .import/
 .vscode/
+.worktree/
 export_presets.cfg
 *.translation
 mono_crash.*
