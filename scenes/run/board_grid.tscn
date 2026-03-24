@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[node name="BoardGrid" type="GridContainer"]
+columns = 5
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+

@@ -1,0 +1,67 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/run_screen.gd" id="1_run_screen"]
+[ext_resource type="PackedScene" path="res://scenes/run/board_grid.tscn" id="2_board_grid"]
+[ext_resource type="PackedScene" path="res://scenes/run/turn_controls.tscn" id="3_turn_controls"]
+[ext_resource type="PackedScene" path="res://scenes/run/settlement_log_panel.tscn" id="4_log_panel"]
+
+[node name="RunScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_run_screen")
+
+[node name="MainMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="MainLayout" type="VBoxContainer" parent="MainMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="HeaderRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="RunStateLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
+unique_name_in_owner = true
+text = "State boot"
+
+[node name="TurnLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
+unique_name_in_owner = true
+text = "Turn 1"
+
+[node name="ScoreLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
+unique_name_in_owner = true
+text = "Score 0 / 10"
+
+[node name="ContentRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="BoardGrid" parent="MainMargin/MainLayout/ContentRow" instance=ExtResource("2_board_grid")]
+unique_name_in_owner = true
+
+[node name="Sidebar" type="VBoxContainer" parent="MainMargin/MainLayout/ContentRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="TurnControls" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("3_turn_controls")]
+
+[node name="SettlementLogPanel" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("4_log_panel")]
+unique_name_in_owner = true
+

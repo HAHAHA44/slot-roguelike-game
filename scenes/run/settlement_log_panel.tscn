@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[node name="SettlementLogPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(280, 0)
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer"]
+theme_override_constants/separation = 8
+
+[node name="LogTitle" type="Label" parent="MarginContainer/VBox"]
+text = "Settlement Log"
+
+[node name="SettlementLogList" type="ItemList" parent="MarginContainer/VBox"]
+unique_name_in_owner = true
+size_flags_vertical = 3
+
