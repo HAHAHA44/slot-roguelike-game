@@ -46,7 +46,7 @@ func test_remove_mode_clears_an_occupied_cell() -> void:
 
 	assert_eq(cell.text, "")
 
-func test_settlement_playback_stays_in_order_until_all_steps_are_consumed() -> void:
+func test_settlement_autoplay_reaches_offer_choice_in_order() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:
 		return
@@ -63,19 +63,12 @@ func test_settlement_playback_stays_in_order_until_all_steps_are_consumed() -> v
 	assert_eq(scene.get_active_state_name(), "settling")
 	assert_eq(scene.get_settlement_log_entries().size(), 0)
 
-	assert_true(scene.advance_settlement_playback())
+	await _wait_for_state(scene, "offer_choice")
+
+	assert_eq(scene.get_settlement_log_entries().size(), 4)
 	assert_eq(scene.get_settlement_log_entries()[0], "00 | base_output | +1")
-	assert_eq(scene.get_active_state_name(), "settling")
-
-	assert_true(scene.advance_settlement_playback())
 	assert_eq(scene.get_settlement_log_entries()[1], "01 | adjacency | +2")
-	assert_eq(scene.get_active_state_name(), "settling")
-
-	assert_true(scene.advance_settlement_playback())
 	assert_eq(scene.get_settlement_log_entries()[2], "02 | row_column | +3")
-	assert_eq(scene.get_active_state_name(), "settling")
-
-	assert_true(scene.advance_settlement_playback())
 	assert_eq(scene.get_settlement_log_entries()[3], "03 | cleanup | +0")
 	assert_eq(scene.get_active_state_name(), "offer_choice")
 
@@ -93,8 +86,7 @@ func test_offer_selection_transitions_through_event_draft() -> void:
 		cell.emit_signal("pressed")
 
 	settle_button.emit_signal("pressed")
-	while scene.advance_settlement_playback():
-		pass
+	await _wait_for_state(scene, "offer_choice")
 
 	assert_eq(scene.get_active_state_name(), "offer_choice")
 
@@ -118,3 +110,11 @@ func _spawn_run_screen():
 	await get_tree().process_frame
 	await get_tree().process_frame
 	return scene
+
+func _wait_for_state(scene, expected_state: String, max_frames: int = 20) -> void:
+	for _index in max_frames:
+		if scene.get_active_state_name() == expected_state:
+			return
+		await get_tree().process_frame
+
+	assert_eq(scene.get_active_state_name(), expected_state)

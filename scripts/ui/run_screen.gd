@@ -39,6 +39,7 @@ var _active_offers: Array = []
 var _active_event_options: Array = []
 var _active_contract: Dictionary = {}
 var _active_state_name: String = ""
+var _settlement_autoplay_running := false
 
 var _state_chart
 var _boot_state
@@ -199,12 +200,16 @@ func _build_board_grid() -> void:
 
 func _on_state_entered(state_name: String) -> void:
 	_active_state_name = state_name
+	if state_name != "settling":
+		_settlement_autoplay_running = false
 	if state_name != "offer_choice":
 		_active_offers.clear()
 	if state_name != "event_draft":
 		_active_event_options.clear()
 	if state_name == "settling" and _pending_steps.is_empty():
 		call_deferred("_complete_settlement")
+	elif state_name == "settling":
+		call_deferred("_start_settlement_autoplay")
 	_sync_run_labels()
 	_sync_offer_buttons()
 	_sync_event_draft_ui()
@@ -355,6 +360,26 @@ func _complete_settlement() -> void:
 	_active_offers = _reward_offer_service.build_turn_offer(run_session)
 	_state_chart.send_event("settlement_complete")
 	_sync_offer_buttons()
+
+func _start_settlement_autoplay() -> void:
+	if _settlement_autoplay_running:
+		return
+	if _active_state_name != "settling":
+		return
+	if _pending_steps.is_empty():
+		return
+
+	_settlement_autoplay_running = true
+	_run_settlement_autoplay()
+
+func _run_settlement_autoplay() -> void:
+	while _active_state_name == "settling" and not _pending_steps.is_empty():
+		advance_settlement_playback()
+		if _active_state_name != "settling" or _pending_steps.is_empty():
+			break
+		await get_tree().process_frame
+
+	_settlement_autoplay_running = false
 
 func _sync_board_ui() -> void:
 	for pos in _cell_buttons_by_pos.keys():
