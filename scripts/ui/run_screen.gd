@@ -39,6 +39,8 @@ var _active_offers: Array = []
 var _active_event_options: Array = []
 var _active_contract: Dictionary = {}
 var _active_state_name: String = ""
+var _settlement_autoplay_running := false
+var _last_settlement_score_gain := 0
 
 var _state_chart
 var _boot_state
@@ -85,14 +87,17 @@ func _ready() -> void:
 func get_active_state_name() -> String:
 	return _active_state_name
 
-func _default_token_tags() -> PackedStringArray:
-	return PackedStringArray(["Grow"])
-
 func get_settlement_log_entries() -> Array[String]:
 	var entries: Array[String] = []
 	for index in _settlement_log_list.item_count:
 		entries.append(_settlement_log_list.get_item_text(index))
 	return entries
+
+func get_active_placement_token_id() -> String:
+	return run_session.get_active_token_id()
+
+func get_active_contract_data() -> Dictionary:
+	return _active_contract.duplicate(true)
 
 func get_active_contract_summary() -> String:
 	if _active_contract.is_empty():
@@ -108,6 +113,7 @@ func advance_settlement_playback() -> bool:
 	var step = _pending_steps.pop_front()
 	_append_log_entry(step)
 	run_session.current_score += step.score_delta
+	_last_settlement_score_gain += step.score_delta
 	_sync_run_labels()
 
 	if _pending_steps.is_empty():
@@ -159,9 +165,9 @@ func _build_state_chart() -> void:
 	_run_failed_state.state_entered.connect(_on_state_entered.bind("run_failed"))
 	_run_cleared_state.state_entered.connect(_on_state_entered.bind("run_cleared"))
 
-func _make_state(name: String):
+func _make_state(state_name: String):
 	var state = AtomicStateScript.new()
-	state.name = name
+	state.name = state_name
 	return state
 
 func _add_transition(from_state, transition_name: String, target_path: NodePath, event_name: StringName = "") -> void:
@@ -199,12 +205,16 @@ func _build_board_grid() -> void:
 
 func _on_state_entered(state_name: String) -> void:
 	_active_state_name = state_name
+	if state_name != "settling":
+		_settlement_autoplay_running = false
 	if state_name != "offer_choice":
 		_active_offers.clear()
 	if state_name != "event_draft":
 		_active_event_options.clear()
 	if state_name == "settling" and _pending_steps.is_empty():
 		call_deferred("_complete_settlement")
+	elif state_name == "settling":
+		call_deferred("_start_settlement_autoplay")
 	_sync_run_labels()
 	_sync_offer_buttons()
 	_sync_event_draft_ui()
@@ -217,7 +227,7 @@ func _select_mode(mode_name: String) -> void:
 		"mode": mode_name,
 		"turn": run_session.current_turn,
 	})
-	_mode_label.text = "Mode %s" % mode_name.capitalize()
+	_sync_run_labels()
 
 func _on_cell_pressed(pos: Vector2i) -> void:
 	if _active_state_name != "player_turn":
@@ -228,13 +238,15 @@ func _on_cell_pressed(pos: Vector2i) -> void:
 		if _board_service.has_token(pos):
 			return
 
-		var token = TokenInstanceScript.new(DEFAULT_TOKEN_ID, _default_token_tags())
+		var token := _make_active_token_instance()
 		if _board_service.place_token(pos, token):
 			run_session.operation_history.append({
 				"kind": "place_token",
+				"token_id": token.definition_id,
 				"position": {"x": pos.x, "y": pos.y},
 				"turn": run_session.current_turn,
 			})
+			run_session.advance_token_cursor()
 	elif current_mode == "remove":
 		var removed = _board_service.remove_token(pos)
 		if removed != null:
@@ -253,6 +265,7 @@ func _on_settle_pressed() -> void:
 	var snapshot = _build_snapshot_from_board()
 	var report = _settlement_resolver.resolve(snapshot)
 	_pending_steps = report.steps.duplicate()
+	_last_settlement_score_gain = 0
 	_settlement_log_list.clear()
 	_state_chart.send_event("settle")
 
@@ -263,9 +276,12 @@ func _on_offer_button_pressed(index: int) -> void:
 		return
 
 	var offer: Dictionary = _active_offers[index]
+	var reward_resolution := _reward_offer_service.apply_offer(run_session, offer)
 	run_session.operation_history.append({
 		"kind": "offer_selected",
 		"offer_kind": offer.get("kind", ""),
+		"token_id": reward_resolution.get("token_id", ""),
+		"active_token_id": reward_resolution.get("active_token_id", ""),
 		"turn": run_session.current_turn,
 	})
 	var draft: Dictionary = _event_draft_service.build_offer(
@@ -344,6 +360,17 @@ func _make_effect(source_token: String, phase_name: String, score_delta: int) ->
 		"message_key": phase_name,
 	}
 
+func _make_active_token_instance() -> TokenInstance:
+	var token_id := run_session.get_active_token_id()
+	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
+	if definition == null:
+		return TokenInstanceScript.new(DEFAULT_TOKEN_ID, PackedStringArray(["Grow"]))
+	return TokenInstanceScript.new(
+		definition.id,
+		definition.tags,
+		definition.state_fields.duplicate(true)
+	)
+
 func _append_log_entry(step) -> void:
 	var delta_text := "%+d" % step.score_delta
 	_settlement_log_list.add_item("%02d | %s | %s" % [step.sequence_index, step.phase, delta_text])
@@ -352,9 +379,55 @@ func _complete_settlement() -> void:
 	if _active_state_name != "settling":
 		return
 
-	_active_offers = _reward_offer_service.build_turn_offer(run_session)
+	_advance_active_contract()
+	_active_offers = _reward_offer_service.build_turn_offer(run_session, _content_registry)
 	_state_chart.send_event("settlement_complete")
 	_sync_offer_buttons()
+
+func _start_settlement_autoplay() -> void:
+	if _settlement_autoplay_running:
+		return
+	if _active_state_name != "settling":
+		return
+	if _pending_steps.is_empty():
+		return
+
+	_settlement_autoplay_running = true
+	_run_settlement_autoplay()
+
+func _run_settlement_autoplay() -> void:
+	while _active_state_name == "settling" and not _pending_steps.is_empty():
+		advance_settlement_playback()
+		if _active_state_name != "settling" or _pending_steps.is_empty():
+			break
+		await get_tree().process_frame
+
+	_settlement_autoplay_running = false
+
+func _advance_active_contract() -> void:
+	if _active_contract.is_empty():
+		return
+	if String(_active_contract.get("status", "active")) != "active":
+		return
+
+	_active_contract = _contract_service.advance_contract(_active_contract, {
+		"score_gained": _last_settlement_score_gain,
+	})
+	var status := String(_active_contract.get("status", "active"))
+	if status == "success" or status == "failed":
+		var score_delta := _contract_service.apply_resolution_score_delta(_active_contract)
+		run_session.current_score = max(0, run_session.current_score + score_delta)
+		run_session.operation_history.append({
+			"kind": "contract_resolved",
+			"status": status,
+			"score_delta": score_delta,
+			"turn": run_session.current_turn,
+		})
+		_active_contract.clear()
+		run_session.active_modifiers = []
+	else:
+		run_session.active_modifiers = [_active_contract.duplicate(true)]
+	_sync_run_labels()
 
 func _sync_board_ui() -> void:
 	for pos in _cell_buttons_by_pos.keys():
@@ -372,7 +445,7 @@ func _sync_run_labels() -> void:
 	_turn_label.text = "Turn %d" % run_session.current_turn
 	_score_label.text = "Score %d / %d" % [run_session.current_score, run_session.phase_target]
 	_contract_label.text = "Contract %s" % (get_active_contract_summary() if not _active_contract.is_empty() else "None")
-	_mode_label.text = "Mode %s" % _get_mode_name().capitalize()
+	_mode_label.text = "Mode %s | Next %s" % [_get_mode_name().capitalize(), _format_token_name(get_active_placement_token_id())]
 
 func _sync_offer_buttons() -> void:
 	var buttons := _offer_buttons()
@@ -409,10 +482,22 @@ func _event_buttons() -> Array[Button]:
 	return [_event_button_1, _event_button_2, _event_button_3]
 
 func _format_offer(offer: Dictionary) -> String:
-	return String(offer.get("kind", "offer")).replace("_", " ").capitalize()
+	var label := String(offer.get("kind", "offer")).replace("_", " ").capitalize()
+	var token_id := String(offer.get("token_id", ""))
+	if not token_id.is_empty():
+		label += " %s" % _format_token_name(token_id)
+	return label
 
 func _format_event(event_data: Dictionary) -> String:
 	return "%s [%s]" % [event_data.get("name", event_data.get("id", "Event")), event_data.get("primary_tag", "Tag")]
+
+func _format_token_name(token_id: String) -> String:
+	if token_id.is_empty():
+		return "No-op"
+	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
+	if definition != null:
+		return definition.name
+	return token_id.replace("_", " ").capitalize()
 
 func _get_mode_name() -> String:
 	if _remove_mode_button.button_pressed:
