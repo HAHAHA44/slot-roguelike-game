@@ -55,6 +55,24 @@ func advance_token_cursor() -> void:
 		return
 	token_cursor = posmod(token_cursor + 1, token_pool.size())
 
+# -- bag-roll pool helpers (concrete multiset, duplicates allowed) ------------
+
+# Append one concrete entry to the pool (duplicates allowed).
+func pool_add(token_id: String) -> void:
+	token_pool.append(token_id)
+
+# Remove one entry with the given id. Returns true if an entry was removed.
+func pool_remove(token_id: String) -> bool:
+	var idx := token_pool.find(token_id)
+	if idx == -1:
+		return false
+	token_pool.remove_at(idx)
+	return true
+
+# Count how many entries with this id are in the pool.
+func pool_count(token_id: String) -> int:
+	return token_pool.count(token_id)
+
 func to_dict() -> Dictionary:
 	return {
 		"schema_version": schema_version,
