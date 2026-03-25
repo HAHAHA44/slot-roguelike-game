@@ -8,11 +8,12 @@
 
 **Tech Stack:** Godot 4.6.1-stable, GDScript, GUT, Godot State Charts
 
-**Execution Status (2026-03-24):**
+**Execution Status (2026-03-25):**
 - Task 0 is complete.
 - The settlement autoplay gap is closed, so `Settle -> offer -> event -> next turn` is now playable.
-- Reward mutation is being executed as its own playable-first step before contract lifecycle.
-- The next planned implementation step after this document update is contract lifecycle.
+- Task 3A reward mutation is complete.
+- Task 3B contract lifecycle is complete.
+- The next planned implementation step after this document update is Task 4.
 
 ---
 
@@ -365,7 +366,7 @@ Expected: FAIL because offers do not include real content yet.
 - Modify: `tests/unit/core/test_contract_service.gd`
 - Modify: `tests/integration/test_run_screen_flow.gd`
 
-- [ ] **Step 1: Write failing tests for contract advancement**
+- [x] **Step 1: Write failing tests for contract advancement**
 
 ```gdscript
 extends GutTest
@@ -382,7 +383,7 @@ func test_contract_turns_tick_down_and_fail_cleanly() -> void:
 	assert_eq(advanced["turns_remaining"], 1)
 ```
 
-- [ ] **Step 2: Run targeted tests to verify failure**
+- [x] **Step 2: Run targeted tests to verify failure**
 
 Run:
 
@@ -392,7 +393,7 @@ Run:
 
 Expected: FAIL because contracts do not advance yet.
 
-- [ ] **Step 3: Implement contract lifecycle**
+- [x] **Step 3: Implement contract lifecycle**
 
 - `ContractService` must support:
   - `advance_contract()`
@@ -402,7 +403,7 @@ Expected: FAIL because contracts do not advance yet.
 - Reward and penalty execution must be deterministic and testable
 - If a contract is unsupported in a given intermediate build, it must degrade to a safe no-op summary instead of breaking the turn loop
 
-- [ ] **Step 4: Re-run contract/reward tests plus the playable smoke flow, then commit**
+- [x] **Step 4: Re-run contract/reward tests plus the playable smoke flow, then commit**
 
 Run:
 
@@ -415,8 +416,8 @@ Run:
 Expected: PASS, and the integration flow keeps reward mutation while contracts also advance cleanly.
 
 ```powershell
-git add scripts/core/services/reward_offer_service.gd scripts/core/services/contract_service.gd autoload/run_session.gd scripts/ui/run_screen.gd tests/unit/core/test_reward_offer_service.gd tests/unit/core/test_contract_service.gd tests/integration/test_run_screen_flow.gd
-git commit -m "feat: make rewards and contracts mutate real run state"
+git add scripts/core/services/contract_service.gd scripts/ui/run_screen.gd tests/unit/core/test_contract_service.gd tests/integration/test_run_screen_flow.gd docs/superpowers/plans/2026-03-24-honest-vertical-slice-plan.md
+git commit -m "feat: add contract lifecycle to playable run loop"
 ```
 
 ### Task 4: Fix Hero / Difficulty / Event Draft Integration And Close The Main Loop

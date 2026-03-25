@@ -40,6 +40,7 @@ var _active_event_options: Array = []
 var _active_contract: Dictionary = {}
 var _active_state_name: String = ""
 var _settlement_autoplay_running := false
+var _last_settlement_score_gain := 0
 
 var _state_chart
 var _boot_state
@@ -95,6 +96,9 @@ func get_settlement_log_entries() -> Array[String]:
 func get_active_placement_token_id() -> String:
 	return run_session.get_active_token_id()
 
+func get_active_contract_data() -> Dictionary:
+	return _active_contract.duplicate(true)
+
 func get_active_contract_summary() -> String:
 	if _active_contract.is_empty():
 		return ""
@@ -109,6 +113,7 @@ func advance_settlement_playback() -> bool:
 	var step = _pending_steps.pop_front()
 	_append_log_entry(step)
 	run_session.current_score += step.score_delta
+	_last_settlement_score_gain += step.score_delta
 	_sync_run_labels()
 
 	if _pending_steps.is_empty():
@@ -260,6 +265,7 @@ func _on_settle_pressed() -> void:
 	var snapshot = _build_snapshot_from_board()
 	var report = _settlement_resolver.resolve(snapshot)
 	_pending_steps = report.steps.duplicate()
+	_last_settlement_score_gain = 0
 	_settlement_log_list.clear()
 	_state_chart.send_event("settle")
 
@@ -373,6 +379,7 @@ func _complete_settlement() -> void:
 	if _active_state_name != "settling":
 		return
 
+	_advance_active_contract()
 	_active_offers = _reward_offer_service.build_turn_offer(run_session, _content_registry)
 	_state_chart.send_event("settlement_complete")
 	_sync_offer_buttons()
@@ -396,6 +403,31 @@ func _run_settlement_autoplay() -> void:
 		await get_tree().process_frame
 
 	_settlement_autoplay_running = false
+
+func _advance_active_contract() -> void:
+	if _active_contract.is_empty():
+		return
+	if String(_active_contract.get("status", "active")) != "active":
+		return
+
+	_active_contract = _contract_service.advance_contract(_active_contract, {
+		"score_gained": _last_settlement_score_gain,
+	})
+	var status := String(_active_contract.get("status", "active"))
+	if status == "success" or status == "failed":
+		var score_delta := _contract_service.apply_resolution_score_delta(_active_contract)
+		run_session.current_score = max(0, run_session.current_score + score_delta)
+		run_session.operation_history.append({
+			"kind": "contract_resolved",
+			"status": status,
+			"score_delta": score_delta,
+			"turn": run_session.current_turn,
+		})
+		_active_contract.clear()
+		run_session.active_modifiers = []
+	else:
+		run_session.active_modifiers = [_active_contract.duplicate(true)]
+	_sync_run_labels()
 
 func _sync_board_ui() -> void:
 	for pos in _cell_buttons_by_pos.keys():

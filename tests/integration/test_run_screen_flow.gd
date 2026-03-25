@@ -131,6 +131,40 @@ func test_add_reward_changes_the_next_token_you_place() -> void:
 
 	assert_eq(new_cell.tooltip_text, rewarded_token_id)
 
+func test_contract_turns_tick_after_the_next_scored_turn() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	var board_grid: Node = scene.get_node("%BoardGrid")
+	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
+	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
+	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
+
+	for index in [0, 1, 2]:
+		var cell := board_grid.get_child(index) as Button
+		cell.emit_signal("pressed")
+
+	settle_button.emit_signal("pressed")
+	await _wait_for_state(scene, "offer_choice")
+	offer_button.emit_signal("pressed")
+	event_button.emit_signal("pressed")
+
+	var initial_contract: Dictionary = scene.get_active_contract_data()
+	var initial_turns := int(initial_contract.get("turns_remaining", 0))
+
+	for index in [3, 4, 5]:
+		var next_cell := board_grid.get_child(index) as Button
+		next_cell.emit_signal("pressed")
+
+	settle_button.emit_signal("pressed")
+	await _wait_for_state(scene, "offer_choice")
+
+	var advanced_contract: Dictionary = scene.get_active_contract_data()
+	assert_eq(int(advanced_contract.get("turns_remaining", 0)), initial_turns - 1)
+	assert_eq(advanced_contract.get("status", ""), "active")
+	assert_gt(int(advanced_contract.get("progress_value", 0)), 0)
+
 func _spawn_run_screen():
 	var packed_scene: PackedScene = load("res://scenes/run/run_screen.tscn")
 	assert_not_null(packed_scene)
