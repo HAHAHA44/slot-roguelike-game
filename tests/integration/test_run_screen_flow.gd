@@ -1,5 +1,19 @@
 extends GutTest
 
+func test_smoke_playable_path_still_works() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	var board_grid: Node = scene.get_node("%BoardGrid")
+	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
+
+	var cell := board_grid.get_child(0) as Button
+	cell.emit_signal("pressed")
+	settle_button.emit_signal("pressed")
+
+	assert_true(scene.get_active_state_name() in ["settling", "offer_choice", "event_draft", "player_turn"])
+
 func test_run_screen_builds_25_cells() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:
