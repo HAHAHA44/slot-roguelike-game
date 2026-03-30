@@ -4,17 +4,21 @@
 
 [resource]
 script = ExtResource("1")
+# 中继棱镜：支援型 token，复制同行所有 token 的结算触发，相当于行内效果翻倍
 id = "relay_prism"
 name = "Relay Prism"
 description = "A triangular amplifier that refracts triggers. Copies the effect of every other token in the same row, firing them a second time."
 rarity = "Uncommon"
 type = "Support"
+# Link 标签：与同行 token 形成联动
 tags = PackedStringArray("Link")
 base_value = 2
+# 结算时将同行其他 token 的触发效果各执行一次额外副本
 trigger_rules = {
 "copy_row_trigger": true
 }
 state_fields = {}
+# 出现概率略低于 Common（0.75 vs 1.0）
 spawn_rules = {
 "weight": 0.75
 }
