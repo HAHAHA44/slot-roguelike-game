@@ -26,7 +26,6 @@ const RARITY_COLORS := {
 const BoardServiceScript := preload("res://scripts/core/services/board_service.gd")
 const BoardRollServiceScript := preload("res://scripts/core/services/board_roll_service.gd")
 const TokenInstanceScript := preload("res://scripts/core/value_objects/token_instance.gd")
-const RunSnapshotScript := preload("res://scripts/core/value_objects/run_snapshot.gd")
 const SettlementResolverScript := preload("res://scripts/core/services/settlement_resolver.gd")
 const RewardOfferServiceScript := preload("res://scripts/core/services/reward_offer_service.gd")
 const RunSessionScript := preload("res://autoload/run_session.gd")
@@ -367,8 +366,7 @@ func _on_settle_pressed() -> void:
 	if _active_state_name != "player_turn":
 		return
 
-	var snapshot = _build_snapshot_from_board()
-	var report = _settlement_resolver.resolve(snapshot)
+	var report = _settlement_resolver.resolve_board(_board_service, _content_registry)
 	_pending_steps = report.steps.duplicate()
 	_last_settlement_score_gain = 0
 	_settlement_log_list.clear()
@@ -380,8 +378,7 @@ func _on_next_turn_pressed() -> void:
 		return
 
 	_roll_board_from_pool()
-	var snapshot = _build_snapshot_from_board()
-	var report = _settlement_resolver.resolve(snapshot)
+	var report = _settlement_resolver.resolve_board(_board_service, _content_registry)
 	_pending_steps = report.steps.duplicate()
 	_last_settlement_score_gain = 0
 	_settlement_log_list.clear()
@@ -408,7 +405,7 @@ func _on_offer_button_pressed(index: int) -> void:
 		"turn": run_session.current_turn,
 	})
 	var draft: Dictionary = _event_draft_service.build_offer(
-		_build_snapshot_from_board(),
+		_settlement_resolver.build_snapshot(_board_service, _content_registry),
 		_run_modifier_service.hero_tag_modifiers(_selected_hero) if _selected_hero != null else {},
 		_run_modifier_service.difficulty_tag_modifiers(_selected_difficulty) if _selected_difficulty != null else {}
 	)
@@ -526,52 +523,6 @@ func _advance_active_contract() -> void:
 	else:
 		run_session.active_modifiers = [_active_contract.duplicate(true)]
 	_sync_run_labels()
-
-# ---------------------------------------------------------------------------
-# Snapshot (transitional synthetic builder – real scorer comes in later task)
-# ---------------------------------------------------------------------------
-
-func _build_snapshot_from_board():
-	var tokens_in_order: Array = []
-	var board_tags: Dictionary = {}
-	for row in BOARD_HEIGHT:
-		for column in BOARD_WIDTH:
-			var pos := Vector2i(column, row)
-			if _board_service.has_token(pos):
-				var token = _board_service.get_token(pos)
-				tokens_in_order.append(token)
-				for tag in token.tags:
-					board_tags[tag] = int(board_tags.get(tag, 0)) + 1
-
-	var phase_effects: Dictionary = {}
-	phase_effects["board_tags"] = board_tags
-	if tokens_in_order.size() > 0:
-		phase_effects["base_output"] = [
-			_make_effect(tokens_in_order[0].definition_id, "base_output", 1)
-		]
-	if tokens_in_order.size() > 1:
-		phase_effects["adjacency"] = [
-			_make_effect(tokens_in_order[1].definition_id, "adjacency", 2)
-		]
-	if tokens_in_order.size() > 2:
-		phase_effects["row_column"] = [
-			_make_effect(tokens_in_order[2].definition_id, "row_column", 3)
-		]
-
-	phase_effects["cleanup"] = [
-		_make_effect("system", "cleanup", 0)
-	]
-
-	return RunSnapshotScript.new(phase_effects)
-
-func _make_effect(source_token: String, phase_name: String, score_delta: int) -> Dictionary:
-	var resolved_score_delta := 0 if source_token == EMPTY_TOKEN_ID else score_delta
-	return {
-		"source_token": source_token,
-		"target_token": source_token,
-		"score_delta": resolved_score_delta,
-		"message_key": phase_name,
-	}
 
 # ---------------------------------------------------------------------------
 # Token helpers

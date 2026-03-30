@@ -1,8 +1,7 @@
 # 结算解析器：
-# - 按固定 phase 顺序，把 `RunSnapshot` 里的结算输入展开成逐步的 `SettlementReport`。
-# - 它是纯规则层：消费快照，输出步骤、总分变化和警告，不碰 UI，也不直接改 `RunSession`。
-# - 具备保护阈值，避免循环触发太深导致死循环或无限回放。
-# - 典型联动：`RunScreen` 在 `settling` 状态调用它，再把 `steps` 一条条写入日志并播放给玩家看。
+# - 对外暴露 `resolve_board(board, registry)`，内部先构建 RunSnapshot，再按 phase 展开成 SettlementReport。
+# - `build_snapshot(board, registry)` 也作为公开方法，供 EventDraftService 等只需要快照的调用方使用。
+# - 它是纯规则层：不碰 UI，不直接改 RunSession，具备保护阈值避免死循环。
 class_name SettlementResolver
 extends RefCounted
 
@@ -17,6 +16,46 @@ const PHASES: Array[String] = [
 
 const MAX_ITERATION_DEPTH := 16
 const MAX_TRIGGER_COUNT_PER_TOKEN := 8
+const EMPTY_TOKEN_ID := "empty_token"
+
+# ---------------------------------------------------------------------------
+# 公开 API
+# ---------------------------------------------------------------------------
+
+func resolve_board(board: BoardService, registry: ContentRegistry) -> SettlementReport:
+	var snapshot := build_snapshot(board, registry)
+	return resolve(snapshot)
+
+func build_snapshot(board: BoardService, registry: ContentRegistry) -> RunSnapshot:
+	var tokens_in_order: Array = []
+	var board_tags: Dictionary = {}
+
+	for row in board.height:
+		for column in board.width:
+			var pos := Vector2i(column, row)
+			if board.has_token(pos):
+				var token = board.get_token(pos)
+				tokens_in_order.append(token)
+				for tag in token.tags:
+					board_tags[tag] = int(board_tags.get(tag, 0)) + 1
+
+	var phase_effects: Dictionary = {}
+	phase_effects["board_tags"] = board_tags
+
+	# base_output：每个非空 token 贡献 base_value 分
+	var base_effects: Array = []
+	for token in tokens_in_order:
+		if token.definition_id == EMPTY_TOKEN_ID:
+			continue
+		var definition: TokenDefinition = registry.tokens.get(token.definition_id)
+		var base_val: int = definition.base_value if definition else 1
+		base_effects.append(_make_effect(token.definition_id, "base_output", base_val))
+	if base_effects.size() > 0:
+		phase_effects["base_output"] = base_effects
+
+	phase_effects["cleanup"] = [_make_effect("system", "cleanup", 0)]
+
+	return RunSnapshot.new(phase_effects)
 
 func resolve(snapshot: RunSnapshot) -> SettlementReport:
 	var report := SettlementReport.new()
@@ -56,6 +95,18 @@ func resolve(snapshot: RunSnapshot) -> SettlementReport:
 		report.warnings.append("settlement stopped early because a trigger limit was hit")
 
 	return report
+
+# ---------------------------------------------------------------------------
+# 私有辅助
+# ---------------------------------------------------------------------------
+
+func _make_effect(source_token: String, phase_name: String, score_delta: int) -> Dictionary:
+	return {
+		"source_token": source_token,
+		"target_token": source_token,
+		"score_delta": score_delta,
+		"message_key": phase_name,
+	}
 
 func _count_requested_steps(snapshot: RunSnapshot) -> int:
 	var total := 0
