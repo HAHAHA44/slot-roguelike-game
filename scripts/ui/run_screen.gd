@@ -667,7 +667,17 @@ func _sync_bag_panel() -> void:
 		_bag_list.add_child(empty_label)
 		return
 
-	for token_id in counts.keys():
+	const RARITY_ORDER := ["Legendary", "Rare", "Uncommon", "Common"]
+	var sorted_ids := counts.keys()
+	sorted_ids.sort_custom(func(a, b):
+		var def_a: TokenDefinition = _content_registry.tokens.get(a)
+		var def_b: TokenDefinition = _content_registry.tokens.get(b)
+		var ra := def_a.rarity if def_a else "Common"
+		var rb := def_b.rarity if def_b else "Common"
+		return RARITY_ORDER.find(ra) < RARITY_ORDER.find(rb)
+	)
+
+	for token_id in sorted_ids:
 		var definition: TokenDefinition = _content_registry.tokens.get(token_id)
 		var rarity: String = definition.rarity if definition else "Common"
 		var display_name: String = definition.name if definition else token_id
@@ -676,26 +686,22 @@ func _sync_bag_panel() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 
-		# 图标
+		# 图标（带稀有度背景）
 		var icon_tex := _get_token_icon(token_id)
-		var icon_rect := TextureRect.new()
-		icon_rect.custom_minimum_size = Vector2(40, 40)
-		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		var icon_bg := PanelContainer.new()
+		icon_bg.custom_minimum_size = Vector2(40, 40)
+		icon_bg.add_theme_stylebox_override("panel", _get_rarity_style(rarity))
 		if icon_tex:
+			var icon_rect := TextureRect.new()
 			icon_rect.texture = icon_tex
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			icon_bg.add_child(icon_rect)
 		else:
 			var placeholder := Label.new()
 			placeholder.text = token_id.left(2).to_upper()
-			placeholder.custom_minimum_size = Vector2(40, 40)
-			row.add_child(placeholder)
-		row.add_child(icon_rect)
-
-		# 稀有度色块
-		var rarity_tag := Label.new()
-		rarity_tag.text = rarity
-		rarity_tag.add_theme_color_override("font_color",
-			RARITY_COLORS.get(rarity, RARITY_COLORS["Common"]).lightened(0.6))
+			icon_bg.add_child(placeholder)
+		row.add_child(icon_bg)
 
 		# 名称
 		var name_label := Label.new()
@@ -706,7 +712,6 @@ func _sync_bag_panel() -> void:
 		var count_label := Label.new()
 		count_label.text = "x%d" % count
 
-		row.add_child(rarity_tag)
 		row.add_child(name_label)
 		row.add_child(count_label)
 		_bag_list.add_child(row)
