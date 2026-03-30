@@ -663,7 +663,7 @@ func _sync_bag_panel() -> void:
 
 	if counts.is_empty():
 		var empty_label := Label.new()
-		empty_label.text = "背包是空的"
+		empty_label.text = "Backpack is empty"
 		_bag_list.add_child(empty_label)
 		return
 

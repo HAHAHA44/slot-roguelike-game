@@ -53,7 +53,7 @@ text = "Contract None"
 
 [node name="BagButton" type="Button" parent="MainMargin/MainLayout/HeaderRow"]
 unique_name_in_owner = true
-text = "背包"
+text = "Backpack"
 
 [node name="ContentRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
 layout_mode = 2
