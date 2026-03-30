@@ -5,21 +5,5 @@
       "Bash(git config:*)",
       "Bash(git commit:*)"
     ]
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "shell": "powershell",
-            "command": "Set-Location 'd:/Documents/GodotProjects/slot-roguelike-game'; git add -A; if ((git diff --cached --name-only) -ne '') { $f = ($input | ConvertFrom-Json).tool_input.file_path; git commit -m \"chore: auto-commit $f\" } else { exit 0 }",
-            "timeout": 30,
-            "statusMessage": "Auto-committing..."
-          }
-        ]
-      }
-    ]
   }
 }
