@@ -101,7 +101,7 @@ var _run_cleared_state
 @onready var _bag_button: Button = %BagButton
 @onready var _bag_panel: PanelContainer = %BagPanel
 @onready var _bag_close_button: Button = %BagCloseButton
-@onready var _bag_list: VBoxContainer = %BagList
+@onready var _bag_list: GridContainer = %BagList
 
 func _ready() -> void:
 	_content_registry.load_all()
@@ -627,6 +627,18 @@ func _sync_board_ui() -> void:
 			button.add_theme_stylebox_override("normal", style)
 			button.add_theme_stylebox_override("hover", style)
 
+func _build_token_tooltip(definition: TokenDefinition, fallback_id: String) -> String:
+	if definition == null:
+		return fallback_id
+	var lines: PackedStringArray = []
+	lines.append(definition.name)
+	lines.append("%s  |  %s" % [definition.rarity, definition.type])
+	if definition.tags.size() > 0:
+		lines.append("Tags: " + ", ".join(definition.tags))
+	if definition.base_value != 0:
+		lines.append("Base value: %d" % definition.base_value)
+	return "\n".join(lines)
+
 func _get_token_icon(definition_id: String) -> Texture2D:
 	if definition_id in _token_icon_cache:
 		return _token_icon_cache[definition_id]
@@ -683,38 +695,50 @@ func _sync_bag_panel() -> void:
 		var display_name: String = definition.name if definition else token_id
 		var count: int = counts[token_id]
 
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
+		# 卡片容器（带稀有度背景，支持 tooltip）
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(90, 110)
+		card.add_theme_stylebox_override("panel", _get_rarity_style(rarity))
+		card.mouse_filter = Control.MOUSE_FILTER_STOP
+		card.tooltip_text = _build_token_tooltip(definition, token_id)
 
-		# 图标（带稀有度背景）
+		var card_vbox := VBoxContainer.new()
+		card_vbox.add_theme_constant_override("separation", 4)
+		card_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		card.add_child(card_vbox)
+
+		# 图标
 		var icon_tex := _get_token_icon(token_id)
-		var icon_bg := PanelContainer.new()
-		icon_bg.custom_minimum_size = Vector2(40, 40)
-		icon_bg.add_theme_stylebox_override("panel", _get_rarity_style(rarity))
 		if icon_tex:
 			var icon_rect := TextureRect.new()
 			icon_rect.texture = icon_tex
+			icon_rect.custom_minimum_size = Vector2(56, 56)
 			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-			icon_bg.add_child(icon_rect)
+			icon_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			card_vbox.add_child(icon_rect)
 		else:
 			var placeholder := Label.new()
 			placeholder.text = token_id.left(2).to_upper()
-			icon_bg.add_child(placeholder)
-		row.add_child(icon_bg)
+			placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			card_vbox.add_child(placeholder)
 
 		# 名称
 		var name_label := Label.new()
 		name_label.text = display_name
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card_vbox.add_child(name_label)
 
-		# 数量
-		var count_label := Label.new()
-		count_label.text = "x%d" % count
+		# 数量（>1 时才显示）
+		if count > 1:
+			var count_label := Label.new()
+			count_label.text = "x%d" % count
+			count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			card_vbox.add_child(count_label)
 
-		row.add_child(name_label)
-		row.add_child(count_label)
-		_bag_list.add_child(row)
+		_bag_list.add_child(card)
 
 func _sync_run_labels() -> void:
 	_run_state_label.text = "State %s" % _active_state_name
