@@ -6,4 +6,7 @@ theme_override_font_sizes/font_size = 20
 text = ""
 clip_text = true
 focus_mode = 0
+expand_icon = true
+icon_alignment = 1
+vertical_icon_alignment = 1
 

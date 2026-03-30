@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Hexagon outline -->
+  <polygon points="32,5 56,18.5 56,45.5 32,59 8,45.5 8,18.5"
+           fill="none" stroke="white" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Break crack -->
+  <polyline points="32,5 27,24 35,33 28,45"
+            fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Shard fragment -->
+  <line x1="35" y1="33" x2="46" y2="28" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Source dot -->
+  <circle cx="32" cy="48" r="5" fill="white"/>
+  <!-- Inner arc -->
+  <path d="M18,40 Q32,18 46,40"
+        fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Middle arc -->
+  <path d="M9,46 Q32,6 55,46"
+        fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
+  <!-- Outer arc -->
+  <path d="M2,52 Q32,-4 62,52"
+        fill="none" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+</svg>

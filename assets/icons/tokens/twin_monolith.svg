@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Left monolith (taller) -->
+  <rect x="8" y="7" width="20" height="50" rx="3"
+        fill="none" stroke="white" stroke-width="3.5"/>
+  <!-- Right monolith (slightly shorter) -->
+  <rect x="36" y="14" width="20" height="43" rx="3"
+        fill="none" stroke="white" stroke-width="3.5"/>
+  <!-- Link connector -->
+  <line x1="28" y1="32" x2="36" y2="32"
+        stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3,2"/>
+</svg>

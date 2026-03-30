@@ -16,6 +16,13 @@ const BOARD_HEIGHT := 5
 const DEFAULT_TOKEN_ID := "pulse_seed"
 const EMPTY_TOKEN_ID := "empty_token"
 
+const RARITY_COLORS := {
+	"Common":    Color(0.25, 0.25, 0.28),
+	"Uncommon":  Color(0.13, 0.40, 0.16),
+	"Rare":      Color(0.08, 0.30, 0.62),
+	"Legendary": Color(0.55, 0.26, 0.02),
+}
+
 const BoardServiceScript := preload("res://scripts/core/services/board_service.gd")
 const BoardRollServiceScript := preload("res://scripts/core/services/board_roll_service.gd")
 const TokenInstanceScript := preload("res://scripts/core/value_objects/token_instance.gd")
@@ -55,6 +62,8 @@ var _active_event_options: Array = []
 var _active_contract: Dictionary = {}
 var _active_state_name: String = ""
 var _settlement_autoplay_running := false
+var _token_icon_cache: Dictionary = {}
+var _rarity_style_cache: Dictionary = {}
 var _last_settlement_score_gain := 0
 
 var _state_chart
@@ -590,13 +599,48 @@ func _sync_board_ui() -> void:
 		var token = _board_service.get_token(pos)
 		if token == null:
 			button.text = ""
+			button.icon = null
 			button.tooltip_text = "Empty"
+			button.remove_theme_stylebox_override("normal")
+			button.remove_theme_stylebox_override("hover")
 		elif token.definition_id == EMPTY_TOKEN_ID:
 			button.text = "·"
+			button.icon = null
 			button.tooltip_text = "Empty token"
+			button.remove_theme_stylebox_override("normal")
+			button.remove_theme_stylebox_override("hover")
 		else:
-			button.text = "P"
-			button.tooltip_text = token.definition_id
+			var definition: TokenDefinition = _content_registry.tokens.get(token.definition_id)
+			var icon_tex := _get_token_icon(token.definition_id)
+			button.text = "" if icon_tex else token.definition_id.left(2).to_upper()
+			button.icon = icon_tex
+			button.expand_icon = true
+			button.tooltip_text = definition.name if definition else token.definition_id
+			var rarity: String = definition.rarity if definition else "Common"
+			var style := _get_rarity_style(rarity)
+			button.add_theme_stylebox_override("normal", style)
+			button.add_theme_stylebox_override("hover", style)
+
+func _get_token_icon(definition_id: String) -> Texture2D:
+	if definition_id in _token_icon_cache:
+		return _token_icon_cache[definition_id]
+	var path := "res://assets/icons/tokens/%s.svg" % definition_id
+	var tex: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	_token_icon_cache[definition_id] = tex
+	return tex
+
+func _get_rarity_style(rarity: String) -> StyleBoxFlat:
+	if rarity in _rarity_style_cache:
+		return _rarity_style_cache[rarity]
+	var bg: Color = RARITY_COLORS.get(rarity, RARITY_COLORS["Common"])
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = bg.lightened(0.35)
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(6)
+	_rarity_style_cache[rarity] = style
+	return style
 
 func _sync_run_labels() -> void:
 	_run_state_label.text = "State %s" % _active_state_name
