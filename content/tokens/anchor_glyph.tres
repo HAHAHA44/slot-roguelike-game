@@ -6,6 +6,7 @@
 script = ExtResource("1")
 id = "anchor_glyph"
 name = "Anchor Glyph"
+description = "An ancient ward etched into the board. Shields all adjacent tokens from being removed, making them permanent for the duration of its presence."
 rarity = "Rare"
 type = "Guard"
 tags = PackedStringArray("Guard")

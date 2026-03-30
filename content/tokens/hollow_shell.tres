@@ -6,6 +6,7 @@
 script = ExtResource("1")
 id = "hollow_shell"
 name = "Hollow Shell"
+description = "A brittle husk waiting to shatter. When removed from the board, it breaks apart and spawns score fragments in adjacent cells."
 rarity = "Common"
 type = "Breaker"
 tags = PackedStringArray("Break")

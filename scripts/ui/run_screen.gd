@@ -588,6 +588,9 @@ func _build_token_tooltip(definition: TokenDefinition, fallback_id: String) -> S
 		lines.append("Tags: " + ", ".join(definition.tags))
 	if definition.base_value != 0:
 		lines.append("Base value: %d" % definition.base_value)
+	if not definition.description.is_empty():
+		lines.append("")
+		lines.append(definition.description)
 	return "\n".join(lines)
 
 func _get_token_icon(definition_id: String) -> Texture2D:

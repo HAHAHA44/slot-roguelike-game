@@ -6,6 +6,7 @@
 script = ExtResource("1")
 id = "pulse_seed"
 name = "Pulse Seed"
+description = "Absorbs nearby Grow and Charge energy, building up power over time. Releases accumulated charge as bonus score at the end of each settlement."
 rarity = "Common"
 type = "Engine"
 tags = PackedStringArray("Grow", "Charge")

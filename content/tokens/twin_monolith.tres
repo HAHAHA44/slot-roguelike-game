@@ -6,6 +6,7 @@
 script = ExtResource("1")
 id = "twin_monolith"
 name = "Twin Monolith"
+description = "Two towering pillars that must stand together. Occupies two horizontal cells and links them, doubling the trigger output of both positions."
 rarity = "Legendary"
 type = "Spatial"
 tags = PackedStringArray("Spatial", "Link")

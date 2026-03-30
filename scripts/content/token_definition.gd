@@ -10,6 +10,7 @@ const ALLOWED_RARITIES := ["Common", "Uncommon", "Rare", "Legendary"]
 
 @export var id: String = ""
 @export var name: String = ""
+@export var description: String = ""
 @export var rarity: String = "Common"
 @export var type: String = ""
 @export var tags: PackedStringArray = PackedStringArray()

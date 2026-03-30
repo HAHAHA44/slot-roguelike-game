@@ -6,6 +6,7 @@
 script = ExtResource("1")
 id = "relay_prism"
 name = "Relay Prism"
+description = "A triangular amplifier that refracts triggers. Copies the effect of every other token in the same row, firing them a second time."
 rarity = "Uncommon"
 type = "Support"
 tags = PackedStringArray("Link")

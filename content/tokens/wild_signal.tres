@@ -6,6 +6,7 @@
 script = ExtResource("1")
 id = "wild_signal"
 name = "Wild Signal"
+description = "An adaptive broadcaster that scans the board each turn and mimics the most common tag present, contributing to any synergy that needs it."
 rarity = "Rare"
 type = "Wildcard"
 tags = PackedStringArray("Wild")
