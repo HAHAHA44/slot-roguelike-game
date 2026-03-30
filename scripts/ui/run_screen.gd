@@ -674,7 +674,7 @@ func _sync_bag_panel() -> void:
 		var count: int = counts[token_id]
 
 		var row := HBoxContainer.new()
-		row.theme_override_constants = {"separation": 8}
+		row.add_theme_constant_override("separation", 8)
 
 		# 图标
 		var icon_tex := _get_token_icon(token_id)
