@@ -3,8 +3,10 @@ extends Control
 const BOARD_WIDTH := 5
 const BOARD_HEIGHT := 5
 const DEFAULT_TOKEN_ID := "pulse_seed"
+const EMPTY_TOKEN_ID := "empty_token"
 
 const BoardServiceScript := preload("res://scripts/core/services/board_service.gd")
+const BoardRollServiceScript := preload("res://scripts/core/services/board_roll_service.gd")
 const TokenInstanceScript := preload("res://scripts/core/value_objects/token_instance.gd")
 const RunSnapshotScript := preload("res://scripts/core/value_objects/run_snapshot.gd")
 const SettlementResolverScript := preload("res://scripts/core/services/settlement_resolver.gd")
@@ -24,6 +26,8 @@ const TOKEN_CELL_SCENE := preload("res://scenes/run/token_cell.tscn")
 
 var run_session = RunSessionScript.new()
 var _board_service = BoardServiceScript.new(BOARD_WIDTH, BOARD_HEIGHT)
+var _board_roll_service = BoardRollServiceScript.new()
+var _rng := RandomNumberGenerator.new()
 var _settlement_resolver = SettlementResolverScript.new()
 var _reward_offer_service = RewardOfferServiceScript.new()
 var _content_registry = ContentRegistryScript.new()
@@ -48,6 +52,8 @@ var _player_turn_state
 var _settling_state
 var _offer_choice_state
 var _event_draft_state
+var _roll_board_state
+var _settlement_result_state
 var _run_failed_state
 var _run_cleared_state
 
@@ -64,6 +70,8 @@ var _run_cleared_state
 @onready var _offer_button_1: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1")
 @onready var _offer_button_2: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton2")
 @onready var _offer_button_3: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton3")
+@onready var _next_turn_button: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton")
+@onready var _continue_to_reward_button: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ContinueToRewardButton")
 @onready var _event_draft_panel: PanelContainer = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel")
 @onready var _event_summary_label: Label = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/SummaryLabel")
 @onready var _event_button_1: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1")
@@ -81,8 +89,11 @@ func _ready() -> void:
 	_build_board_grid()
 	_sync_board_ui()
 	_sync_run_labels()
-	_sync_offer_buttons()
-	_sync_event_draft_ui()
+	_sync_all_panels()
+
+# ---------------------------------------------------------------------------
+# Public API (also used by tests)
+# ---------------------------------------------------------------------------
 
 func get_active_state_name() -> String:
 	return _active_state_name
@@ -104,6 +115,15 @@ func get_active_contract_summary() -> String:
 		return ""
 	return _contract_service.summarize_contract(_active_contract)
 
+func get_board_token_count() -> int:
+	var count := 0
+	for row in BOARD_HEIGHT:
+		for col in BOARD_WIDTH:
+			if _board_service.has_token(Vector2i(col, row)):
+				count += 1
+	return count
+
+# Advances one settlement step manually (used by older tests / debug).
 func advance_settlement_playback() -> bool:
 	if _active_state_name != "settling":
 		return false
@@ -121,6 +141,24 @@ func advance_settlement_playback() -> bool:
 
 	return true
 
+# Debug helpers (for tests that need to skip the mainline flow).
+func debug_force_reward_event_complete() -> void:
+	# Ensure offers exist (they're built on offer_choice entry, but call just in case).
+	if _active_offers.is_empty():
+		_active_offers = _reward_offer_service.build_turn_offer(run_session, _content_registry)
+	if _active_state_name == "offer_choice" and not _active_offers.is_empty():
+		_on_offer_button_pressed(0)
+	if _active_state_name == "event_draft" and not _active_event_options.is_empty():
+		_on_event_button_pressed(0)
+
+func debug_enter_player_turn() -> void:
+	if _active_state_name in ["offer_choice", "roll_board", "event_draft"]:
+		_state_chart.send_event("debug_player_turn")
+
+# ---------------------------------------------------------------------------
+# State chart
+# ---------------------------------------------------------------------------
+
 func _build_state_chart() -> void:
 	_state_chart = StateChartScript.new()
 	_state_chart.name = "RunStateChart"
@@ -135,6 +173,8 @@ func _build_state_chart() -> void:
 	_settling_state = _make_state("Settling")
 	_offer_choice_state = _make_state("OfferChoice")
 	_event_draft_state = _make_state("EventDraft")
+	_roll_board_state = _make_state("RollBoard")
+	_settlement_result_state = _make_state("SettlementResult")
 	_run_failed_state = _make_state("RunFailed")
 	_run_cleared_state = _make_state("RunCleared")
 
@@ -144,16 +184,26 @@ func _build_state_chart() -> void:
 		_settling_state,
 		_offer_choice_state,
 		_event_draft_state,
+		_roll_board_state,
+		_settlement_result_state,
 		_run_failed_state,
 		_run_cleared_state,
 	]:
 		root_state.add_child(state)
 
-	_add_transition(_boot_state, "BootToPlayerTurn", NodePath("../../PlayerTurn"))
-	_add_transition(_player_turn_state, "PlayerTurnToSettling", NodePath("../../Settling"), "settle")
-	_add_transition(_settling_state, "SettlingToOfferChoice", NodePath("../../OfferChoice"), "settlement_complete")
+	# Default mainline: Boot → OfferChoice → EventDraft → RollBoard → Settling → SettlementResult → OfferChoice
+	_add_transition(_boot_state, "BootToOfferChoice", NodePath("../../OfferChoice"))
 	_add_transition(_offer_choice_state, "OfferChoiceToEventDraft", NodePath("../../EventDraft"), "offer_selected")
-	_add_transition(_event_draft_state, "EventDraftToPlayerTurn", NodePath("../../PlayerTurn"), "event_selected")
+	_add_transition(_event_draft_state, "EventDraftToRollBoard", NodePath("../../RollBoard"), "event_selected")
+	_add_transition(_roll_board_state, "RollBoardToSettling", NodePath("../../Settling"), "next_turn")
+	_add_transition(_settling_state, "SettlingToSettlementResult", NodePath("../../SettlementResult"), "settlement_complete")
+	_add_transition(_settlement_result_state, "SettlementResultToOfferChoice", NodePath("../../OfferChoice"), "continue_to_reward")
+
+	# Debug path: manual placement → settle → settlement_result path
+	_add_transition(_offer_choice_state, "OfferChoiceToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
+	_add_transition(_roll_board_state, "RollBoardToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
+	_add_transition(_event_draft_state, "EventDraftToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
+	_add_transition(_player_turn_state, "PlayerTurnToSettling", NodePath("../../Settling"), "settle")
 
 	add_child(_state_chart)
 
@@ -162,6 +212,8 @@ func _build_state_chart() -> void:
 	_settling_state.state_entered.connect(_on_state_entered.bind("settling"))
 	_offer_choice_state.state_entered.connect(_on_state_entered.bind("offer_choice"))
 	_event_draft_state.state_entered.connect(_on_state_entered.bind("event_draft"))
+	_roll_board_state.state_entered.connect(_on_state_entered.bind("roll_board"))
+	_settlement_result_state.state_entered.connect(_on_state_entered.bind("settlement_result"))
 	_run_failed_state.state_entered.connect(_on_state_entered.bind("run_failed"))
 	_run_cleared_state.state_entered.connect(_on_state_entered.bind("run_cleared"))
 
@@ -177,6 +229,10 @@ func _add_transition(from_state, transition_name: String, target_path: NodePath,
 	transition.event = event_name
 	from_state.add_child(transition)
 
+# ---------------------------------------------------------------------------
+# UI wiring
+# ---------------------------------------------------------------------------
+
 func _wire_ui() -> void:
 	_place_mode_button.pressed.connect(_select_mode.bind("place"))
 	_remove_mode_button.pressed.connect(_select_mode.bind("remove"))
@@ -187,6 +243,8 @@ func _wire_ui() -> void:
 	_event_button_1.pressed.connect(_on_event_button_pressed.bind(0))
 	_event_button_2.pressed.connect(_on_event_button_pressed.bind(1))
 	_event_button_3.pressed.connect(_on_event_button_pressed.bind(2))
+	_next_turn_button.pressed.connect(_on_next_turn_pressed)
+	_continue_to_reward_button.pressed.connect(_on_continue_to_reward_pressed)
 
 func _build_board_grid() -> void:
 	for child in _board_grid.get_children():
@@ -203,21 +261,33 @@ func _build_board_grid() -> void:
 			_board_grid.add_child(button)
 			_cell_buttons_by_pos[pos] = button
 
+# ---------------------------------------------------------------------------
+# State handlers
+# ---------------------------------------------------------------------------
+
 func _on_state_entered(state_name: String) -> void:
 	_active_state_name = state_name
+
+	# Clear transient state when leaving the relevant state.
 	if state_name != "settling":
 		_settlement_autoplay_running = false
 	if state_name != "offer_choice":
 		_active_offers.clear()
 	if state_name != "event_draft":
 		_active_event_options.clear()
-	if state_name == "settling" and _pending_steps.is_empty():
-		call_deferred("_complete_settlement")
-	elif state_name == "settling":
-		call_deferred("_start_settlement_autoplay")
+
+	match state_name:
+		"offer_choice":
+			# Build offers on every entry (first boot or after settlement_result).
+			_active_offers = _reward_offer_service.build_turn_offer(run_session, _content_registry)
+		"settling":
+			if _pending_steps.is_empty():
+				call_deferred("_complete_settlement")
+			else:
+				call_deferred("_start_settlement_autoplay")
+
 	_sync_run_labels()
-	_sync_offer_buttons()
-	_sync_event_draft_ui()
+	_sync_all_panels()
 
 func _select_mode(mode_name: String) -> void:
 	_place_mode_button.set_pressed_no_signal(mode_name == "place")
@@ -258,6 +328,7 @@ func _on_cell_pressed(pos: Vector2i) -> void:
 
 	_sync_board_ui()
 
+# Debug / legacy manual settle (player_turn path).
 func _on_settle_pressed() -> void:
 	if _active_state_name != "player_turn":
 		return
@@ -268,6 +339,24 @@ func _on_settle_pressed() -> void:
 	_last_settlement_score_gain = 0
 	_settlement_log_list.clear()
 	_state_chart.send_event("settle")
+
+# Mainline: next-turn arrow rolls the board then auto-settles.
+func _on_next_turn_pressed() -> void:
+	if _active_state_name != "roll_board":
+		return
+
+	_roll_board_from_pool()
+	var snapshot = _build_snapshot_from_board()
+	var report = _settlement_resolver.resolve(snapshot)
+	_pending_steps = report.steps.duplicate()
+	_last_settlement_score_gain = 0
+	_settlement_log_list.clear()
+	_state_chart.send_event("next_turn")
+
+func _on_continue_to_reward_pressed() -> void:
+	if _active_state_name != "settlement_result":
+		return
+	_state_chart.send_event("continue_to_reward")
 
 func _on_offer_button_pressed(index: int) -> void:
 	if _active_state_name != "offer_choice":
@@ -292,8 +381,7 @@ func _on_offer_button_pressed(index: int) -> void:
 	_active_event_options = draft["options"]
 	_state_chart.send_event("offer_selected")
 	_sync_run_labels()
-	_sync_offer_buttons()
-	_sync_event_draft_ui()
+	_sync_all_panels()
 
 func _on_event_button_pressed(index: int) -> void:
 	if _active_state_name != "event_draft":
@@ -317,7 +405,97 @@ func _on_event_button_pressed(index: int) -> void:
 	run_session.current_turn += 1
 	_state_chart.send_event("event_selected")
 	_sync_run_labels()
-	_sync_event_draft_ui()
+	_sync_all_panels()
+
+# ---------------------------------------------------------------------------
+# Board roll (mainline)
+# ---------------------------------------------------------------------------
+
+func _roll_board_from_pool() -> void:
+	# Clear existing board.
+	for row in BOARD_HEIGHT:
+		for col in BOARD_WIDTH:
+			var pos := Vector2i(col, row)
+			if _board_service.has_token(pos):
+				_board_service.remove_token(pos)
+
+	# Build round pool: fill to capacity with empty tokens, then shuffle.
+	var round_pool := _board_roll_service.build_round_pool(
+		Array(run_session.token_pool),
+		BOARD_WIDTH * BOARD_HEIGHT,
+		EMPTY_TOKEN_ID,
+		_rng
+	)
+
+	# Place each token from the round pool onto the board.
+	var board_map := _board_roll_service.pool_to_board_map(round_pool, BOARD_WIDTH)
+	for pos in board_map.keys():
+		var token_id := String(board_map[pos])
+		var token := _make_token_instance_for_id(token_id)
+		_board_service.place_token(pos, token)
+
+	_sync_board_ui()
+
+# ---------------------------------------------------------------------------
+# Settlement
+# ---------------------------------------------------------------------------
+
+func _start_settlement_autoplay() -> void:
+	if _settlement_autoplay_running:
+		return
+	if _active_state_name != "settling":
+		return
+	if _pending_steps.is_empty():
+		return
+
+	_settlement_autoplay_running = true
+	_run_settlement_autoplay()
+
+func _run_settlement_autoplay() -> void:
+	while _active_state_name == "settling" and not _pending_steps.is_empty():
+		advance_settlement_playback()
+		if _active_state_name != "settling" or _pending_steps.is_empty():
+			break
+		await get_tree().process_frame
+
+	_settlement_autoplay_running = false
+
+func _complete_settlement() -> void:
+	if _active_state_name != "settling":
+		return
+
+	_advance_active_contract()
+	_state_chart.send_event("settlement_complete")
+	_sync_run_labels()
+
+func _advance_active_contract() -> void:
+	if _active_contract.is_empty():
+		return
+	if String(_active_contract.get("status", "active")) != "active":
+		return
+
+	_active_contract = _contract_service.advance_contract(_active_contract, {
+		"score_gained": _last_settlement_score_gain,
+	})
+	var status := String(_active_contract.get("status", "active"))
+	if status == "success" or status == "failed":
+		var score_delta := _contract_service.apply_resolution_score_delta(_active_contract)
+		run_session.current_score = max(0, run_session.current_score + score_delta)
+		run_session.operation_history.append({
+			"kind": "contract_resolved",
+			"status": status,
+			"score_delta": score_delta,
+			"turn": run_session.current_turn,
+		})
+		_active_contract.clear()
+		run_session.active_modifiers = []
+	else:
+		run_session.active_modifiers = [_active_contract.duplicate(true)]
+	_sync_run_labels()
+
+# ---------------------------------------------------------------------------
+# Snapshot (transitional synthetic builder – real scorer comes in later task)
+# ---------------------------------------------------------------------------
 
 func _build_snapshot_from_board():
 	var tokens_in_order: Array = []
@@ -327,6 +505,9 @@ func _build_snapshot_from_board():
 			var pos := Vector2i(column, row)
 			if _board_service.has_token(pos):
 				var token = _board_service.get_token(pos)
+				# Skip empty tokens – they don't contribute to the synthetic snapshot.
+				if token.definition_id == EMPTY_TOKEN_ID:
+					continue
 				tokens_in_order.append(token)
 				for tag in token.tags:
 					board_tags[tag] = int(board_tags.get(tag, 0)) + 1
@@ -360,74 +541,31 @@ func _make_effect(source_token: String, phase_name: String, score_delta: int) ->
 		"message_key": phase_name,
 	}
 
+# ---------------------------------------------------------------------------
+# Token helpers
+# ---------------------------------------------------------------------------
+
 func _make_active_token_instance() -> TokenInstance:
 	var token_id := run_session.get_active_token_id()
+	return _make_token_instance_for_id(token_id)
+
+func _make_token_instance_for_id(token_id: String) -> TokenInstance:
 	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
 	if definition == null:
-		return TokenInstanceScript.new(DEFAULT_TOKEN_ID, PackedStringArray(["Grow"]))
+		return TokenInstanceScript.new(token_id, PackedStringArray())
 	return TokenInstanceScript.new(
 		definition.id,
 		definition.tags,
 		definition.state_fields.duplicate(true)
 	)
 
+# ---------------------------------------------------------------------------
+# UI sync helpers
+# ---------------------------------------------------------------------------
+
 func _append_log_entry(step) -> void:
 	var delta_text := "%+d" % step.score_delta
 	_settlement_log_list.add_item("%02d | %s | %s" % [step.sequence_index, step.phase, delta_text])
-
-func _complete_settlement() -> void:
-	if _active_state_name != "settling":
-		return
-
-	_advance_active_contract()
-	_active_offers = _reward_offer_service.build_turn_offer(run_session, _content_registry)
-	_state_chart.send_event("settlement_complete")
-	_sync_offer_buttons()
-
-func _start_settlement_autoplay() -> void:
-	if _settlement_autoplay_running:
-		return
-	if _active_state_name != "settling":
-		return
-	if _pending_steps.is_empty():
-		return
-
-	_settlement_autoplay_running = true
-	_run_settlement_autoplay()
-
-func _run_settlement_autoplay() -> void:
-	while _active_state_name == "settling" and not _pending_steps.is_empty():
-		advance_settlement_playback()
-		if _active_state_name != "settling" or _pending_steps.is_empty():
-			break
-		await get_tree().process_frame
-
-	_settlement_autoplay_running = false
-
-func _advance_active_contract() -> void:
-	if _active_contract.is_empty():
-		return
-	if String(_active_contract.get("status", "active")) != "active":
-		return
-
-	_active_contract = _contract_service.advance_contract(_active_contract, {
-		"score_gained": _last_settlement_score_gain,
-	})
-	var status := String(_active_contract.get("status", "active"))
-	if status == "success" or status == "failed":
-		var score_delta := _contract_service.apply_resolution_score_delta(_active_contract)
-		run_session.current_score = max(0, run_session.current_score + score_delta)
-		run_session.operation_history.append({
-			"kind": "contract_resolved",
-			"status": status,
-			"score_delta": score_delta,
-			"turn": run_session.current_turn,
-		})
-		_active_contract.clear()
-		run_session.active_modifiers = []
-	else:
-		run_session.active_modifiers = [_active_contract.duplicate(true)]
-	_sync_run_labels()
 
 func _sync_board_ui() -> void:
 	for pos in _cell_buttons_by_pos.keys():
@@ -436,6 +574,9 @@ func _sync_board_ui() -> void:
 		if token == null:
 			button.text = ""
 			button.tooltip_text = "Empty"
+		elif token.definition_id == EMPTY_TOKEN_ID:
+			button.text = "·"
+			button.tooltip_text = "Empty token"
 		else:
 			button.text = "P"
 			button.tooltip_text = token.definition_id
@@ -446,6 +587,18 @@ func _sync_run_labels() -> void:
 	_score_label.text = "Score %d / %d" % [run_session.current_score, run_session.phase_target]
 	_contract_label.text = "Contract %s" % (get_active_contract_summary() if not _active_contract.is_empty() else "None")
 	_mode_label.text = "Mode %s | Next %s" % [_get_mode_name().capitalize(), _format_token_name(get_active_placement_token_id())]
+
+func _sync_all_panels() -> void:
+	_sync_debug_controls()
+	_sync_offer_buttons()
+	_sync_event_draft_ui()
+	_sync_roll_board_ui()
+
+func _sync_debug_controls() -> void:
+	var in_player_turn := _active_state_name == "player_turn"
+	_place_mode_button.visible = in_player_turn
+	_remove_mode_button.visible = in_player_turn
+	_settle_button.visible = in_player_turn
 
 func _sync_offer_buttons() -> void:
 	var buttons := _offer_buttons()
@@ -474,6 +627,10 @@ func _sync_event_draft_ui() -> void:
 		button.visible = has_event
 		button.disabled = not has_event
 		button.text = _format_event(_active_event_options[index]) if has_event else ""
+
+func _sync_roll_board_ui() -> void:
+	_next_turn_button.visible = _active_state_name == "roll_board"
+	_continue_to_reward_button.visible = _active_state_name == "settlement_result"
 
 func _offer_buttons() -> Array[Button]:
 	return [_offer_button_1, _offer_button_2, _offer_button_3]

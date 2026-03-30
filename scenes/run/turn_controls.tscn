@@ -46,3 +46,13 @@ unique_name_in_owner = true
 visible = false
 text = "Offer 3"
 
+[node name="NextTurnButton" type="Button" parent="."]
+unique_name_in_owner = true
+visible = false
+text = "Next Turn"
+
+[node name="ContinueToRewardButton" type="Button" parent="."]
+unique_name_in_owner = true
+visible = false
+text = "Continue"
+

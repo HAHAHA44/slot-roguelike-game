@@ -5,14 +5,14 @@ func test_smoke_playable_path_still_works() -> void:
 	if scene == null:
 		return
 
-	var board_grid: Node = scene.get_node("%BoardGrid")
-	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
+	# Mainline: offer_choice → event_draft → roll_board → next turn → settling/settlement_result
+	scene.debug_force_reward_event_complete()  # select offer[0] → event_draft
+	scene.debug_force_reward_event_complete()  # select event[0] → roll_board
 
-	var cell := board_grid.get_child(0) as Button
-	cell.emit_signal("pressed")
-	settle_button.emit_signal("pressed")
+	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
+	next_turn_button.emit_signal("pressed")
 
-	assert_true(scene.get_active_state_name() in ["settling", "offer_choice", "event_draft", "player_turn"])
+	assert_true(scene.get_active_state_name() in ["settling", "settlement_result"])
 
 func test_run_screen_builds_25_cells() -> void:
 	var scene = await _spawn_run_screen()
@@ -21,11 +21,30 @@ func test_run_screen_builds_25_cells() -> void:
 
 	assert_eq(scene.get_node("%BoardGrid").get_child_count(), 25)
 
+func test_next_turn_arrow_rolls_board_and_stops_on_settlement_result() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	# Navigate mainline to roll_board
+	scene.debug_force_reward_event_complete()  # offer → event_draft
+	scene.debug_force_reward_event_complete()  # event → roll_board
+	assert_eq(scene.get_active_state_name(), "roll_board")
+
+	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
+	next_turn_button.emit_signal("pressed")
+
+	await _wait_for_state(scene, "settlement_result")
+
+	assert_eq(scene.get_active_state_name(), "settlement_result")
+	assert_eq(scene.get_board_token_count(), 25)
+
 func test_clicking_a_cell_places_a_token_during_player_turn() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:
 		return
 
+	scene.debug_enter_player_turn()
 	var cell := scene.get_node("%BoardGrid").get_child(0) as Button
 	cell.emit_signal("pressed")
 
@@ -36,6 +55,7 @@ func test_remove_mode_clears_an_occupied_cell() -> void:
 	if scene == null:
 		return
 
+	scene.debug_enter_player_turn()
 	var board_grid: Node = scene.get_node("%BoardGrid")
 	var cell := board_grid.get_child(0) as Button
 	var remove_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/RemoveModeButton") as Button
@@ -46,11 +66,12 @@ func test_remove_mode_clears_an_occupied_cell() -> void:
 
 	assert_eq(cell.text, "")
 
-func test_settlement_autoplay_reaches_offer_choice_in_order() -> void:
+func test_settlement_autoplay_reaches_settlement_result_in_order() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:
 		return
 
+	scene.debug_enter_player_turn()
 	var board_grid: Node = scene.get_node("%BoardGrid")
 	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
 
@@ -63,30 +84,21 @@ func test_settlement_autoplay_reaches_offer_choice_in_order() -> void:
 	assert_eq(scene.get_active_state_name(), "settling")
 	assert_eq(scene.get_settlement_log_entries().size(), 0)
 
-	await _wait_for_state(scene, "offer_choice")
+	await _wait_for_state(scene, "settlement_result")
 
 	assert_eq(scene.get_settlement_log_entries().size(), 4)
 	assert_eq(scene.get_settlement_log_entries()[0], "00 | base_output | +1")
 	assert_eq(scene.get_settlement_log_entries()[1], "01 | adjacency | +2")
 	assert_eq(scene.get_settlement_log_entries()[2], "02 | row_column | +3")
 	assert_eq(scene.get_settlement_log_entries()[3], "03 | cleanup | +0")
-	assert_eq(scene.get_active_state_name(), "offer_choice")
+	assert_eq(scene.get_active_state_name(), "settlement_result")
 
 func test_offer_selection_transitions_through_event_draft() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:
 		return
 
-	var board_grid: Node = scene.get_node("%BoardGrid")
-	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
 	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
-
-	for index in [0, 1, 2]:
-		var cell := board_grid.get_child(index) as Button
-		cell.emit_signal("pressed")
-
-	settle_button.emit_signal("pressed")
-	await _wait_for_state(scene, "offer_choice")
 
 	assert_eq(scene.get_active_state_name(), "offer_choice")
 
@@ -96,7 +108,7 @@ func test_offer_selection_transitions_through_event_draft() -> void:
 	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
 	event_button.emit_signal("pressed")
 
-	assert_eq(scene.get_active_state_name(), "player_turn")
+	assert_eq(scene.get_active_state_name(), "roll_board")
 	assert_true(scene.get_active_contract_summary().contains("Goal"))
 
 func test_add_reward_changes_the_next_token_you_place() -> void:
@@ -105,15 +117,7 @@ func test_add_reward_changes_the_next_token_you_place() -> void:
 		return
 
 	var board_grid: Node = scene.get_node("%BoardGrid")
-	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
 	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
-
-	for index in [0, 1, 2]:
-		var cell := board_grid.get_child(index) as Button
-		cell.emit_signal("pressed")
-
-	settle_button.emit_signal("pressed")
-	await _wait_for_state(scene, "offer_choice")
 
 	offer_button.emit_signal("pressed")
 
@@ -124,6 +128,9 @@ func test_add_reward_changes_the_next_token_you_place() -> void:
 	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
 	event_button.emit_signal("pressed")
 
+	assert_eq(scene.get_active_state_name(), "roll_board")
+
+	scene.debug_enter_player_turn()
 	assert_eq(scene.get_active_state_name(), "player_turn")
 
 	var new_cell := board_grid.get_child(3) as Button
@@ -140,15 +147,22 @@ func test_contract_turns_tick_after_the_next_scored_turn() -> void:
 	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
 	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
 	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
+	var continue_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ContinueToRewardButton") as Button
 
+	# First turn: settle via debug path to reach settlement_result, then continue to offer_choice
+	scene.debug_enter_player_turn()
 	for index in [0, 1, 2]:
 		var cell := board_grid.get_child(index) as Button
 		cell.emit_signal("pressed")
-
 	settle_button.emit_signal("pressed")
-	await _wait_for_state(scene, "offer_choice")
+	await _wait_for_state(scene, "settlement_result")
+	continue_button.emit_signal("pressed")
+	assert_eq(scene.get_active_state_name(), "offer_choice")
+
+	# Select offer and event to establish active contract, then go to player_turn via debug path
 	offer_button.emit_signal("pressed")
 	event_button.emit_signal("pressed")
+	scene.debug_enter_player_turn()
 
 	var initial_contract: Dictionary = scene.get_active_contract_data()
 	var initial_turns := int(initial_contract.get("turns_remaining", 0))
@@ -158,7 +172,9 @@ func test_contract_turns_tick_after_the_next_scored_turn() -> void:
 		next_cell.emit_signal("pressed")
 
 	settle_button.emit_signal("pressed")
-	await _wait_for_state(scene, "offer_choice")
+	await _wait_for_state(scene, "settlement_result")
+	continue_button.emit_signal("pressed")
+	assert_eq(scene.get_active_state_name(), "offer_choice")
 
 	var advanced_contract: Dictionary = scene.get_active_contract_data()
 	assert_eq(int(advanced_contract.get("turns_remaining", 0)), initial_turns - 1)

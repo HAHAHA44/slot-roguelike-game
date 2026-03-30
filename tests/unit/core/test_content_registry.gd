@@ -11,4 +11,4 @@ func test_registry_loads_seed_tokens() -> void:
 
 	registry.load_all()
 
-	assert_eq(registry.tokens.size(), 6)
+	assert_eq(registry.tokens.size(), 7)
