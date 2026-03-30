@@ -1,3 +1,8 @@
+# 运行时 Token 实例：
+# - 表示“某个 token 在当前棋盘上的一次具体出现”，不是内容资源本身。
+# - 与 `TokenDefinition` 的区别是：定义是静态内容，实例是运行时携带的 `definition_id / tags / state`。
+# - `BoardService` 存的是这种实例，`SettlementResolver` 和 UI 也是读它。
+# - 典型联动：`RunScreen._make_token_instance_for_id()` 从 `ContentRegistry` 读取定义，再实例化成 `TokenInstance` 放进棋盘。
 class_name TokenInstance
 extends RefCounted
 

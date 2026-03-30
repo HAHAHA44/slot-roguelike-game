@@ -84,8 +84,9 @@ A formal `TokenDefinition` with `id = "empty_token"`, `base_value = 0`, no tags,
 Each round, `BoardRollService.build_round_pool()`:
 1. Copies the persistent pool.
 2. Appends `empty_token` entries until the pool reaches board capacity (25).
-3. Fisher-Yates shuffles the 25-entry round pool.
-4. Returns the shuffled pool; `pool_to_board_map()` translates it to `Vector2i → token_id`.
+3. Fisher-Yates shuffles the round pool.
+4. If the persistent pool already exceeds capacity, it keeps a shuffled 25-entry sample and adds no empties.
+5. Returns the shuffled 25-entry pool; `pool_to_board_map()` translates it to `Vector2i → token_id`.
 
 The persistent pool is **never mutated** during board generation.
 

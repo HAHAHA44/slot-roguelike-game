@@ -1,3 +1,7 @@
+# 运行修正器：
+# - 把英雄和难度资源转成“运行时可消费的修正数据”，供事件草案和合约惩罚使用。
+# - 它不直接改资源文件，只返回修改后的字典，保证内容资源本身保持静态。
+# - 典型联动：`RunScreen` 从 `ContentRegistry` 取 hero / difficulty，再交给这里生成 modifiers，之后传给 `EventDraftService` 和 `ContractService`。
 class_name RunModifierService
 extends RefCounted
 

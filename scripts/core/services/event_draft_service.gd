@@ -1,3 +1,8 @@
+# 事件草案服务：
+# - 根据当前棋盘、英雄偏向和难度修正，从内容池里挑出 3 个事件候选。
+# - 它读的是“结算快照”和“修正字典”，不直接读 UI，也不直接操作合约。
+# - 排序规则把棋盘标签、英雄 modifiers、难度 modifiers 都折算进 event score，然后挑前 3 个，并保证至少有 1 个 stable 选项。
+# - 典型联动：`RunScreen` 在 reward 之后、event_draft 状态里调用它，结果再交给事件按钮 UI。
 class_name EventDraftService
 extends RefCounted
 

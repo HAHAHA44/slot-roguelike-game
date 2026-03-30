@@ -1,16 +1,11 @@
+# 回合棋盘生成服务：
+# - 负责把 `RunSession.token_pool` 这份持久牌池，展开成本回合的 25 格棋盘输入。
+# - 规则很明确：先复制持久池，再用 `empty_token` 补满容量，然后洗牌，最后按棋盘容量截断。
+# - 它不关心 UI、不关心结算、不关心奖励，只负责“这一回合板面上应该出现哪些 token”。
+# - 返回值是一个扁平数组，`RunScreen` 再把它映射到 `BoardService` 的坐标上。
+# - 典型联动：`RunScreen._on_next_turn_pressed()` 先调用它，再把结果写进 `BoardService` 并触发结算。
 class_name BoardRollService
 extends RefCounted
-
-# Builds a per-round board from the persistent token pool.
-#
-# Rules:
-#   1. Copy the persistent pool into a temporary round pool.
-#   2. Append empty_token_id entries until the round pool reaches board_capacity.
-#   3. Shuffle the 25 entries using the provided RNG.
-#   4. Return the shuffled round pool (Array of String token IDs).
-#
-# The caller is responsible for translating the returned flat array into
-# board positions (index 0 = Vector2i(0,0), row-major order).
 
 func build_round_pool(
 	persistent_pool: Array,
@@ -24,6 +19,8 @@ func build_round_pool(
 		round_pool.append(empty_token_id)
 
 	_shuffle(round_pool, rng)
+	if round_pool.size() > board_capacity:
+		round_pool = round_pool.slice(0, board_capacity)
 	return round_pool
 
 # Translates a flat round pool into a Dictionary of Vector2i -> token_id,

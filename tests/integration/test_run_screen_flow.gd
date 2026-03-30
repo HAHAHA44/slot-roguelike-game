@@ -22,7 +22,7 @@ func test_mainline_round_progresses_without_manual_place_or_settle() -> void:
 	scene.debug_force_reward_event_complete()  # offer → event_draft
 	scene.debug_force_reward_event_complete()  # event → roll_board
 
-	var next_turn_button := scene.get_node("%NextTurnButton") as Button
+	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
 	next_turn_button.emit_signal("pressed")
 
 	await _wait_for_state(scene, "settlement_result")
@@ -126,12 +126,11 @@ func test_offer_selection_transitions_through_event_draft() -> void:
 	assert_eq(scene.get_active_state_name(), "roll_board")
 	assert_true(scene.get_active_contract_summary().contains("Goal"))
 
-func test_add_reward_changes_the_next_token_you_place() -> void:
+func test_add_reward_changes_the_next_rolled_board() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:
 		return
 
-	var board_grid: Node = scene.get_node("%BoardGrid")
 	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
 
 	offer_button.emit_signal("pressed")
@@ -145,13 +144,35 @@ func test_add_reward_changes_the_next_token_you_place() -> void:
 
 	assert_eq(scene.get_active_state_name(), "roll_board")
 
-	scene.debug_enter_player_turn()
-	assert_eq(scene.get_active_state_name(), "player_turn")
+	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
+	next_turn_button.emit_signal("pressed")
 
-	var new_cell := board_grid.get_child(3) as Button
-	new_cell.emit_signal("pressed")
+	await _wait_for_state(scene, "settlement_result")
 
-	assert_eq(new_cell.tooltip_text, rewarded_token_id)
+	assert_gt(_count_cells_with_tooltip(scene, rewarded_token_id), 0)
+
+func test_empty_tokens_are_preserved_in_snapshot_generation() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	scene._board_service.place_token(Vector2i(0, 0), scene._make_token_instance_for_id("pulse_seed"))
+	scene._board_service.place_token(Vector2i(1, 0), scene._make_token_instance_for_id("empty_token"))
+	scene._board_service.place_token(Vector2i(2, 0), scene._make_token_instance_for_id("empty_token"))
+
+	var snapshot = scene._build_snapshot_from_board()
+	var base_output: Array = snapshot.get_phase_effects("base_output")
+	var adjacency: Array = snapshot.get_phase_effects("adjacency")
+	var row_column: Array = snapshot.get_phase_effects("row_column")
+
+	assert_eq(base_output.size(), 1)
+	assert_eq(adjacency.size(), 1)
+	assert_eq(row_column.size(), 1)
+	assert_eq(base_output[0]["source_token"], "pulse_seed")
+	assert_eq(adjacency[0]["source_token"], "empty_token")
+	assert_eq(row_column[0]["source_token"], "empty_token")
+	assert_eq(adjacency[0]["score_delta"], 0)
+	assert_eq(row_column[0]["score_delta"], 0)
 
 func test_contract_ticks_after_a_completed_rolled_round() -> void:
 	var scene = await _spawn_run_screen()
@@ -161,7 +182,7 @@ func test_contract_ticks_after_a_completed_rolled_round() -> void:
 	scene.debug_force_active_contract()
 	assert_eq(scene.get_active_state_name(), "roll_board")
 
-	var next_turn_button := scene.get_node("%NextTurnButton") as Button
+	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
 	next_turn_button.emit_signal("pressed")
 
 	await _wait_for_state(scene, "settlement_result")
@@ -230,3 +251,12 @@ func _wait_for_state(scene, expected_state: String, max_frames: int = 20) -> voi
 		await get_tree().process_frame
 
 	assert_eq(scene.get_active_state_name(), expected_state)
+
+func _count_cells_with_tooltip(scene, tooltip_text: String) -> int:
+	var board_grid: Node = scene.get_node("%BoardGrid")
+	var count := 0
+	for index in board_grid.get_child_count():
+		var cell := board_grid.get_child(index) as Button
+		if cell.tooltip_text == tooltip_text:
+			count += 1
+	return count

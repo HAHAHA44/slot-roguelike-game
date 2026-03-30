@@ -1,3 +1,8 @@
+# 棋盘数据服务：
+# - 维护 5x5 棋盘上的占格、放置、替换、删除和坐标查询。
+# - 它只管“格子里有什么”，不管 token 怎么生成、怎么得分、怎么进事件。
+# - `RunScreen` 用它来落子和清空棋盘，`TriggerScanner` 也会借助它做邻接/行列查询。
+# - 这个类是纯数据结构层，适合单元测试，避免把棋盘规则写进 UI。
 class_name BoardService
 extends RefCounted
 
@@ -82,4 +87,3 @@ func get_column_positions(column: int) -> Array[Vector2i]:
 		positions.append(Vector2i(column, row))
 
 	return positions
-

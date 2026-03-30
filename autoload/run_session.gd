@@ -1,3 +1,9 @@
+# 本局运行状态：
+# - 保存一局游戏里需要跨回合保留的数据，例如分数、回合数、token 池、操作历史、激活的合约修正。
+# - `token_pool` 是 bag-roll 的核心数据结构，表示“持久 token 池”，不是单个下一张 token。
+# - `pool_*` 系列方法是新循环使用的多重集合接口；`get_active_token_id()` / `token_cursor` 主要给调试手动放置路径使用。
+# - `to_dict()` / `from_dict()` 用于存档、回放和测试重建。
+# - 典型联动：`RewardOfferService` 改 `token_pool`，`RunScreen` 读 `current_turn/current_score/active_modifiers`，存档系统序列化整个对象。
 class_name RunSession
 extends RefCounted
 

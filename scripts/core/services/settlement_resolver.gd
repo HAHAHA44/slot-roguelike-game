@@ -1,3 +1,8 @@
+# 结算解析器：
+# - 按固定 phase 顺序，把 `RunSnapshot` 里的结算输入展开成逐步的 `SettlementReport`。
+# - 它是纯规则层：消费快照，输出步骤、总分变化和警告，不碰 UI，也不直接改 `RunSession`。
+# - 具备保护阈值，避免循环触发太深导致死循环或无限回放。
+# - 典型联动：`RunScreen` 在 `settling` 状态调用它，再把 `steps` 一条条写入日志并播放给玩家看。
 class_name SettlementResolver
 extends RefCounted
 

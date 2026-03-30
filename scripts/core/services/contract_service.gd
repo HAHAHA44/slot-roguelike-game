@@ -1,3 +1,8 @@
+# 合约服务：
+# - 把事件数据转成一份可推进的合约，并在每个回合后根据得分推进进度。
+# - 负责合约的创建、成功/失败判定、奖励/惩罚分数结算，以及合约文本摘要。
+# - 它只处理合约本身，不决定玩家该选哪个事件，也不决定棋盘怎么结算。
+# - 典型联动：`RunScreen` 在选事件后调用 `build_contract()`，在每轮结算后调用 `advance_contract()`。
 class_name ContractService
 extends RefCounted
 

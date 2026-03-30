@@ -1,3 +1,8 @@
+# 结算快照：
+# - 表示“一次结算所需要读取的全部输入”，核心就是 `phase_effects`。
+# - 它应该尽量保持只读，方便 `SettlementResolver` 重复计算、测试和回放。
+# - 当前 `RunScreen` 会在结算前组装它，未来更适合由独立的 snapshot builder / scanner 服务生成。
+# - 典型联动：`RunScreen` 组装，`SettlementResolver` 消费，`EventDraftService` 也会读取其中的 `board_tags`。
 class_name RunSnapshot
 extends RefCounted
 

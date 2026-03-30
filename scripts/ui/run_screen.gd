@@ -1,3 +1,14 @@
+# 主运行界面 / 流程编排器：
+# - 这是当前项目最核心的脚本，负责把场景、内容、service、状态机串成一条能玩的主循环。
+# - 它不直接写复杂规则，而是把“玩家输入 -> 状态切换 -> service 调用 -> UI 刷新”这条链路组织起来。
+# - 主要联动对象：
+#   - `ContentRegistry`：加载 token / event / hero / difficulty 等内容资源。
+#   - `RunSession`：保存本局持久状态，例如牌池、分数、回合和操作历史。
+#   - `BoardService` / `BoardRollService`：维护棋盘并在每轮开始时生成新板面。
+#   - `RewardOfferService` / `EventDraftService` / `ContractService` / `RunModifierService`：分别负责奖励、事件、合约和修正。
+#   - `SettlementResolver`：把一次回合的棋盘状态转成可播放的结算步骤。
+# - 状态机用 Godot State Charts 管理，当前主路径是 `offer_choice -> event_draft -> roll_board -> settling -> settlement_result -> offer_choice`。
+# - 手动放置 `player_turn` 仍保留为调试/未来能力侧路，不是默认主流程。
 extends Control
 
 const BOARD_WIDTH := 5
@@ -513,9 +524,6 @@ func _build_snapshot_from_board():
 			var pos := Vector2i(column, row)
 			if _board_service.has_token(pos):
 				var token = _board_service.get_token(pos)
-				# Skip empty tokens – they don't contribute to the synthetic snapshot.
-				if token.definition_id == EMPTY_TOKEN_ID:
-					continue
 				tokens_in_order.append(token)
 				for tag in token.tags:
 					board_tags[tag] = int(board_tags.get(tag, 0)) + 1
@@ -542,10 +550,11 @@ func _build_snapshot_from_board():
 	return RunSnapshotScript.new(phase_effects)
 
 func _make_effect(source_token: String, phase_name: String, score_delta: int) -> Dictionary:
+	var resolved_score_delta := 0 if source_token == EMPTY_TOKEN_ID else score_delta
 	return {
 		"source_token": source_token,
 		"target_token": source_token,
-		"score_delta": score_delta,
+		"score_delta": resolved_score_delta,
 		"message_key": phase_name,
 	}
 

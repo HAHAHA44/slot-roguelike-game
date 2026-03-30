@@ -1,3 +1,9 @@
+# 内容注册表：
+# - 启动时扫描 `content/` 下的各类 `.tres` 资源，并按 `id` 建立索引。
+# - 是整个项目的内容入口，`RunScreen` 和各个 service 都通过它读取 token、事件、英雄、难度等配置。
+# - 自己不负责玩法计算，只负责“加载、校验、查表、缓存”。
+# - 依赖 `ContentDefinitionValidator` 过滤非法资源，坏数据会被跳过并报错，而不是直接写进运行时状态。
+# - 典型用法：`RunScreen._ready()` 调 `load_all()`，后续 reward/event/难度逻辑都从这里取资源。
 class_name ContentRegistry
 extends RefCounted
 

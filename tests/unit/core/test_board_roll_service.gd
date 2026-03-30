@@ -29,6 +29,18 @@ func test_round_pool_does_not_truncate_when_pool_equals_capacity() -> void:
 	assert_eq(rolled.count("pulse_seed"), 25)
 	assert_eq(rolled.count("empty_token"), 0)
 
+func test_round_pool_is_clamped_to_board_capacity_when_pool_exceeds_capacity() -> void:
+	var pool: Array = []
+	for index in 30:
+		pool.append("pulse_seed" if index < 15 else "relay_prism")
+	var service := BoardRollService.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var rolled := service.build_round_pool(pool, 25, "empty_token", rng)
+	assert_eq(rolled.size(), 25)
+	assert_eq(rolled.count("empty_token"), 0)
+	assert_eq(rolled.count("pulse_seed") + rolled.count("relay_prism"), 25)
+
 func test_pool_to_board_map_maps_index_to_row_major_position() -> void:
 	var service := BoardRollService.new()
 	var pool := ["a", "b", "c", "d", "e", "f"]

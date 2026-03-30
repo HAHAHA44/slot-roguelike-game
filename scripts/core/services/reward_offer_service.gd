@@ -1,3 +1,8 @@
+# 奖励选择服务：
+# - 负责生成回合结束后的三选一奖励，并把奖励真正作用到 `RunSession.token_pool`。
+# - `add_token / random_token / remove_token` 都是对持久牌池的修改，而不是对当前棋盘的临时操作。
+# - 它同时读取 `ContentRegistry` 来决定可选 token，读取 `RunSession` 来知道当前回合和当前池状态。
+# - 典型联动：`RunScreen` 在 `offer_choice` 状态生成按钮，在玩家点按钮后把选择交给这里执行。
 class_name RewardOfferService
 extends RefCounted
 

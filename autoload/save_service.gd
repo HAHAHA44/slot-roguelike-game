@@ -1,3 +1,8 @@
+# 存档服务：
+# - 负责把单个存档槽读写成 JSON 文件，提供最基础的持久化能力。
+# - 目前是轻量实现，适合原型阶段；后续如果需要多槽、版本迁移、加密或云同步，可以在这里扩展。
+# - 它不理解游戏规则，只处理“路径、读写、解析、错误处理”。
+# - 典型联动：`MetaProgressionService` / `RunSession` / 未来的 meta screen 都可以先把状态转成 `Dictionary`，再交给这里保存。
 class_name SaveService
 extends RefCounted
 

@@ -1,3 +1,8 @@
+# 棋盘扫描助手：
+# - 提供邻接、行列、标签统计等基础扫描接口，给更高层的结算/事件规则复用。
+# - 这个类本身不做打分，不做状态推进，只把 `BoardService` 的数据变成更方便消费的查询结果。
+# - 未来如果把 `_build_snapshot_from_board()` 拆出来，这个类会是最直接的底层依赖之一。
+# - 典型联动：传入 `BoardService`，输出 `Vector2i` 列表或 tag 统计字典。
 class_name TriggerScanner
 extends RefCounted
 

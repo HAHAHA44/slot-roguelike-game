@@ -1,3 +1,8 @@
+# 局外成长服务：
+# - 根据一局运行结果，维护长期解锁状态，例如新英雄、元节点或 meta 内容。
+# - 它的输入应该是“跑完一局后的结果数据”，输出是“哪些 meta 节点现在可用”。
+# - 配合 `SaveService` 可以把这些解锁结果持久化到存档中。
+# - 它不参与单局回合结算，只处理局外进度。
 class_name MetaProgressionService
 extends RefCounted
 

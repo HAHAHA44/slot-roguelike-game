@@ -1,3 +1,8 @@
+# 内容校验器：
+# - 在资源加载阶段检查 `id`、枚举值、重复 ID、空字段等基础问题。
+# - 目标是把“内容错误”尽量拦在加载时，而不是把坏数据带进运行时再崩。
+# - 它只做结构与约束检查，不判断玩法平衡，也不决定某个资源是否“好玩”。
+# - 典型联动：`ContentRegistry` 在扫描每个 `.tres` 时调用它，校验失败的资源会被跳过。
 class_name ContentDefinitionValidator
 extends RefCounted
 

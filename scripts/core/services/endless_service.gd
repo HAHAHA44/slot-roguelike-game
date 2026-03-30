@@ -1,3 +1,8 @@
+# Endless / 异常服务：
+# - 负责标准通关后的后续循环目标、异常上下文和难度递进。
+# - 这里是“后期模式”的规则入口，不参与普通回合的核心结算。
+# - 当前实现更偏向基础骨架：给出每圈目标、按异常资源调整上下文，供未来的 endless 流程接手。
+# - 典型联动：通关后由 UI 或上层流程把 loop_index / anomaly 传进来，生成下一圈的运行目标。
 class_name EndlessService
 extends RefCounted
 
