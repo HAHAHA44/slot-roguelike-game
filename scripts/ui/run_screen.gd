@@ -98,6 +98,10 @@ var _run_cleared_state
 @onready var _event_button_2: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton2")
 @onready var _event_button_3: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton3")
 @onready var _settlement_log_list: ItemList = get_node("MainMargin/MainLayout/ContentRow/Sidebar/SettlementLogPanel/MarginContainer/VBox/SettlementLogList")
+@onready var _bag_button: Button = %BagButton
+@onready var _bag_panel: PanelContainer = %BagPanel
+@onready var _bag_close_button: Button = %BagCloseButton
+@onready var _bag_list: VBoxContainer = %BagList
 
 func _ready() -> void:
 	_content_registry.load_all()
@@ -273,6 +277,8 @@ func _wire_ui() -> void:
 	_event_button_3.pressed.connect(_on_event_button_pressed.bind(2))
 	_next_turn_button.pressed.connect(_on_next_turn_pressed)
 	_continue_to_reward_button.pressed.connect(_on_continue_to_reward_pressed)
+	_bag_button.pressed.connect(_on_bag_button_pressed)
+	_bag_close_button.pressed.connect(func(): _bag_panel.visible = false)
 
 func _build_board_grid() -> void:
 	for child in _board_grid.get_children():
@@ -641,6 +647,69 @@ func _get_rarity_style(rarity: String) -> StyleBoxFlat:
 	style.set_content_margin_all(6)
 	_rarity_style_cache[rarity] = style
 	return style
+
+func _on_bag_button_pressed() -> void:
+	_sync_bag_panel()
+	_bag_panel.visible = true
+
+func _sync_bag_panel() -> void:
+	for child in _bag_list.get_children():
+		child.queue_free()
+
+	# 统计每种 token 的数量
+	var counts: Dictionary = {}
+	for token_id in run_session.token_pool:
+		counts[token_id] = counts.get(token_id, 0) + 1
+
+	if counts.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "背包是空的"
+		_bag_list.add_child(empty_label)
+		return
+
+	for token_id in counts.keys():
+		var definition: TokenDefinition = _content_registry.tokens.get(token_id)
+		var rarity: String = definition.rarity if definition else "Common"
+		var display_name: String = definition.name if definition else token_id
+		var count: int = counts[token_id]
+
+		var row := HBoxContainer.new()
+		row.theme_override_constants = {"separation": 8}
+
+		# 图标
+		var icon_tex := _get_token_icon(token_id)
+		var icon_rect := TextureRect.new()
+		icon_rect.custom_minimum_size = Vector2(40, 40)
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		if icon_tex:
+			icon_rect.texture = icon_tex
+		else:
+			var placeholder := Label.new()
+			placeholder.text = token_id.left(2).to_upper()
+			placeholder.custom_minimum_size = Vector2(40, 40)
+			row.add_child(placeholder)
+		row.add_child(icon_rect)
+
+		# 稀有度色块
+		var rarity_tag := Label.new()
+		rarity_tag.text = rarity
+		rarity_tag.add_theme_color_override("font_color",
+			RARITY_COLORS.get(rarity, RARITY_COLORS["Common"]).lightened(0.6))
+
+		# 名称
+		var name_label := Label.new()
+		name_label.text = display_name
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+		# 数量
+		var count_label := Label.new()
+		count_label.text = "x%d" % count
+
+		row.add_child(rarity_tag)
+		row.add_child(name_label)
+		row.add_child(count_label)
+		_bag_list.add_child(row)
 
 func _sync_run_labels() -> void:
 	_run_state_label.text = "State %s" % _active_state_name

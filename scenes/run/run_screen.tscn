@@ -51,6 +51,10 @@ text = "Score 0 / 10"
 unique_name_in_owner = true
 text = "Contract None"
 
+[node name="BagButton" type="Button" parent="MainMargin/MainLayout/HeaderRow"]
+unique_name_in_owner = true
+text = "背包"
+
 [node name="ContentRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -71,3 +75,51 @@ theme_override_constants/separation = 16
 
 [node name="SettlementLogPanel" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("4_log_panel")]
 unique_name_in_owner = true
+
+[node name="BagPanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200
+offset_top = -260
+offset_right = 200
+offset_bottom = 260
+visible = false
+
+[node name="MarginContainer" type="MarginContainer" parent="BagPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="BagPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleRow" type="HBoxContainer" parent="BagPanel/MarginContainer/VBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="BagPanel/MarginContainer/VBox/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "背包"
+theme_override_font_sizes/font_size = 18
+
+[node name="BagCloseButton" type="Button" parent="BagPanel/MarginContainer/VBox/TitleRow"]
+unique_name_in_owner = true
+text = "×"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="BagPanel/MarginContainer/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 400)
+
+[node name="BagList" type="VBoxContainer" parent="BagPanel/MarginContainer/VBox/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
