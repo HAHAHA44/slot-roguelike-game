@@ -138,6 +138,21 @@ func test_add_reward_changes_the_next_token_you_place() -> void:
 
 	assert_eq(new_cell.tooltip_text, rewarded_token_id)
 
+func test_contract_ticks_after_a_completed_rolled_round() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	scene.debug_force_active_contract()
+	assert_eq(scene.get_active_state_name(), "roll_board")
+
+	var next_turn_button := scene.get_node("%NextTurnButton") as Button
+	next_turn_button.emit_signal("pressed")
+
+	await _wait_for_state(scene, "settlement_result")
+
+	assert_eq(scene.get_active_contract_data()["turns_remaining"], 2)
+
 func test_contract_turns_tick_after_the_next_scored_turn() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:

@@ -151,6 +151,14 @@ func debug_force_reward_event_complete() -> void:
 	if _active_state_name == "event_draft" and not _active_event_options.is_empty():
 		_on_event_button_pressed(0)
 
+func debug_force_active_contract() -> void:
+	# Selects first offer and first event to establish a real active contract,
+	# ending in roll_board state ready for NextTurnButton.
+	if _active_state_name == "offer_choice":
+		debug_force_reward_event_complete()  # → event_draft
+	if _active_state_name == "event_draft":
+		debug_force_reward_event_complete()  # → roll_board
+
 func debug_enter_player_turn() -> void:
 	if _active_state_name in ["offer_choice", "roll_board", "event_draft"]:
 		_state_chart.send_event("debug_player_turn")
