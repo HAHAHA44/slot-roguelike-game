@@ -14,6 +14,21 @@ func test_smoke_playable_path_still_works() -> void:
 
 	assert_true(scene.get_active_state_name() in ["settling", "settlement_result"])
 
+func test_mainline_round_progresses_without_manual_place_or_settle() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	scene.debug_force_reward_event_complete()  # offer → event_draft
+	scene.debug_force_reward_event_complete()  # event → roll_board
+
+	var next_turn_button := scene.get_node("%NextTurnButton") as Button
+	next_turn_button.emit_signal("pressed")
+
+	await _wait_for_state(scene, "settlement_result")
+
+	assert_true(true)
+
 func test_run_screen_builds_25_cells() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:

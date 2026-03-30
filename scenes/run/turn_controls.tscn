@@ -6,9 +6,11 @@ theme_override_constants/separation = 8
 
 [node name="ModeLabel" type="Label" parent="."]
 unique_name_in_owner = true
+visible = false
 text = "Mode Place"
 
 [node name="ModeButtons" type="HBoxContainer" parent="."]
+visible = false
 theme_override_constants/separation = 8
 
 [node name="PlaceModeButton" type="Button" parent="ModeButtons"]
@@ -24,6 +26,7 @@ text = "Remove"
 
 [node name="SettleButton" type="Button" parent="."]
 unique_name_in_owner = true
+visible = false
 text = "Settle"
 
 [node name="OfferTitleLabel" type="Label" parent="."]
