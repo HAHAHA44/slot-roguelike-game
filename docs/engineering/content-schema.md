@@ -54,10 +54,48 @@ Allowed `attribute_bias` values:
 - `Flux`
 - `Greed`
 
+### `empty_token` (System Token)
+
+A formal `TokenDefinition` with `id = "empty_token"`, `base_value = 0`, no tags, and `spawn_rules = {"weight": 0.0}`.
+
+- Injected automatically each round to fill the board to capacity (25 cells).
+- Excluded from all reward offer pools (zero spawn weight).
+- Participates fully in board generation and settlement but contributes 0 score.
+- Do not include it in manual content lists or weighted spawn pools.
+
 ## Registry Rules
 
 - `ContentRegistry` scans `res://content/tokens/*.tres` and indexes resources by `id`.
 - `id` values must be globally unique within the loaded content set.
+- `spawn_rules.weight == 0` tokens are treated as system-only and excluded from player-facing reward offers.
+
+## Bag-Roll Core Loop
+
+### Persistent Token Pool
+
+`RunSession.token_pool` is a concrete **multiset** (`Array[String]`).  Duplicates are allowed and meaningful — two entries of `relay_prism` mean two copies appear in the rolled board every round.
+
+- `pool_add(id)` — appends one entry unconditionally.
+- `pool_remove(id)` — removes one entry (first match).
+- `pool_count(id)` — counts copies of an entry.
+
+### Per-Round Board Generation
+
+Each round, `BoardRollService.build_round_pool()`:
+1. Copies the persistent pool.
+2. Appends `empty_token` entries until the pool reaches board capacity (25).
+3. Fisher-Yates shuffles the 25-entry round pool.
+4. Returns the shuffled pool; `pool_to_board_map()` translates it to `Vector2i → token_id`.
+
+The persistent pool is **never mutated** during board generation.
+
+### Default Player Flow
+
+```
+reward_choice → event_draft → roll_board → settling → settlement_result → reward_choice
+```
+
+Manual placement (`player_turn`) is **debug / future ability scaffolding** only, accessible via `debug_enter_player_turn()`.
 - Invalid resources are rejected during load and are not inserted into the registry.
 
 ## Naming And Rename Discipline

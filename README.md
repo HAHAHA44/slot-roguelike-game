@@ -35,8 +35,9 @@ Playable smoke check:
 & $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/integration/test_run_screen_flow.gd -gexit
 ```
 
-During the current playable-vertical-slice phase, every task must keep the smoke path green:
-- the game boots into `RunScreen`
-- a token can be placed
-- settlement can be triggered
-- the UI advances to the next playable state
+Every task must keep the bag-roll smoke path green:
+- the game boots into `RunScreen` → `offer_choice`
+- a reward offer and event are selected
+- the next-turn arrow rolls the board automatically (25 tokens from the pool)
+- settlement resolves automatically
+- the UI reaches `settlement_result`, then continues to `reward_choice`
