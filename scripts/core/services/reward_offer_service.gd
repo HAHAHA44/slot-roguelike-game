@@ -42,15 +42,15 @@ func apply_offer(run_session: RunSession, offer: Dictionary) -> Dictionary:
 	match resolution["kind"]:
 		"add_token", "random_token":
 			var token_id := String(resolution["token_id"])
-			var changed := run_session.add_token_to_pool(token_id)
+			run_session.pool_add(token_id)
 			run_session.focus_token(token_id)
-			resolution["changed"] = changed or run_session.get_active_token_id() == token_id
+			resolution["changed"] = true
 		"remove_token":
 			var target_token_id := String(resolution["token_id"])
 			if target_token_id.is_empty():
 				target_token_id = _pick_removable_token_id(run_session)
 				resolution["token_id"] = target_token_id
-			resolution["changed"] = run_session.remove_token_from_pool(target_token_id)
+			resolution["changed"] = run_session.pool_remove(target_token_id)
 
 	resolution["active_token_id"] = run_session.get_active_token_id()
 	return resolution
@@ -59,9 +59,12 @@ func _ordered_token_ids(content_registry: ContentRegistry) -> Array[String]:
 	var weighted_entries: Array[Dictionary] = []
 	for token_id in content_registry.tokens.keys():
 		var definition: TokenDefinition = content_registry.tokens[token_id]
+		var weight := float(definition.spawn_rules.get("weight", 0.0))
+		if weight <= 0.0:
+			continue
 		weighted_entries.append({
 			"id": String(token_id),
-			"weight": float(definition.spawn_rules.get("weight", 0.0)),
+			"weight": weight,
 		})
 
 	weighted_entries.sort_custom(func(left: Dictionary, right: Dictionary) -> bool:
