@@ -4,20 +4,16 @@
 
 [resource]
 script = ExtResource("1")
-# 锚定符文：守护型 token，保护相邻格 token 不被移除，适合锁定高价值 token
 id = "anchor_glyph"
 name = "Anchor Glyph"
 description = "An ancient ward etched into the board. Shields all adjacent tokens from being removed, making them permanent for the duration of its presence."
 rarity = "Rare"
 type = "Guard"
-# Guard 标签：触发防护类联动
 tags = PackedStringArray("Guard")
 base_value = 2
-# 使上下左右四个相邻格的 token 免疫移除操作
 trigger_rules = {
 "protect_adjacent": true
 }
-# growth：预留的成长计数器，未来可扩展为"守护层数"机制
 state_fields = {
 "growth": 0
 }
@@ -25,4 +21,3 @@ spawn_rules = {
 "weight": 0.4
 }
 remove_rules = {}
-

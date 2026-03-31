@@ -4,24 +4,19 @@
 
 [resource]
 script = ExtResource("1")
-# 双子石碑：空间型 token，横向占据两格，两格互相联动触发，强力但需要连续空位
 id = "twin_monolith"
 name = "Twin Monolith"
 description = "Two towering pillars that must stand together. Occupies two horizontal cells and links them, doubling the trigger output of both positions."
 rarity = "Legendary"
 type = "Spatial"
-# Spatial：占多格；Link：两段之间互相传导触发
 tags = PackedStringArray("Spatial", "Link")
 base_value = 4
-# 占据坐标偏移列表，(0,0) 为主格，(1,0) 为右侧副格
 trigger_rules = {
 "occupies_shape": PackedStringArray("0,0", "1,0")
 }
-# segments：组成该 token 的格子数，目前固定为 2
 state_fields = {
 "segments": 2
 }
-# 极低权重，确保只在高级奖励池中出现
 spawn_rules = {
 "weight": 0.1
 }

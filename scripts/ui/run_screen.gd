@@ -113,6 +113,7 @@ func _ready() -> void:
 	_selected_difficulty = _content_registry.difficulty_modifiers.get("ascension_1")
 	_build_state_chart()
 	_wire_ui()
+	_bag_panel.visible = false
 	_build_board_grid()
 	_sync_board_ui()
 	_sync_run_labels()
@@ -240,8 +241,6 @@ func _build_state_chart() -> void:
 	_add_transition(_event_draft_state, "EventDraftToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
 	_add_transition(_player_turn_state, "PlayerTurnToSettling", NodePath("../../Settling"), "settle")
 
-	add_child(_state_chart)
-
 	_boot_state.state_entered.connect(_on_state_entered.bind("boot"))
 	_player_turn_state.state_entered.connect(_on_state_entered.bind("player_turn"))
 	_settling_state.state_entered.connect(_on_state_entered.bind("settling"))
@@ -251,6 +250,8 @@ func _build_state_chart() -> void:
 	_settlement_result_state.state_entered.connect(_on_state_entered.bind("settlement_result"))
 	_run_failed_state.state_entered.connect(_on_state_entered.bind("run_failed"))
 	_run_cleared_state.state_entered.connect(_on_state_entered.bind("run_cleared"))
+
+	add_child(_state_chart)
 
 func _make_state(state_name: String):
 	var state = AtomicStateScript.new()

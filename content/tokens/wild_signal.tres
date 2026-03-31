@@ -4,16 +4,13 @@
 
 [resource]
 script = ExtResource("1")
-# 野生信号：万能型 token，每轮扫描棋盘后复制数量最多的标签，融入任意当前主流 combo
 id = "wild_signal"
 name = "Wild Signal"
 description = "An adaptive broadcaster that scans the board each turn and mimics the most common tag present, contributing to any synergy that needs it."
 rarity = "Rare"
 type = "Wildcard"
-# Wild 标签：标记为可变身的万能牌
 tags = PackedStringArray("Wild")
 base_value = 2
-# 结算前统计棋盘标签分布，将自身临时标签替换为出现次数最多的那个
 trigger_rules = {
 "copy_majority_tag": true
 }
@@ -22,4 +19,3 @@ spawn_rules = {
 "weight": 0.35
 }
 remove_rules = {}
-

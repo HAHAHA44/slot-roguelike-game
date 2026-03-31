@@ -4,16 +4,13 @@
 
 [resource]
 script = ExtResource("1")
-# 空心壳：破坏型 token，被移除时在相邻格产生碎片加分，需要配合移除机制触发
 id = "hollow_shell"
 name = "Hollow Shell"
 description = "A brittle husk waiting to shatter. When removed from the board, it breaks apart and spawns score fragments in adjacent cells."
 rarity = "Common"
 type = "Breaker"
-# Break 标签触发破碎类连锁效果
 tags = PackedStringArray("Break")
 base_value = 1
-# 被移除时执行 spawn_fragments 逻辑
 trigger_rules = {
 "on_remove": "spawn_fragments"
 }
@@ -21,8 +18,6 @@ state_fields = {}
 spawn_rules = {
 "weight": 1.0
 }
-# 碎片得分值：每个生成的碎片计 2 分
 remove_rules = {
 "spawn_fragment_score": 2
 }
-
