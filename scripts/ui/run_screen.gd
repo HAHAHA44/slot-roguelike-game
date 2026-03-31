@@ -16,6 +16,10 @@ const BOARD_HEIGHT := 5
 const DEFAULT_TOKEN_ID := "pulse_seed"
 const EMPTY_TOKEN_ID := "empty_token"
 
+const SLOT_SPIN_DURATION_BASE := 0.5   # 第 0 列停止前的旋转时长（秒）
+const SLOT_SPIN_STAGGER := 0.18        # 每列额外延迟（秒），逐列停止
+const SLOT_SPIN_INTERVAL := 0.06       # 每帧符号切换间隔（秒）
+
 const RARITY_COLORS := {
 	"Common":    Color(0.25, 0.25, 0.28),
 	"Uncommon":  Color(0.13, 0.40, 0.16),
@@ -377,12 +381,16 @@ func _on_next_turn_pressed() -> void:
 	if _active_state_name != "roll_board":
 		return
 
+	_next_turn_button.disabled = true
 	_roll_board_from_pool()
+	await _play_slot_animation()
+	_sync_board_ui()
 	var report = _settlement_resolver.resolve_board(_board_service, _content_registry)
 	_pending_steps = report.steps.duplicate()
 	_last_settlement_score_gain = 0
 	_settlement_log_list.clear()
 	_state_chart.send_event("next_turn")
+	_next_turn_button.disabled = false
 
 func _on_continue_to_reward_pressed() -> void:
 	if _active_state_name != "settlement_result":
@@ -465,7 +473,64 @@ func _roll_board_from_pool() -> void:
 		var token := _make_token_instance_for_id(token_id)
 		_board_service.place_token(pos, token)
 
-	_sync_board_ui()
+# 老虎机动画：每列随机滚动，从左到右依次停下
+func _play_slot_animation() -> void:
+	var spin_pool: Array = []
+	for token_id in run_session.token_pool:
+		if token_id != EMPTY_TOKEN_ID and not (token_id in spin_pool):
+			spin_pool.append(token_id)
+	if spin_pool.is_empty():
+		spin_pool = _content_registry.tokens.keys()
+	if spin_pool.is_empty():
+		return
+
+	# 启动所有列的旋转协程（并发，不 await）
+	for col in BOARD_WIDTH:
+		_spin_column_anim(col, spin_pool, SLOT_SPIN_DURATION_BASE + col * SLOT_SPIN_STAGGER)
+
+	# 等待最后一列完成
+	var total := SLOT_SPIN_DURATION_BASE + (BOARD_WIDTH - 1) * SLOT_SPIN_STAGGER + SLOT_SPIN_INTERVAL * 2.0
+	await get_tree().create_timer(total).timeout
+
+func _spin_column_anim(col: int, spin_pool: Array, duration: float) -> void:
+	var elapsed := 0.0
+	while elapsed < duration:
+		for row in BOARD_HEIGHT:
+			var button: Button = _cell_buttons_by_pos[Vector2i(col, row)]
+			var random_id: String = spin_pool[_rng.randi() % spin_pool.size()]
+			_apply_token_id_to_button(button, random_id)
+		await get_tree().create_timer(SLOT_SPIN_INTERVAL).timeout
+		elapsed += SLOT_SPIN_INTERVAL
+
+	# 列停止时显示真实结果
+	for row in BOARD_HEIGHT:
+		var pos := Vector2i(col, row)
+		var button: Button = _cell_buttons_by_pos[pos]
+		var token = _board_service.get_token(pos)
+		if token == null:
+			button.text = ""
+			button.icon = null
+			button.remove_theme_stylebox_override("normal")
+			button.remove_theme_stylebox_override("hover")
+		else:
+			_apply_token_id_to_button(button, token.definition_id)
+
+func _apply_token_id_to_button(button: Button, token_id: String) -> void:
+	if token_id.is_empty() or token_id == EMPTY_TOKEN_ID:
+		button.text = "·"
+		button.icon = null
+		button.remove_theme_stylebox_override("normal")
+		button.remove_theme_stylebox_override("hover")
+		return
+	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
+	var icon_tex := _get_token_icon(token_id)
+	button.text = "" if icon_tex else token_id.left(2).to_upper()
+	button.icon = icon_tex
+	button.expand_icon = true
+	var rarity: String = definition.rarity if definition else "Common"
+	var style := _get_rarity_style(rarity)
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_stylebox_override("hover", style)
 
 # ---------------------------------------------------------------------------
 # Settlement
@@ -560,7 +625,7 @@ func _sync_board_ui() -> void:
 			button.tooltip_text = "Empty"
 			button.remove_theme_stylebox_override("normal")
 			button.remove_theme_stylebox_override("hover")
-		elif token.definition_id == EMPTY_TOKEN_ID:
+		elif token.definition_id.is_empty() or token.definition_id == EMPTY_TOKEN_ID:
 			button.text = "·"
 			button.icon = null
 			button.tooltip_text = "Empty token"
@@ -723,7 +788,22 @@ func _sync_offer_buttons() -> void:
 		var has_offer := show_offers and index < _active_offers.size()
 		button.visible = has_offer
 		button.disabled = not has_offer
-		button.text = _format_offer(_active_offers[index]) if has_offer else ""
+		if has_offer:
+			var offer: Dictionary = _active_offers[index]
+			var token_id := String(offer.get("token_id", ""))
+			var definition: TokenDefinition = _content_registry.tokens.get(token_id) if not token_id.is_empty() else null
+			button.text = definition.name if definition else _format_token_name(token_id)
+			if definition:
+				var style := _get_rarity_style(definition.rarity)
+				button.add_theme_stylebox_override("normal", style)
+				button.add_theme_stylebox_override("hover", style)
+			else:
+				button.remove_theme_stylebox_override("normal")
+				button.remove_theme_stylebox_override("hover")
+		else:
+			button.text = ""
+			button.remove_theme_stylebox_override("normal")
+			button.remove_theme_stylebox_override("hover")
 
 func _sync_event_draft_ui() -> void:
 	var buttons := _event_buttons()
@@ -752,11 +832,13 @@ func _event_buttons() -> Array[Button]:
 	return [_event_button_1, _event_button_2, _event_button_3]
 
 func _format_offer(offer: Dictionary) -> String:
-	var label := String(offer.get("kind", "offer")).replace("_", " ").capitalize()
 	var token_id := String(offer.get("token_id", ""))
-	if not token_id.is_empty():
-		label += " %s" % _format_token_name(token_id)
-	return label
+	if token_id.is_empty():
+		return "No Token"
+	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
+	if definition != null:
+		return definition.name
+	return _format_token_name(token_id)
 
 func _format_event(event_data: Dictionary) -> String:
 	return "%s [%s]" % [event_data.get("name", event_data.get("id", "Event")), event_data.get("primary_tag", "Tag")]

@@ -1,40 +1,29 @@
 # 奖励选择服务：
-# - 负责生成回合结束后的三选一奖励，并把奖励真正作用到 `RunSession.token_pool`。
-# - `add_token / random_token / remove_token` 都是对持久牌池的修改，而不是对当前棋盘的临时操作。
+# - 负责生成回合结束后的三选一 token 奖励，并把选中的 token 添加到 `RunSession.token_pool`。
+# - 每次出三个不重复的 token 候选，优先从"尚未拥有的"池中挑，候选为空时从全量 token 池补充。
 # - 它同时读取 `ContentRegistry` 来决定可选 token，读取 `RunSession` 来知道当前回合和当前池状态。
 # - 典型联动：`RunScreen` 在 `offer_choice` 状态生成按钮，在玩家点按钮后把选择交给这里执行。
 class_name RewardOfferService
 extends RefCounted
 
 func build_turn_offer(run_session: RunSession, content_registry: ContentRegistry) -> Array[Dictionary]:
-	var unlockable_ids := _unlockable_token_ids(run_session, content_registry)
-	var all_token_ids := _ordered_token_ids(content_registry)
-	var add_token_id := _pick_token_id(unlockable_ids if not unlockable_ids.is_empty() else all_token_ids, run_session.current_turn + run_session.phase_index)
-	var random_token_id := _pick_token_id(all_token_ids, (run_session.current_turn * 2) + run_session.phase_index + 1)
-	var removable_token_id := _pick_removable_token_id(run_session)
+	var candidate_ids := _unlockable_token_ids(run_session, content_registry)
+	if candidate_ids.is_empty():
+		candidate_ids = _ordered_token_ids(content_registry)
 
-	return [
-		{
+	var base_seed := run_session.current_turn * 100 + run_session.phase_index
+	var picked := _pick_distinct_token_ids(candidate_ids, 3, base_seed)
+
+	var offers: Array[Dictionary] = []
+	for token_id in picked:
+		offers.append({
 			"kind": "add_token",
 			"phase_index": run_session.phase_index,
-			"token_id": add_token_id,
-			"token_candidates": unlockable_ids.duplicate(),
+			"token_id": token_id,
+			"token_candidates": candidate_ids.duplicate(),
 			"weight_profile": {"rarity": "weighted", "tags": "open"},
-		},
-		{
-			"kind": "remove_token",
-			"phase_index": run_session.phase_index,
-			"token_id": removable_token_id,
-			"weight_profile": {"rarity": "none", "tags": "cleanup"},
-		},
-		{
-			"kind": "random_token",
-			"phase_index": run_session.phase_index,
-			"token_id": random_token_id,
-			"token_candidates": all_token_ids.duplicate(),
-			"weight_profile": {"rarity": "weighted", "tags": "phase_biased"},
-		},
-	]
+		})
+	return offers
 
 func apply_offer(run_session: RunSession, offer: Dictionary) -> Dictionary:
 	var resolution := {
@@ -45,17 +34,12 @@ func apply_offer(run_session: RunSession, offer: Dictionary) -> Dictionary:
 	}
 
 	match resolution["kind"]:
-		"add_token", "random_token":
+		"add_token":
 			var token_id := String(resolution["token_id"])
-			run_session.pool_add(token_id)
-			run_session.focus_token(token_id)
-			resolution["changed"] = true
-		"remove_token":
-			var target_token_id := String(resolution["token_id"])
-			if target_token_id.is_empty():
-				target_token_id = _pick_removable_token_id(run_session)
-				resolution["token_id"] = target_token_id
-			resolution["changed"] = run_session.pool_remove(target_token_id)
+			if not token_id.is_empty():
+				run_session.pool_add(token_id)
+				run_session.focus_token(token_id)
+				resolution["changed"] = true
 
 	resolution["active_token_id"] = run_session.get_active_token_id()
 	return resolution
@@ -90,18 +74,14 @@ func _unlockable_token_ids(run_session: RunSession, content_registry: ContentReg
 			candidate_ids.append(token_id)
 	return candidate_ids
 
-func _pick_token_id(candidate_ids: Array[String], seed_value: int) -> String:
+func _pick_distinct_token_ids(candidate_ids: Array[String], count: int, seed_value: int) -> Array[String]:
 	if candidate_ids.is_empty():
-		return ""
-	return candidate_ids[posmod(seed_value, candidate_ids.size())]
-
-func _pick_removable_token_id(run_session: RunSession) -> String:
-	if run_session.token_pool.size() <= 1:
-		return ""
-	var active_token_id := run_session.get_active_token_id()
-	if active_token_id != RunSession.DEFAULT_TOKEN_ID:
-		return active_token_id
-	for token_id in run_session.token_pool:
-		if token_id != RunSession.DEFAULT_TOKEN_ID:
-			return token_id
-	return ""
+		return []
+	var result: Array[String] = []
+	var size := candidate_ids.size()
+	var start := posmod(seed_value, size)
+	for i in size:
+		if result.size() >= count:
+			break
+		result.append(candidate_ids[posmod(start + i, size)])
+	return result

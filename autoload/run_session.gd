@@ -65,6 +65,8 @@ func advance_token_cursor() -> void:
 
 # Append one concrete entry to the pool (duplicates allowed).
 func pool_add(token_id: String) -> void:
+	if token_id.is_empty():
+		return
 	token_pool.append(token_id)
 
 # Remove one entry with the given id. Returns true if an entry was removed.
