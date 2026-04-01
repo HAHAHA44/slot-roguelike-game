@@ -3,7 +3,19 @@
     "allow": [
       "Bash(git add:*)",
       "Bash(git config:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(bash install.sh --help)",
+      "Bash(node scripts/install-apply.js --help)",
+      "Bash(nvm ls:*)",
+      "Bash(curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh)",
+      "Bash(bash)",
+      "Bash(export NVM_DIR=\"$HOME/.nvm\")",
+      "Bash(. \"$NVM_DIR/nvm.sh\")",
+      "Bash(bash install.sh --profile full)",
+      "Bash(node scripts/install-apply.js --profile full)",
+      "Bash(npm install:*)",
+      "Bash(python3 -m json.tool)",
+      "Read(//home/ax/.claude/**)"
     ]
   }
 }
