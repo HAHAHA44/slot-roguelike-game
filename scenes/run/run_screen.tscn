@@ -1,9 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/run_screen.gd" id="1_run_screen"]
 [ext_resource type="PackedScene" path="res://scenes/run/board_grid.tscn" id="2_board_grid"]
 [ext_resource type="PackedScene" path="res://scenes/run/turn_controls.tscn" id="3_turn_controls"]
-[ext_resource type="PackedScene" path="res://scenes/run/settlement_log_panel.tscn" id="4_log_panel"]
 [ext_resource type="PackedScene" path="res://scenes/run/event_draft_panel.tscn" id="5_event_draft_panel"]
 
 [node name="RunScreen" type="Control"]
@@ -73,9 +72,6 @@ theme_override_constants/separation = 16
 
 [node name="EventDraftPanel" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("5_event_draft_panel")]
 
-[node name="SettlementLogPanel" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("4_log_panel")]
-unique_name_in_owner = true
-
 [node name="BagPanel" type="PanelContainer" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
@@ -122,3 +118,34 @@ size_flags_horizontal = 3
 columns = 8
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
+
+[node name="ConsolePanel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+visible = false
+
+[node name="MarginContainer" type="MarginContainer" parent="ConsolePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="ConsolePanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ConsoleTitle" type="Label" parent="ConsolePanel/MarginContainer/VBox"]
+layout_mode = 2
+text = "Console  [ ` ] to close"
+theme_override_font_sizes/font_size = 14
+
+[node name="ConsoleLogList" type="ItemList" parent="ConsolePanel/MarginContainer/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3

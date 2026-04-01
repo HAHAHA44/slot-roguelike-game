@@ -10,7 +10,7 @@ description = "An ancient ward etched into the board. Shields all adjacent token
 rarity = "Rare"
 type = "Guard"
 tags = PackedStringArray("Guard")
-base_value = 2
+base_value = 3
 trigger_rules = {
 "protect_adjacent": true
 }

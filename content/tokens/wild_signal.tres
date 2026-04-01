@@ -10,7 +10,7 @@ description = "An adaptive broadcaster that scans the board each turn and mimics
 rarity = "Rare"
 type = "Wildcard"
 tags = PackedStringArray("Wild")
-base_value = 2
+base_value = 3
 trigger_rules = {
 "copy_majority_tag": true
 }

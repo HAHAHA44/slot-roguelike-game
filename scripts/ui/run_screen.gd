@@ -20,6 +20,10 @@ const SLOT_SPIN_DURATION_BASE := 0.5   # 第 0 列停止前的旋转时长（秒
 const SLOT_SPIN_STAGGER := 0.18        # 每列额外延迟（秒），逐列停止
 const SLOT_SPIN_INTERVAL := 0.06       # 每帧符号切换间隔（秒）
 
+const SETTLEMENT_STEP_INTERVAL := 0.30  # 每个结算步骤的总时长（秒）
+const SETTLEMENT_HIGHLIGHT_HOLD := 0.22 # 高亮持续时长（秒）
+const SETTLEMENT_POPUP_RISE := 55.0     # 得分浮字上升距离（像素）
+
 const RARITY_COLORS := {
 	"Common":    Color(0.25, 0.25, 0.28),
 	"Uncommon":  Color(0.13, 0.40, 0.16),
@@ -100,7 +104,8 @@ var _run_cleared_state
 @onready var _event_button_1: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1")
 @onready var _event_button_2: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton2")
 @onready var _event_button_3: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton3")
-@onready var _settlement_log_list: ItemList = get_node("MainMargin/MainLayout/ContentRow/Sidebar/SettlementLogPanel/MarginContainer/VBox/SettlementLogList")
+@onready var _settlement_log_list: ItemList = %ConsoleLogList
+@onready var _console_panel: PanelContainer = %ConsolePanel
 @onready var _bag_button: Button = %BagButton
 @onready var _bag_panel: PanelContainer = %BagPanel
 @onready var _bag_close_button: Button = %BagCloseButton
@@ -114,10 +119,17 @@ func _ready() -> void:
 	_build_state_chart()
 	_wire_ui()
 	_bag_panel.visible = false
+	_console_panel.visible = false
 	_build_board_grid()
 	_sync_board_ui()
 	_sync_run_labels()
 	_sync_all_panels()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_QUOTELEFT:
+			_console_panel.visible = not _console_panel.visible
+			get_viewport().set_input_as_handled()
 
 # ---------------------------------------------------------------------------
 # Public API (also used by tests)
@@ -549,13 +561,116 @@ func _start_settlement_autoplay() -> void:
 	_run_settlement_autoplay()
 
 func _run_settlement_autoplay() -> void:
-	while _active_state_name == "settling" and not _pending_steps.is_empty():
-		advance_settlement_playback()
-		if _active_state_name != "settling" or _pending_steps.is_empty():
-			break
-		await get_tree().process_frame
+	# 取出并清空 pending_steps，按得分从低到高排序
+	var steps_to_play := _pending_steps.duplicate()
+	_pending_steps.clear()
+	steps_to_play.sort_custom(func(a, b): return a.score_delta < b.score_delta)
+
+	# 将相同 score_delta 的 steps 合并成一组，同组格子同时高亮
+	var groups: Array = []
+	for step in steps_to_play:
+		if groups.is_empty() or groups[-1][0].score_delta != step.score_delta:
+			groups.append([step])
+		else:
+			groups[-1].append(step)
+
+	for group in groups:
+		if _active_state_name != "settling":
+			_settlement_autoplay_running = false
+			return
+
+		# 收集本组所有格子，并写日志 & 累加分数
+		var group_positions: Array = []
+		var group_delta: int = group[0].score_delta
+		for step in group:
+			_append_log_entry(step)
+			run_session.current_score += step.score_delta
+			_last_settlement_score_gain += step.score_delta
+			if step.source_token == "system":
+				continue
+			for pos in _cell_buttons_by_pos.keys():
+				var token = _board_service.get_token(pos)
+				if token != null and token.definition_id == step.source_token:
+					group_positions.append(pos)
+		_sync_run_labels()
+
+		if group_positions.is_empty():
+			await get_tree().process_frame
+			continue
+
+		# 同组格子同时高亮 & 弹出得分浮字
+		for pos in group_positions:
+			var btn: Button = _cell_buttons_by_pos[pos]
+			_set_cell_highlighted(btn, true)
+			if group_delta != 0:
+				_spawn_score_popup(btn, group_delta)
+
+		await get_tree().create_timer(SETTLEMENT_HIGHLIGHT_HOLD).timeout
+
+		for pos in group_positions:
+			_restore_cell_style(pos, _cell_buttons_by_pos[pos])
+
+		await get_tree().create_timer(SETTLEMENT_STEP_INTERVAL - SETTLEMENT_HIGHLIGHT_HOLD).timeout
 
 	_settlement_autoplay_running = false
+	if _active_state_name == "settling":
+		_complete_settlement()
+
+# 给格子叠加金色高亮边框
+func _set_cell_highlighted(button: Button, on: bool) -> void:
+	if on:
+		var base_color := Color(0.25, 0.25, 0.28)
+		if button.has_theme_stylebox_override("normal"):
+			var existing := button.get_theme_stylebox("normal") as StyleBoxFlat
+			if existing:
+				base_color = existing.bg_color
+		var hl := StyleBoxFlat.new()
+		hl.bg_color = base_color.lightened(0.12)
+		hl.border_color = Color(1.0, 0.85, 0.0)
+		hl.set_border_width_all(4)
+		hl.set_corner_radius_all(4)
+		hl.set_content_margin_all(6)
+		button.add_theme_stylebox_override("normal", hl)
+		button.add_theme_stylebox_override("hover", hl)
+
+# 恢复格子到棋盘当前 token 对应的稀有度样式
+func _restore_cell_style(pos: Vector2i, button: Button) -> void:
+	var token = _board_service.get_token(pos)
+	if token == null or token.definition_id.is_empty() or token.definition_id == EMPTY_TOKEN_ID:
+		button.remove_theme_stylebox_override("normal")
+		button.remove_theme_stylebox_override("hover")
+	else:
+		var definition: TokenDefinition = _content_registry.tokens.get(token.definition_id)
+		var rarity: String = definition.rarity if definition else "Common"
+		var style := _get_rarity_style(rarity)
+		button.add_theme_stylebox_override("normal", style)
+		button.add_theme_stylebox_override("hover", style)
+
+# 在格子上方生成得分浮字并向上飞出淡化（fire-and-forget，不阻塞调用方）
+func _spawn_score_popup(button: Button, score_delta: int) -> void:
+	var popup := Label.new()
+	popup.text = "+%d" % score_delta if score_delta > 0 else "%d" % score_delta
+	popup.add_theme_font_size_override("font_size", 22)
+	popup.modulate = Color(1.0, 0.92, 0.15) if score_delta > 0 else Color(1.0, 0.35, 0.35)
+	popup.z_index = 10
+	add_child(popup)
+
+	# 等一帧让节点完成布局，获取真实尺寸
+	await get_tree().process_frame
+
+	var btn_rect := button.get_global_rect()
+	var popup_size := popup.get_minimum_size()
+	var start_global := Vector2(
+		btn_rect.get_center().x - popup_size.x * 0.5,
+		btn_rect.position.y - popup_size.y - 4.0
+	)
+	popup.global_position = start_global
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(popup, "global_position:y", start_global.y - SETTLEMENT_POPUP_RISE, 0.65)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.65).set_delay(0.15)
+	tween.tween_callback(popup.queue_free).set_delay(0.65)
 
 func _complete_settlement() -> void:
 	if _active_state_name != "settling":
@@ -615,6 +730,7 @@ func _make_token_instance_for_id(token_id: String) -> TokenInstance:
 func _append_log_entry(step) -> void:
 	var delta_text := "%+d" % step.score_delta
 	_settlement_log_list.add_item("%02d | %s | %s" % [step.sequence_index, step.phase, delta_text])
+	print("%02d | %s | %s" % [step.sequence_index, step.phase, delta_text])
 
 func _sync_board_ui() -> void:
 	for pos in _cell_buttons_by_pos.keys():
