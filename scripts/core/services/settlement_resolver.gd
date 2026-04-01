@@ -14,8 +14,8 @@ const PHASES: Array[String] = [
 	"cleanup",
 ]
 
-const MAX_ITERATION_DEPTH := 16
-const MAX_TRIGGER_COUNT_PER_TOKEN := 8
+const MAX_ITERATION_DEPTH := 32
+const MAX_TRIGGER_COUNT_PER_TOKEN := 16
 const EMPTY_TOKEN_ID := "empty_token"
 
 # ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ func resolve_board(board: BoardService, registry: ContentRegistry) -> Settlement
 	return resolve(snapshot)
 
 func build_snapshot(board: BoardService, registry: ContentRegistry) -> RunSnapshot:
-	var tokens_in_order: Array = []
+	var tokens_with_pos: Array = []  # Array of {token, pos}
 	var board_tags: Dictionary = {}
 
 	for row in board.height:
@@ -35,7 +35,7 @@ func build_snapshot(board: BoardService, registry: ContentRegistry) -> RunSnapsh
 			var pos := Vector2i(column, row)
 			if board.has_token(pos):
 				var token = board.get_token(pos)
-				tokens_in_order.append(token)
+				tokens_with_pos.append({"token": token, "pos": pos})
 				for tag in token.tags:
 					board_tags[tag] = int(board_tags.get(tag, 0)) + 1
 
@@ -44,14 +44,22 @@ func build_snapshot(board: BoardService, registry: ContentRegistry) -> RunSnapsh
 
 	# base_output：每个非空 token 贡献 base_value 分
 	var base_effects: Array = []
-	for token in tokens_in_order:
+	for entry in tokens_with_pos:
+		var token = entry["token"]
+		var pos: Vector2i = entry["pos"]
 		if token.definition_id == EMPTY_TOKEN_ID:
 			continue
 		var definition: TokenDefinition = registry.tokens.get(token.definition_id)
 		var base_val: int = definition.base_value if definition else 1
-		base_effects.append(_make_effect(token.definition_id, "base_output", base_val))
+		var name: String = definition.name if definition else token.definition_id
+		base_effects.append(_make_effect(token.definition_id, "base_output", base_val, pos, name))
 	if base_effects.size() > 0:
 		phase_effects["base_output"] = base_effects
+
+	# row_column：元素联动触发（火/水/土/风）
+	var element_effects: Array = _build_element_effects(board, registry)
+	if element_effects.size() > 0:
+		phase_effects["row_column"] = element_effects
 
 	phase_effects["cleanup"] = [_make_effect("system", "cleanup", 0)]
 
@@ -86,6 +94,8 @@ func resolve(snapshot: RunSnapshot) -> SettlementReport:
 				int(effect.get("score_delta", 0)),
 				String(effect.get("target_token", "")),
 				String(effect.get("message_key", "")),
+				effect.get("pos", Vector2i(-1, -1)),
+				String(effect.get("token_name", "")),
 			)
 			report.steps.append(step)
 			report.total_score_delta += step.score_delta
@@ -100,12 +110,90 @@ func resolve(snapshot: RunSnapshot) -> SettlementReport:
 # 私有辅助
 # ---------------------------------------------------------------------------
 
-func _make_effect(source_token: String, phase_name: String, score_delta: int) -> Dictionary:
+# 元素联动：扫描棋盘，按元素规则生成 row_column 阶段效果列表。
+# - 火（fire_above_stack）：每个火token，统计其上方（row更小）其他火token数量N，获得 N*(N+1)/2 加分。
+# - 水（water_below_stack）：每个水token，统计其下方（row更大）其他水token数量N，获得 N*(N+1)/2 加分。
+# - 土（earth_row_bonus）：每个土token，同一行每有一个其他土token，+1。
+# - 风（wind_col_bonus）：每个风token，同一列每有一个其他风token，+1。
+func _build_element_effects(board: BoardService, registry: ContentRegistry) -> Array:
+	var fire_positions: Array[Vector2i] = []
+	var water_positions: Array[Vector2i] = []
+	var earth_positions: Array[Vector2i] = []
+	var wind_positions: Array[Vector2i] = []
+	var pos_to_def_id: Dictionary = {}
+	var pos_to_name: Dictionary = {}
+
+	for row in board.height:
+		for column in board.width:
+			var pos := Vector2i(column, row)
+			if not board.has_token(pos):
+				continue
+			var token = board.get_token(pos)
+			if token.definition_id == EMPTY_TOKEN_ID:
+				continue
+			var def: TokenDefinition = registry.tokens.get(token.definition_id)
+			if def == null:
+				continue
+			pos_to_def_id[pos] = token.definition_id
+			pos_to_name[pos] = def.name
+			var rules: Dictionary = def.trigger_rules
+			if rules.get("fire_above_stack", false):
+				fire_positions.append(pos)
+			elif rules.get("water_below_stack", false):
+				water_positions.append(pos)
+			elif rules.get("earth_row_bonus", false):
+				earth_positions.append(pos)
+			elif rules.get("wind_col_bonus", false):
+				wind_positions.append(pos)
+
+	var effects: Array = []
+
+	# 火：同列上方火token越多，累加奖励越高（三角数）
+	for pos in fire_positions:
+		var n := 0
+		for other in fire_positions:
+			if other.x == pos.x and other.y < pos.y:
+				n += 1
+		if n > 0:
+			effects.append(_make_effect(pos_to_def_id[pos], "fire_above_stack", n * (n + 1) / 2, pos, pos_to_name[pos]))
+
+	# 水：同列下方水token越多，累加奖励越高（三角数）
+	for pos in water_positions:
+		var n := 0
+		for other in water_positions:
+			if other.x == pos.x and other.y > pos.y:
+				n += 1
+		if n > 0:
+			effects.append(_make_effect(pos_to_def_id[pos], "water_below_stack", n * (n + 1) / 2, pos, pos_to_name[pos]))
+
+	# 土：同一行每有一个其他土token，+1
+	for pos in earth_positions:
+		var n := 0
+		for other in earth_positions:
+			if other != pos and other.y == pos.y:
+				n += 1
+		if n > 0:
+			effects.append(_make_effect(pos_to_def_id[pos], "earth_row_bonus", n, pos, pos_to_name[pos]))
+
+	# 风：同一列每有一个其他风token，+1
+	for pos in wind_positions:
+		var n := 0
+		for other in wind_positions:
+			if other != pos and other.x == pos.x:
+				n += 1
+		if n > 0:
+			effects.append(_make_effect(pos_to_def_id[pos], "wind_col_bonus", n, pos, pos_to_name[pos]))
+
+	return effects
+
+func _make_effect(source_token: String, phase_name: String, score_delta: int, pos: Vector2i = Vector2i(-1, -1), token_name: String = "") -> Dictionary:
 	return {
 		"source_token": source_token,
 		"target_token": source_token,
 		"score_delta": score_delta,
 		"message_key": phase_name,
+		"pos": pos,
+		"token_name": token_name,
 	}
 
 func _count_requested_steps(snapshot: RunSnapshot) -> int:

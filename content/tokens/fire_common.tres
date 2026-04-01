@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fire_common"
+name = "余烬"
+description = "微弱的火花，若上方有其他火元素，将获得叠加加分。"
+rarity = "Common"
+type = "Fire"
+tags = PackedStringArray("fire")
+base_value = 1
+trigger_rules = {
+"fire_above_stack": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 1.0
+}
+remove_rules = {}

@@ -4,18 +4,18 @@
 
 [resource]
 script = ExtResource("1")
-id = "relay_prism"
-name = "Relay Prism"
-description = "A triangular amplifier that refracts triggers. Copies the effect of every other token in the same row, firing them a second time."
+id = "earth_uncommon"
+name = "岩石"
+description = "坚实的岩石，感知同行土元素，每个+1积累加分。"
 rarity = "Uncommon"
-type = "Support"
-tags = PackedStringArray("Link")
+type = "Earth"
+tags = PackedStringArray("earth")
 base_value = 2
 trigger_rules = {
-"copy_row_trigger": true
+"earth_row_bonus": true
 }
 state_fields = {}
 spawn_rules = {
-"weight": 0.75
+"weight": 0.6
 }
 remove_rules = {}

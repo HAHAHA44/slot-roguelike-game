@@ -13,7 +13,7 @@ extends Control
 
 const BOARD_WIDTH := 5
 const BOARD_HEIGHT := 5
-const DEFAULT_TOKEN_ID := "pulse_seed"
+const DEFAULT_TOKEN_ID := "fire_common"
 const EMPTY_TOKEN_ID := "empty_token"
 
 const SLOT_SPIN_DURATION_BASE := 0.5   # 第 0 列停止前的旋转时长（秒）
@@ -729,8 +729,13 @@ func _make_token_instance_for_id(token_id: String) -> TokenInstance:
 
 func _append_log_entry(step) -> void:
 	var delta_text := "%+d" % step.score_delta
-	_settlement_log_list.add_item("%02d | %s | %s" % [step.sequence_index, step.phase, delta_text])
-	print("%02d | %s | %s" % [step.sequence_index, step.phase, delta_text])
+	var line: String
+	if step.token_pos.x >= 0:
+		line = "%02d | (%d,%d) %s | %s | %s" % [step.sequence_index, step.token_pos.x, step.token_pos.y, step.token_name, step.phase, delta_text]
+	else:
+		line = "%02d | %s | %s" % [step.sequence_index, step.phase, delta_text]
+	_settlement_log_list.add_item(line)
+	print(line)
 
 func _sync_board_ui() -> void:
 	for pos in _cell_buttons_by_pos.keys():

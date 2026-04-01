@@ -8,7 +8,7 @@ class_name RunSession
 extends RefCounted
 
 const SCHEMA_VERSION := 1
-const DEFAULT_TOKEN_ID := "pulse_seed"
+const DEFAULT_TOKEN_ID := "fire_common"
 
 var schema_version: int = SCHEMA_VERSION
 var current_turn: int = 1

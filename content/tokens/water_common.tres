@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "water_common"
+name = "水滴"
+description = "细小的水珠，若下方有其他水元素，将获得叠加加分。"
+rarity = "Common"
+type = "Water"
+tags = PackedStringArray("water")
+base_value = 1
+trigger_rules = {
+"water_below_stack": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 1.0
+}
+remove_rules = {}

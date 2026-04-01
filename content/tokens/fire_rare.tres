@@ -4,18 +4,18 @@
 
 [resource]
 script = ExtResource("1")
-id = "wild_signal"
-name = "Wild Signal"
-description = "An adaptive broadcaster that scans the board each turn and mimics the most common tag present, contributing to any synergy that needs it."
+id = "fire_rare"
+name = "烈焰"
+description = "炽热的烈焰，汲取上方一切火势为己用。"
 rarity = "Rare"
-type = "Wildcard"
-tags = PackedStringArray("Wild")
+type = "Fire"
+tags = PackedStringArray("fire")
 base_value = 3
 trigger_rules = {
-"copy_majority_tag": true
+"fire_above_stack": true
 }
 state_fields = {}
 spawn_rules = {
-"weight": 0.35
+"weight": 0.3
 }
 remove_rules = {}

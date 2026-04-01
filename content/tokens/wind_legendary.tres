@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wind_legendary"
+name = "飓风"
+description = "毁天灭地的飓风，与同列所有风元素共鸣，不可阻挡。"
+rarity = "Legendary"
+type = "Wind"
+tags = PackedStringArray("wind")
+base_value = 4
+trigger_rules = {
+"wind_col_bonus": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.1
+}
+remove_rules = {}

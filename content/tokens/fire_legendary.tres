@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fire_legendary"
+name = "圣火"
+description = "神圣不灭之火，俯视棋盘，以上方所有火势凝聚力量。"
+rarity = "Legendary"
+type = "Fire"
+tags = PackedStringArray("fire")
+base_value = 4
+trigger_rules = {
+"fire_above_stack": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.1
+}
+remove_rules = {}

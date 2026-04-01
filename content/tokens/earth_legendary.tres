@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "earth_legendary"
+name = "磐石"
+description = "永恒的磐石，与同行所有土元素共振，震撼大地。"
+rarity = "Legendary"
+type = "Earth"
+tags = PackedStringArray("earth")
+base_value = 4
+trigger_rules = {
+"earth_row_bonus": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.1
+}
+remove_rules = {}

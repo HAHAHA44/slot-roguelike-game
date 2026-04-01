@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wind_rare"
+name = "狂风"
+description = "凛冽的狂风，同列风元素越多，力量越大。"
+rarity = "Rare"
+type = "Wind"
+tags = PackedStringArray("wind")
+base_value = 3
+trigger_rules = {
+"wind_col_bonus": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.3
+}
+remove_rules = {}

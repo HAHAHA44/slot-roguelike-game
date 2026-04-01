@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wind_uncommon"
+name = "清风"
+description = "流动的清风，感知同列风元素，每个+1化为加分。"
+rarity = "Uncommon"
+type = "Wind"
+tags = PackedStringArray("wind")
+base_value = 2
+trigger_rules = {
+"wind_col_bonus": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.6
+}
+remove_rules = {}

@@ -11,11 +11,15 @@ var phase: String
 var score_delta: int
 var target_token: String
 var message_key: String
+var token_pos: Vector2i
+var token_name: String
 
-func _init(step_index: int = 0, source: String = "", step_phase: String = "", delta: int = 0, target: String = "", key: String = "") -> void:
+func _init(step_index: int = 0, source: String = "", step_phase: String = "", delta: int = 0, target: String = "", key: String = "", pos: Vector2i = Vector2i(-1, -1), name: String = "") -> void:
 	sequence_index = step_index
 	source_token = source
 	phase = step_phase
 	score_delta = delta
 	target_token = target
 	message_key = key
+	token_pos = pos
+	token_name = name

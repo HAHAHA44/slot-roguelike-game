@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "earth_common"
+name = "碎石"
+description = "微小的石块，与同行的土元素共鸣，+1加分。"
+rarity = "Common"
+type = "Earth"
+tags = PackedStringArray("earth")
+base_value = 1
+trigger_rules = {
+"earth_row_bonus": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 1.0
+}
+remove_rules = {}

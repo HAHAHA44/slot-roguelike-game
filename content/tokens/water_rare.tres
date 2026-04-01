@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "water_rare"
+name = "洪流"
+description = "奔涌的洪流，汇聚下方一切水势，势不可挡。"
+rarity = "Rare"
+type = "Water"
+tags = PackedStringArray("water")
+base_value = 3
+trigger_rules = {
+"water_below_stack": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.3
+}
+remove_rules = {}

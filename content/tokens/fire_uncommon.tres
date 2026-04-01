@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fire_uncommon"
+name = "火焰"
+description = "跳动的火焰，上方火元素越多，爆发越强。"
+rarity = "Uncommon"
+type = "Fire"
+tags = PackedStringArray("fire")
+base_value = 2
+trigger_rules = {
+"fire_above_stack": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.6
+}
+remove_rules = {}

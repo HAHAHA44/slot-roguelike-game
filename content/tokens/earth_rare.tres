@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "earth_rare"
+name = "巨岩"
+description = "厚重的巨岩，同行土元素越多，基础越稳，加分越高。"
+rarity = "Rare"
+type = "Earth"
+tags = PackedStringArray("earth")
+base_value = 3
+trigger_rules = {
+"earth_row_bonus": true
+}
+state_fields = {}
+spawn_rules = {
+"weight": 0.3
+}
+remove_rules = {}

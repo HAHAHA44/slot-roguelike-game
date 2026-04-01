@@ -101,10 +101,11 @@ func test_settlement_autoplay_reaches_settlement_result_in_order() -> void:
 
 	await _wait_for_state(scene, "settlement_result")
 
+	# 3 fire_common (余烬) placed at (0,0),(1,0),(2,0), row 0 → no fire above → 3 base_output + 1 cleanup
 	assert_eq(scene.get_settlement_log_entries().size(), 4)
-	assert_eq(scene.get_settlement_log_entries()[0], "00 | base_output | +1")
-	assert_eq(scene.get_settlement_log_entries()[1], "01 | adjacency | +2")
-	assert_eq(scene.get_settlement_log_entries()[2], "02 | row_column | +3")
+	assert_eq(scene.get_settlement_log_entries()[0], "00 | (0,0) 余烬 | base_output | +1")
+	assert_eq(scene.get_settlement_log_entries()[1], "01 | (1,0) 余烬 | base_output | +1")
+	assert_eq(scene.get_settlement_log_entries()[2], "02 | (2,0) 余烬 | base_output | +1")
 	assert_eq(scene.get_settlement_log_entries()[3], "03 | cleanup | +0")
 	assert_eq(scene.get_active_state_name(), "settlement_result")
 
@@ -136,7 +137,7 @@ func test_add_reward_changes_the_next_rolled_board() -> void:
 	offer_button.emit_signal("pressed")
 
 	var rewarded_token_id: String = scene.get_active_placement_token_id()
-	assert_ne(rewarded_token_id, "pulse_seed")
+	assert_ne(rewarded_token_id, "")
 	assert_eq(scene.get_active_state_name(), "event_draft")
 
 	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
@@ -151,28 +152,20 @@ func test_add_reward_changes_the_next_rolled_board() -> void:
 
 	assert_gt(_count_cells_with_tooltip(scene, rewarded_token_id), 0)
 
-func test_empty_tokens_are_preserved_in_snapshot_generation() -> void:
+func test_empty_tokens_are_not_included_in_base_output() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:
 		return
 
-	scene._board_service.place_token(Vector2i(0, 0), scene._make_token_instance_for_id("pulse_seed"))
+	scene._board_service.place_token(Vector2i(0, 0), scene._make_token_instance_for_id("fire_common"))
 	scene._board_service.place_token(Vector2i(1, 0), scene._make_token_instance_for_id("empty_token"))
 	scene._board_service.place_token(Vector2i(2, 0), scene._make_token_instance_for_id("empty_token"))
 
-	var snapshot = scene._build_snapshot_from_board()
+	var snapshot = scene._settlement_resolver.build_snapshot(scene._board_service, scene._content_registry)
 	var base_output: Array = snapshot.get_phase_effects("base_output")
-	var adjacency: Array = snapshot.get_phase_effects("adjacency")
-	var row_column: Array = snapshot.get_phase_effects("row_column")
 
 	assert_eq(base_output.size(), 1)
-	assert_eq(adjacency.size(), 1)
-	assert_eq(row_column.size(), 1)
-	assert_eq(base_output[0]["source_token"], "pulse_seed")
-	assert_eq(adjacency[0]["source_token"], "empty_token")
-	assert_eq(row_column[0]["source_token"], "empty_token")
-	assert_eq(adjacency[0]["score_delta"], 0)
-	assert_eq(row_column[0]["score_delta"], 0)
+	assert_eq(base_output[0]["source_token"], "fire_common")
 
 func test_contract_ticks_after_a_completed_rolled_round() -> void:
 	var scene = await _spawn_run_screen()
