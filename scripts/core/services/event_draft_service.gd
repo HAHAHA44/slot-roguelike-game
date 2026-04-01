@@ -1,88 +1,114 @@
-# 事件草案服务：
-# - 根据当前棋盘、英雄偏向和难度修正，从内容池里挑出 3 个事件候选。
-# - 它读的是“结算快照”和“修正字典”，不直接读 UI，也不直接操作合约。
-# - 排序规则把棋盘标签、英雄 modifiers、难度 modifiers 都折算进 event score，然后挑前 3 个，并保证至少有 1 个 stable 选项。
-# - 典型联动：`RunScreen` 在 reward 之后、event_draft 状态里调用它，结果再交给事件按钮 UI。
+# 事件服务：
+# - 每轮奖励结算后，50% 概率触发事件；若触发，三种事件各 1/3 概率。
+# - 事件1 copy_token：从 token_pool 随机复制（新增）一个 token。
+# - 事件2 delete_token：从 token_pool 随机删除一个 token（池内至少保留 1 个时才删）。
+# - 事件3 item：占位事件，暂无效果。
+# - build_event 返回描述事件内容的字典；apply_event 负责执行实际效果。
+# - 典型联动：RunScreen 在 offer_choice 之后调用 build_event，在玩家确认后调用 apply_event。
 class_name EventDraftService
 extends RefCounted
 
-var _events: Array = []
+const EMPTY_TOKEN_ID := "empty_token"
 
-func _init(event_source = null) -> void:
-	_events = _normalize_event_source(event_source)
+var _content_registry = null
 
-func build_offer(run_snapshot: RunSnapshot, hero_modifiers: Dictionary = {}, difficulty_modifiers: Dictionary = {}) -> Dictionary:
-	var board_tags: Dictionary = run_snapshot.phase_effects.get("board_tags", {})
-	var weighted_events: Array[Dictionary] = []
+func _init(content_registry = null) -> void:
+	_content_registry = content_registry
 
-	for entry in _events:
-		var event_data := _normalize_event(entry)
-		if event_data.is_empty():
-			continue
+# 根据 seed_value 决定本轮事件内容，返回描述事件的字典。
+# 返回字段：event_type, title, description, token_id（可为空）, token_name（可为空）
+func build_event(run_session: RunSession, seed_value: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
 
-		var score := float(event_data.get("weight", 1.0))
-		score += float(board_tags.get(event_data.get("primary_tag", ""), 0)) * 2.0
-		score += float(hero_modifiers.get(event_data.get("primary_tag", ""), 0.0))
-		score += float(difficulty_modifiers.get(event_data.get("primary_tag", ""), 0.0))
-		event_data["score"] = score
-		weighted_events.append(event_data)
+	# 50% 概率无事件
+	if rng.randf() >= 0.5:
+		return _no_event()
 
-	weighted_events.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		if is_equal_approx(a["score"], b["score"]):
-			if a["stability"] == b["stability"]:
-				return String(a["id"]) < String(b["id"])
-			return a["stability"] == "stable"
-		return a["score"] > b["score"]
-	)
+	# 三种事件各 1/3
+	match rng.randi_range(0, 2):
+		0:
+			return _copy_token_event(run_session, rng)
+		1:
+			return _delete_token_event(run_session, rng)
+		_:
+			return _item_event()
 
-	var options: Array[Dictionary] = []
-	for event_data in weighted_events:
-		options.append(event_data)
-		if options.size() == 3:
-			break
+# 执行事件效果（在玩家确认后调用）。
+func apply_event(run_session: RunSession, event: Dictionary) -> void:
+	match String(event.get("event_type", "")):
+		"copy_token":
+			var token_id := String(event.get("token_id", ""))
+			if not token_id.is_empty():
+				run_session.pool_add(token_id)
+		"delete_token":
+			var token_id := String(event.get("token_id", ""))
+			if not token_id.is_empty():
+				run_session.pool_remove(token_id)
 
-	if not options.any(func(event_data: Dictionary): return event_data.get("stability", "") == "stable"):
-		for event_data in weighted_events:
-			if event_data.get("stability", "") != "stable":
-				continue
-			if options.any(func(existing: Dictionary): return existing.get("id", "") == event_data.get("id", "")):
-				continue
-			if options.is_empty():
-				options.append(event_data)
-			else:
-				options[options.size() - 1] = event_data
-			break
+# ---------------------------------------------------------------------------
+# 私有构建辅助
+# ---------------------------------------------------------------------------
 
+func _no_event() -> Dictionary:
 	return {
-		"options": options,
-		"board_tags": board_tags.duplicate(true),
+		"event_type": "no_event",
+		"title": "今日无事",
+		"description": "风平浪静，继续前进。",
+		"token_id": "",
+		"token_name": "",
 	}
 
-func _normalize_event_source(event_source) -> Array:
-	if event_source == null:
-		return []
-	if event_source is Array:
-		return event_source
-	if event_source is ContentRegistry:
-		return event_source.events.values()
-	if typeof(event_source) == TYPE_DICTIONARY and event_source.has("events"):
-		return event_source["events"]
-	return []
+func _item_event() -> Dictionary:
+	return {
+		"event_type": "item",
+		"title": "神秘道具",
+		"description": "获得一件神秘道具。（功能待开放）",
+		"token_id": "",
+		"token_name": "",
+	}
 
-func _normalize_event(entry) -> Dictionary:
-	if entry is Dictionary:
-		return entry.duplicate(true)
-	if entry is EventDefinition:
-		return {
-			"id": entry.id,
-			"name": entry.name,
-			"type": entry.type,
-			"primary_tag": entry.primary_tag,
-			"stability": entry.stability,
-			"weight": entry.weight,
-			"description": entry.description,
-			"reward_bundle": entry.reward_bundle.duplicate(true),
-			"penalty_bundle": entry.penalty_bundle.duplicate(true),
-			"contract_template": entry.contract_template.duplicate(true),
-		}
-	return {}
+func _copy_token_event(run_session: RunSession) -> Dictionary:
+	var eligible := _eligible_pool_tokens(run_session)
+	if eligible.is_empty():
+		return _no_event()
+	return {
+		"event_type": "copy_token",
+		"title": "复制 Token",
+		"description": "选择一个背包中的 Token 进行复制。",
+		"token_id": "",
+		"token_name": "",
+		"needs_token_pick": true,
+		"eligible_tokens": eligible,
+	}
+
+func _delete_token_event(run_session: RunSession) -> Dictionary:
+	var eligible := _eligible_pool_tokens(run_session)
+	if eligible.size() <= 1:
+		return _no_event()
+	return {
+		"event_type": "delete_token",
+		"title": "删除 Token",
+		"description": "选择一个背包中的 Token 将其删除。",
+		"token_id": "",
+		"token_name": "",
+		"needs_token_pick": true,
+		"eligible_tokens": eligible,
+	}
+
+# 返回 pool 中去重后的非空 token id 列表。
+func _eligible_pool_tokens(run_session: RunSession) -> Array[String]:
+	var seen: Dictionary = {}
+	var result: Array[String] = []
+	for token_id in run_session.token_pool:
+		if token_id == EMPTY_TOKEN_ID or seen.has(token_id):
+			continue
+		seen[token_id] = true
+		result.append(token_id)
+	return result
+
+func _get_token_name(token_id: String) -> String:
+	if _content_registry == null:
+		return token_id
+	var def: TokenDefinition = _content_registry.tokens.get(token_id)
+	return def.name if def else token_id

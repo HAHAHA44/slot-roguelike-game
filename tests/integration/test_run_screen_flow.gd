@@ -125,7 +125,6 @@ func test_offer_selection_transitions_through_event_draft() -> void:
 	event_button.emit_signal("pressed")
 
 	assert_eq(scene.get_active_state_name(), "roll_board")
-	assert_true(scene.get_active_contract_summary().contains("Goal"))
 
 func test_add_reward_changes_the_next_rolled_board() -> void:
 	var scene = await _spawn_run_screen()
@@ -203,13 +202,14 @@ func test_contract_turns_tick_after_the_next_scored_turn() -> void:
 	continue_button.emit_signal("pressed")
 	assert_eq(scene.get_active_state_name(), "offer_choice")
 
-	# Select offer and event to establish active contract, then go to player_turn via debug path
-	offer_button.emit_signal("pressed")
-	event_button.emit_signal("pressed")
+	# Inject contract and navigate to roll_board, then enter player_turn via debug path
+	scene.debug_force_active_contract()
+	assert_eq(scene.get_active_state_name(), "roll_board")
 	scene.debug_enter_player_turn()
 
 	var initial_contract: Dictionary = scene.get_active_contract_data()
 	var initial_turns := int(initial_contract.get("turns_remaining", 0))
+	assert_gt(initial_turns, 0)
 
 	for index in [3, 4, 5]:
 		var next_cell := board_grid.get_child(index) as Button

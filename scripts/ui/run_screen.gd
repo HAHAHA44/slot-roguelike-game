@@ -192,12 +192,20 @@ func debug_force_reward_event_complete() -> void:
 		_on_event_button_pressed(0)
 
 func debug_force_active_contract() -> void:
-	# Selects first offer and first event to establish a real active contract,
-	# ending in roll_board state ready for NextTurnButton.
+	# Navigate to roll_board through the normal offer/event flow.
 	if _active_state_name == "offer_choice":
 		debug_force_reward_event_complete()  # → event_draft
 	if _active_state_name == "event_draft":
 		debug_force_reward_event_complete()  # → roll_board
+	# Events no longer set contracts; inject a test contract directly.
+	_active_contract = _contract_service.build_contract({
+		"id": "debug_contract",
+		"type": "crisis",
+		"contract_template": {"goal_type": "reach_score", "goal_value": 100, "turns_remaining": 3},
+		"reward_bundle": {"score_bonus": 5},
+		"penalty_bundle": {"score_penalty": 2},
+	})
+	run_session.active_modifiers = [_active_contract.duplicate(true)]
 
 func debug_enter_player_turn() -> void:
 	if _active_state_name in ["offer_choice", "roll_board", "event_draft"]:
@@ -425,35 +433,26 @@ func _on_offer_button_pressed(index: int) -> void:
 		"active_token_id": reward_resolution.get("active_token_id", ""),
 		"turn": run_session.current_turn,
 	})
-	var draft: Dictionary = _event_draft_service.build_offer(
-		_settlement_resolver.build_snapshot(_board_service, _content_registry),
-		_run_modifier_service.hero_tag_modifiers(_selected_hero) if _selected_hero != null else {},
-		_run_modifier_service.difficulty_tag_modifiers(_selected_difficulty) if _selected_difficulty != null else {}
-	)
-	_active_event_options = draft["options"]
+	var event_seed: int = run_session.current_turn * 37 + run_session.phase_index * 13
+	_active_event_options = [_event_draft_service.build_event(run_session, event_seed)]
 	_state_chart.send_event("offer_selected")
 	_sync_run_labels()
 	_sync_all_panels()
 
-func _on_event_button_pressed(index: int) -> void:
+func _on_event_button_pressed(_index: int) -> void:
 	if _active_state_name != "event_draft":
 		return
-	if index < 0 or index >= _active_event_options.size():
+	if _active_event_options.is_empty():
 		return
 
-	var event_data: Dictionary = _active_event_options[index]
-	_active_contract = _contract_service.build_contract(event_data)
-	if _selected_hero != null:
-		_active_contract["penalty_bundle"] = _run_modifier_service.apply_hero_to_penalty(
-			_selected_hero,
-			_active_contract.get("penalty_bundle", {})
-		)
+	var event_data: Dictionary = _active_event_options[0]
+	_event_draft_service.apply_event(run_session, event_data)
 	run_session.operation_history.append({
-		"kind": "event_selected",
-		"event_id": event_data.get("id", ""),
+		"kind": "event_resolved",
+		"event_type": event_data.get("event_type", ""),
+		"token_id": event_data.get("token_id", ""),
 		"turn": run_session.current_turn,
 	})
-	run_session.active_modifiers = [_active_contract.duplicate(true)]
 	run_session.current_turn += 1
 	_state_chart.send_event("event_selected")
 	_sync_run_labels()
@@ -928,20 +927,25 @@ func _sync_offer_buttons() -> void:
 			button.remove_theme_stylebox_override("hover")
 
 func _sync_event_draft_ui() -> void:
-	var buttons := _event_buttons()
 	var show_panel := _active_state_name == "event_draft"
-
 	_event_draft_panel.visible = show_panel
-	_event_summary_label.text = "Choose an event."
-	if show_panel and not _active_event_options.is_empty():
-		_event_summary_label.text = String(_active_event_options[0].get("description", "Choose an event."))
 
-	for index in buttons.size():
-		var button: Button = buttons[index]
-		var has_event := show_panel and index < _active_event_options.size()
-		button.visible = has_event
-		button.disabled = not has_event
-		button.text = _format_event(_active_event_options[index]) if has_event else ""
+	if show_panel and not _active_event_options.is_empty():
+		var event_data: Dictionary = _active_event_options[0]
+		var title := String(event_data.get("title", ""))
+		var desc := String(event_data.get("description", ""))
+		_event_summary_label.text = "%s\n%s" % [title, desc] if not desc.is_empty() else title
+		_event_button_1.visible = true
+		_event_button_1.disabled = false
+		_event_button_1.text = "确认"
+	else:
+		_event_summary_label.text = ""
+		_event_button_1.visible = show_panel
+		_event_button_1.disabled = true
+		_event_button_1.text = ""
+
+	_event_button_2.visible = false
+	_event_button_3.visible = false
 
 func _sync_roll_board_ui() -> void:
 	_next_turn_button.visible = _active_state_name == "roll_board"
