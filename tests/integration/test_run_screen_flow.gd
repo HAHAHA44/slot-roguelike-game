@@ -36,6 +36,15 @@ func test_run_screen_builds_25_cells() -> void:
 
 	assert_eq(scene.get_node("%BoardGrid").get_child_count(), 25)
 
+func test_turn_flow_mode_defaults_to_auto() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
+	assert_eq(scene.get_turn_flow_mode_name(), "auto")
+	assert_eq(mode_button.text, "Mode: Auto")
+
 func test_next_turn_arrow_rolls_board_and_stops_on_settlement_result() -> void:
 	var scene = await _spawn_run_screen()
 	if scene == null:
@@ -121,10 +130,70 @@ func test_offer_selection_transitions_through_event_draft() -> void:
 	offer_button.emit_signal("pressed")
 	assert_eq(scene.get_active_state_name(), "event_draft")
 
-	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
-	event_button.emit_signal("pressed")
+	_confirm_first_event(scene)
 
 	assert_eq(scene.get_active_state_name(), "roll_board")
+
+func test_set_mode_routes_event_draft_to_player_turn() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
+	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
+	var place_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/PlaceModeButton") as Button
+	var remove_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/RemoveModeButton") as Button
+	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
+
+	mode_button.emit_signal("pressed")
+	assert_eq(scene.get_turn_flow_mode_name(), "set")
+	assert_eq(mode_button.text, "Mode: Set")
+
+	offer_button.emit_signal("pressed")
+	assert_eq(scene.get_active_state_name(), "event_draft")
+
+	_confirm_first_event(scene)
+	assert_eq(scene.get_active_state_name(), "player_turn")
+	assert_true(place_button.visible)
+	assert_true(remove_button.visible)
+	assert_true(settle_button.visible)
+
+func test_switching_to_set_mode_from_roll_board_enters_player_turn() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
+
+	scene.debug_force_reward_event_complete()
+	scene.debug_force_reward_event_complete()
+	assert_eq(scene.get_active_state_name(), "roll_board")
+
+	mode_button.emit_signal("pressed")
+
+	assert_eq(scene.get_turn_flow_mode_name(), "set")
+	assert_eq(scene.get_active_state_name(), "player_turn")
+
+func test_switching_back_to_auto_in_player_turn_keeps_current_manual_turn() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
+	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
+
+	scene.debug_force_reward_event_complete()
+	scene.debug_force_reward_event_complete()
+	mode_button.emit_signal("pressed")
+	assert_eq(scene.get_active_state_name(), "player_turn")
+
+	mode_button.emit_signal("pressed")
+	assert_eq(scene.get_turn_flow_mode_name(), "auto")
+	assert_eq(scene.get_active_state_name(), "player_turn")
+
+	settle_button.emit_signal("pressed")
+	await _wait_for_state(scene, "settlement_result")
+	assert_eq(scene.get_active_state_name(), "settlement_result")
 
 func test_add_reward_changes_the_next_rolled_board() -> void:
 	var scene = await _spawn_run_screen()
@@ -139,8 +208,7 @@ func test_add_reward_changes_the_next_rolled_board() -> void:
 	assert_ne(rewarded_token_id, "")
 	assert_eq(scene.get_active_state_name(), "event_draft")
 
-	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
-	event_button.emit_signal("pressed")
+	_confirm_first_event(scene)
 
 	assert_eq(scene.get_active_state_name(), "roll_board")
 
@@ -180,6 +248,38 @@ func test_contract_ticks_after_a_completed_rolled_round() -> void:
 	await _wait_for_state(scene, "settlement_result")
 
 	assert_eq(scene.get_active_contract_data()["turns_remaining"], 2)
+
+func test_switching_back_to_auto_only_affects_next_turn_branch() -> void:
+	var scene = await _spawn_run_screen()
+	if scene == null:
+		return
+
+	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
+	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
+	var continue_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ContinueToRewardButton") as Button
+	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
+	var board_grid: Node = scene.get_node("%BoardGrid")
+
+	scene.debug_force_reward_event_complete()
+	scene.debug_force_reward_event_complete()
+	mode_button.emit_signal("pressed")
+	assert_eq(scene.get_active_state_name(), "player_turn")
+
+	var cell := board_grid.get_child(0) as Button
+	cell.emit_signal("pressed")
+	mode_button.emit_signal("pressed")
+	assert_eq(scene.get_turn_flow_mode_name(), "auto")
+	assert_eq(scene.get_active_state_name(), "player_turn")
+
+	settle_button.emit_signal("pressed")
+	await _wait_for_state(scene, "settlement_result")
+	continue_button.emit_signal("pressed")
+	assert_eq(scene.get_active_state_name(), "offer_choice")
+
+	offer_button.emit_signal("pressed")
+	assert_eq(scene.get_active_state_name(), "event_draft")
+	_confirm_first_event(scene)
+	assert_eq(scene.get_active_state_name(), "roll_board")
 
 func test_contract_turns_tick_after_the_next_scored_turn() -> void:
 	var scene = await _spawn_run_screen()
@@ -244,6 +344,17 @@ func _wait_for_state(scene, expected_state: String, max_frames: int = 20) -> voi
 		await get_tree().process_frame
 
 	assert_eq(scene.get_active_state_name(), expected_state)
+
+func _confirm_first_event(scene) -> void:
+	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
+	if event_button.visible and not event_button.disabled:
+		event_button.emit_signal("pressed")
+		return
+
+	var token_picker_flow := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/TokenPickerScroll/TokenPickerFlow") as FlowContainer
+	assert_gt(token_picker_flow.get_child_count(), 0)
+	var token_button := token_picker_flow.get_child(0) as Button
+	token_button.emit_signal("pressed")
 
 func _count_cells_with_tooltip(scene, tooltip_text: String) -> int:
 	var board_grid: Node = scene.get_node("%BoardGrid")

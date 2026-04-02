@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "random_delete_two"
+name = "精简协议"
+description = "拾起时随机从背包中删除两个 Token。"
+effect_type = "instant"
+effect_data = {
+"action": "delete_random",
+"count": 2
+}

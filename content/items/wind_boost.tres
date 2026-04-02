@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wind_boost"
+name = "风息强化"
+description = "所有风元素 Token 计分 +1。"
+effect_type = "passive"
+effect_data = {
+"element": "wind"
+}

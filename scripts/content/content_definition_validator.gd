@@ -27,6 +27,8 @@ func validate_definition(definition: Resource, existing_ids: Dictionary) -> Arra
 		_validate_meta_unlock_definition(definition, errors)
 	elif definition is AnomalyDefinition:
 		_validate_anomaly_definition(definition, errors)
+	elif definition is ItemDefinition:
+		_validate_item_definition(definition, errors)
 
 	return errors
 
@@ -101,3 +103,11 @@ func _validate_anomaly_definition(definition: AnomalyDefinition, errors: Array[S
 		errors.append("tags must not be null")
 	if definition.rules == null:
 		errors.append("rules must not be null")
+
+func _validate_item_definition(definition: ItemDefinition, errors: Array[String]) -> void:
+	if definition.name.strip_edges().is_empty():
+		errors.append("name must not be empty")
+	if definition.effect_type not in ["passive", "instant"]:
+		errors.append("effect_type must be 'passive' or 'instant'")
+	if definition.effect_data == null:
+		errors.append("effect_data must not be null")

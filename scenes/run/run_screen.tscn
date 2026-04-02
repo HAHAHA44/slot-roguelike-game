@@ -50,9 +50,20 @@ text = "Score 0 / 10"
 unique_name_in_owner = true
 text = "Contract None"
 
+[node name="TurnFlowModeButton" type="Button" parent="MainMargin/MainLayout/HeaderRow"]
+unique_name_in_owner = true
+text = "Mode: Auto"
+
 [node name="BagButton" type="Button" parent="MainMargin/MainLayout/HeaderRow"]
 unique_name_in_owner = true
 text = "Backpack"
+
+[node name="ItemsRow" type="FlowContainer" parent="MainMargin/MainLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 
 [node name="ContentRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
 layout_mode = 2

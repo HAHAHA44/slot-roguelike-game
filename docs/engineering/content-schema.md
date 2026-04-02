@@ -96,7 +96,10 @@ The persistent pool is **never mutated** during board generation.
 reward_choice → event_draft → roll_board → settling → settlement_result → reward_choice
 ```
 
-Manual placement (`player_turn`) is **debug / future ability scaffolding** only, accessible via `debug_enter_player_turn()`.
+Manual placement (`player_turn`) is a formal **set mode** branch.
+- Default flow stays automatic.
+- The header mode toggle switches future turns between `event_draft -> roll_board` and `event_draft -> player_turn`.
+- `debug_enter_player_turn()` remains available only as a test/debug shortcut.
 - Invalid resources are rejected during load and are not inserted into the registry.
 
 ## Naming And Rename Discipline

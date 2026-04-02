@@ -15,7 +15,11 @@
       "Bash(node scripts/install-apply.js --profile full)",
       "Bash(npm install:*)",
       "Bash(python3 -m json.tool)",
-      "Read(//home/ax/.claude/**)"
+      "Read(//home/ax/.claude/**)",
+      "Bash(GODOT_BIN=\"/mnt/c/Users/ax/Downloads/Godot_v4.6.1-stable_win64_console.exe\")",
+      "Bash(\"$GODOT_BIN\" --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/integration/test_run_screen_flow.gd -gexit)",
+      "Bash(find /mnt/c/Users/27391 -name Godot*.exe)",
+      "Bash(find /mnt/d -name Godot_v*.exe)"
     ]
   }
 }

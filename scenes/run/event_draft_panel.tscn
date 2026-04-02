@@ -29,3 +29,13 @@ text = "Event 2"
 
 [node name="EventButton3" type="Button" parent="MarginContainer/VBox"]
 text = "Event 3"
+
+[node name="TokenPickerScroll" type="ScrollContainer" parent="MarginContainer/VBox"]
+visible = false
+custom_minimum_size = Vector2(0, 120)
+
+[node name="TokenPickerFlow" type="FlowContainer" parent="MarginContainer/VBox/TokenPickerScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8

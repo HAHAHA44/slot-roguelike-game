@@ -7,8 +7,8 @@
 #   - `BoardService` / `BoardRollService`：维护棋盘并在每轮开始时生成新板面。
 #   - `RewardOfferService` / `EventDraftService` / `ContractService` / `RunModifierService`：分别负责奖励、事件、合约和修正。
 #   - `SettlementResolver`：把一次回合的棋盘状态转成可播放的结算步骤。
-# - 状态机用 Godot State Charts 管理，当前主路径是 `offer_choice -> event_draft -> roll_board -> settling -> settlement_result -> offer_choice`。
-# - 手动放置 `player_turn` 仍保留为调试/未来能力侧路，不是默认主流程。
+# - 状态机用 Godot State Charts 管理，默认主路径是 `offer_choice -> event_draft -> roll_board -> settling -> settlement_result -> offer_choice`。
+# - `player_turn` 现在作为正式的 set mode 分支保留；顶部按钮切到 set mode 后，事件确认会改为进入手动摆放。
 extends Control
 
 const BOARD_WIDTH := 5
@@ -68,6 +68,8 @@ var _active_offers: Array = []
 var _active_event_options: Array = []
 var _active_contract: Dictionary = {}
 var _active_state_name: String = ""
+var _items: Array[String] = []
+var _turn_flow_set_mode := false
 var _settlement_autoplay_running := false
 var _token_icon_cache: Dictionary = {}
 var _rarity_style_cache: Dictionary = {}
@@ -89,7 +91,9 @@ var _run_cleared_state
 @onready var _turn_label: Label = %TurnLabel
 @onready var _score_label: Label = %ScoreLabel
 @onready var _contract_label: Label = %ContractLabel
+@onready var _turn_flow_mode_button: Button = %TurnFlowModeButton
 @onready var _mode_label: Label = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeLabel")
+@onready var _mode_buttons: HBoxContainer = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons")
 @onready var _place_mode_button: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/PlaceModeButton")
 @onready var _remove_mode_button: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/RemoveModeButton")
 @onready var _settle_button: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton")
@@ -104,6 +108,9 @@ var _run_cleared_state
 @onready var _event_button_1: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1")
 @onready var _event_button_2: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton2")
 @onready var _event_button_3: Button = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton3")
+@onready var _event_token_picker_scroll: ScrollContainer = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/TokenPickerScroll")
+@onready var _event_token_picker_flow: FlowContainer = get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/TokenPickerScroll/TokenPickerFlow")
+@onready var _items_row: FlowContainer = %ItemsRow
 @onready var _settlement_log_list: ItemList = %ConsoleLogList
 @onready var _console_panel: PanelContainer = %ConsolePanel
 @onready var _bag_button: Button = %BagButton
@@ -137,6 +144,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func get_active_state_name() -> String:
 	return _active_state_name
+
+func get_turn_flow_mode_name() -> String:
+	return "set" if _turn_flow_set_mode else "auto"
 
 func get_settlement_log_entries() -> Array[String]:
 	var entries: Array[String] = []
@@ -189,7 +199,16 @@ func debug_force_reward_event_complete() -> void:
 	if _active_state_name == "offer_choice" and not _active_offers.is_empty():
 		_on_offer_button_pressed(0)
 	if _active_state_name == "event_draft" and not _active_event_options.is_empty():
-		_on_event_button_pressed(0)
+		var event_data: Dictionary = _active_event_options[0]
+		if bool(event_data.get("needs_token_pick", false)):
+			var eligible: Array = event_data.get("eligible_tokens", [])
+			var pick_id: String = eligible[0] if not eligible.is_empty() else ""
+			if not pick_id.is_empty():
+				_on_event_token_pick_pressed(pick_id)
+			else:
+				_finish_event(event_data)
+		else:
+			_on_event_button_pressed(0)
 
 func debug_force_active_contract() -> void:
 	# Navigate to roll_board through the normal offer/event flow.
@@ -207,6 +226,7 @@ func debug_force_active_contract() -> void:
 	})
 	run_session.active_modifiers = [_active_contract.duplicate(true)]
 
+# Test/debug compatibility helper. The real player-facing entry is the header mode toggle.
 func debug_enter_player_turn() -> void:
 	if _active_state_name in ["offer_choice", "roll_board", "event_draft"]:
 		_state_chart.send_event("debug_player_turn")
@@ -255,7 +275,7 @@ func _build_state_chart() -> void:
 	_add_transition(_settling_state, "SettlingToSettlementResult", NodePath("../../SettlementResult"), "settlement_complete")
 	_add_transition(_settlement_result_state, "SettlementResultToOfferChoice", NodePath("../../OfferChoice"), "continue_to_reward")
 
-	# Debug path: manual placement → settle → settlement_result path
+	# Set-mode / compatibility path: manual placement → settle → settlement_result path
 	_add_transition(_offer_choice_state, "OfferChoiceToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
 	_add_transition(_roll_board_state, "RollBoardToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
 	_add_transition(_event_draft_state, "EventDraftToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
@@ -290,6 +310,7 @@ func _add_transition(from_state, transition_name: String, target_path: NodePath,
 # ---------------------------------------------------------------------------
 
 func _wire_ui() -> void:
+	_turn_flow_mode_button.pressed.connect(_on_turn_flow_mode_button_pressed)
 	_place_mode_button.pressed.connect(_select_mode.bind("place"))
 	_remove_mode_button.pressed.connect(_select_mode.bind("remove"))
 	_settle_button.pressed.connect(_on_settle_pressed)
@@ -303,6 +324,25 @@ func _wire_ui() -> void:
 	_continue_to_reward_button.pressed.connect(_on_continue_to_reward_pressed)
 	_bag_button.pressed.connect(_on_bag_button_pressed)
 	_bag_close_button.pressed.connect(func(): _bag_panel.visible = false)
+
+func _on_turn_flow_mode_button_pressed() -> void:
+	_set_turn_flow_mode(not _turn_flow_set_mode)
+
+func _set_turn_flow_mode(enabled: bool) -> void:
+	_turn_flow_set_mode = enabled
+	run_session.operation_history.append({
+		"kind": "turn_flow_mode_change",
+		"flow_mode": get_turn_flow_mode_name(),
+		"turn": run_session.current_turn,
+		"state": _active_state_name,
+	})
+	_apply_turn_flow_mode_to_current_state()
+	_sync_run_labels()
+	_sync_all_panels()
+
+func _apply_turn_flow_mode_to_current_state() -> void:
+	if _turn_flow_set_mode and _active_state_name == "roll_board":
+		_state_chart.send_event("debug_player_turn")
 
 func _build_board_grid() -> void:
 	for child in _board_grid.get_children():
@@ -386,12 +426,12 @@ func _on_cell_pressed(pos: Vector2i) -> void:
 
 	_sync_board_ui()
 
-# Debug / legacy manual settle (player_turn path).
+# Set-mode/manual settle path.
 func _on_settle_pressed() -> void:
 	if _active_state_name != "player_turn":
 		return
 
-	var report = _settlement_resolver.resolve_board(_board_service, _content_registry)
+	var report = _settlement_resolver.resolve_board(_board_service, _content_registry, _get_active_item_defs())
 	_pending_steps = report.steps.duplicate()
 	_last_settlement_score_gain = 0
 	_settlement_log_list.clear()
@@ -406,7 +446,7 @@ func _on_next_turn_pressed() -> void:
 	_roll_board_from_pool()
 	await _play_slot_animation()
 	_sync_board_ui()
-	var report = _settlement_resolver.resolve_board(_board_service, _content_registry)
+	var report = _settlement_resolver.resolve_board(_board_service, _content_registry, _get_active_item_defs())
 	_pending_steps = report.steps.duplicate()
 	_last_settlement_score_gain = 0
 	_settlement_log_list.clear()
@@ -444,9 +484,28 @@ func _on_event_button_pressed(_index: int) -> void:
 		return
 	if _active_event_options.is_empty():
 		return
-
 	var event_data: Dictionary = _active_event_options[0]
+	if bool(event_data.get("needs_token_pick", false)):
+		return
+	_finish_event(event_data)
+
+func _on_event_token_pick_pressed(token_id: String) -> void:
+	if _active_state_name != "event_draft":
+		return
+	if _active_event_options.is_empty():
+		return
+	var event_data: Dictionary = _active_event_options[0]
+	event_data["token_id"] = token_id
+	_finish_event(event_data)
+
+func _finish_event(event_data: Dictionary) -> void:
 	_event_draft_service.apply_event(run_session, event_data)
+	if String(event_data.get("event_type", "")) == "item":
+		var item_effect_type := String(event_data.get("item_effect_type", "passive"))
+		if item_effect_type == "passive":
+			var item_id := String(event_data.get("item_id", ""))
+			if not item_id.is_empty():
+				_items.append(item_id)
 	run_session.operation_history.append({
 		"kind": "event_resolved",
 		"event_type": event_data.get("event_type", ""),
@@ -455,6 +514,7 @@ func _on_event_button_pressed(_index: int) -> void:
 	})
 	run_session.current_turn += 1
 	_state_chart.send_event("event_selected")
+	_apply_turn_flow_mode_to_current_state()
 	_sync_run_labels()
 	_sync_all_panels()
 
@@ -705,6 +765,19 @@ func _advance_active_contract() -> void:
 	_sync_run_labels()
 
 # ---------------------------------------------------------------------------
+# Item helpers
+# ---------------------------------------------------------------------------
+
+# 返回当前道具栏中所有被动道具的 ItemDefinition 列表，供结算器使用。
+func _get_active_item_defs() -> Array:
+	var defs: Array = []
+	for item_id in _items:
+		var item_def: ItemDefinition = _content_registry.items.get(item_id) if _content_registry else null
+		if item_def != null and item_def.effect_type == "passive":
+			defs.append(item_def)
+	return defs
+
+# ---------------------------------------------------------------------------
 # Token helpers
 # ---------------------------------------------------------------------------
 
@@ -885,16 +958,20 @@ func _sync_run_labels() -> void:
 	_turn_label.text = "Turn %d" % run_session.current_turn
 	_score_label.text = "Score %d / %d" % [run_session.current_score, run_session.phase_target]
 	_contract_label.text = "Contract %s" % (get_active_contract_summary() if not _active_contract.is_empty() else "None")
-	_mode_label.text = "Mode %s | Next %s" % [_get_mode_name().capitalize(), _format_token_name(get_active_placement_token_id())]
+	_turn_flow_mode_button.text = "Mode: %s" % get_turn_flow_mode_name().capitalize()
+	_mode_label.text = "Action %s | Next %s" % [_get_mode_name().capitalize(), _format_token_name(get_active_placement_token_id())]
 
 func _sync_all_panels() -> void:
 	_sync_debug_controls()
 	_sync_offer_buttons()
 	_sync_event_draft_ui()
 	_sync_roll_board_ui()
+	_sync_items_row()
 
 func _sync_debug_controls() -> void:
 	var in_player_turn := _active_state_name == "player_turn"
+	_mode_label.visible = in_player_turn
+	_mode_buttons.visible = in_player_turn
 	_place_mode_button.visible = in_player_turn
 	_remove_mode_button.visible = in_player_turn
 	_settle_button.visible = in_player_turn
@@ -935,17 +1012,60 @@ func _sync_event_draft_ui() -> void:
 		var title := String(event_data.get("title", ""))
 		var desc := String(event_data.get("description", ""))
 		_event_summary_label.text = "%s\n%s" % [title, desc] if not desc.is_empty() else title
-		_event_button_1.visible = true
-		_event_button_1.disabled = false
-		_event_button_1.text = "确认"
+
+		var needs_pick: bool = bool(event_data.get("needs_token_pick", false))
+		if needs_pick:
+			_event_button_1.visible = false
+			_event_button_1.disabled = true
+			_populate_token_picker(event_data.get("eligible_tokens", []))
+			_event_token_picker_scroll.visible = true
+		else:
+			_event_button_1.visible = true
+			_event_button_1.disabled = false
+			_event_button_1.text = "确认"
+			_clear_token_picker()
 	else:
 		_event_summary_label.text = ""
 		_event_button_1.visible = show_panel
 		_event_button_1.disabled = true
 		_event_button_1.text = ""
+		_clear_token_picker()
 
 	_event_button_2.visible = false
 	_event_button_3.visible = false
+
+func _populate_token_picker(token_ids: Array) -> void:
+	for child in _event_token_picker_flow.get_children():
+		child.queue_free()
+	for token_id in token_ids:
+		var btn := Button.new()
+		var definition: TokenDefinition = _content_registry.tokens.get(token_id)
+		btn.text = definition.name if definition else _format_token_name(token_id)
+		if definition:
+			var style := _get_rarity_style(definition.rarity)
+			btn.add_theme_stylebox_override("normal", style)
+			btn.add_theme_stylebox_override("hover", style)
+		btn.pressed.connect(_on_event_token_pick_pressed.bind(token_id))
+		_event_token_picker_flow.add_child(btn)
+
+func _clear_token_picker() -> void:
+	for child in _event_token_picker_flow.get_children():
+		child.queue_free()
+	_event_token_picker_scroll.visible = false
+
+func _sync_items_row() -> void:
+	for child in _items_row.get_children():
+		child.queue_free()
+	for item_id in _items:
+		var item_def: ItemDefinition = _content_registry.items.get(item_id) if _content_registry else null
+		var btn := Button.new()
+		btn.text = item_def.name if item_def else item_id.replace("_", " ").capitalize()
+		btn.disabled = true
+		btn.custom_minimum_size = Vector2(80, 36)
+		if item_def and not item_def.description.is_empty():
+			btn.tooltip_text = item_def.description
+		_items_row.add_child(btn)
+	_items_row.visible = not _items.is_empty()
 
 func _sync_roll_board_ui() -> void:
 	_next_turn_button.visible = _active_state_name == "roll_board"

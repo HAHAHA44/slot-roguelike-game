@@ -7,6 +7,7 @@ extends RefCounted
 
 const PHASES: Array[String] = [
 	"base_output",
+	"item_bonus",
 	"adjacency",
 	"row_column",
 	"conditional",
@@ -22,11 +23,11 @@ const EMPTY_TOKEN_ID := "empty_token"
 # 公开 API
 # ---------------------------------------------------------------------------
 
-func resolve_board(board: BoardService, registry: ContentRegistry) -> SettlementReport:
-	var snapshot := build_snapshot(board, registry)
+func resolve_board(board: BoardService, registry: ContentRegistry, active_item_defs: Array = []) -> SettlementReport:
+	var snapshot := build_snapshot(board, registry, active_item_defs)
 	return resolve(snapshot)
 
-func build_snapshot(board: BoardService, registry: ContentRegistry) -> RunSnapshot:
+func build_snapshot(board: BoardService, registry: ContentRegistry, active_item_defs: Array = []) -> RunSnapshot:
 	var tokens_with_pos: Array = []  # Array of {token, pos}
 	var board_tags: Dictionary = {}
 
@@ -55,6 +56,11 @@ func build_snapshot(board: BoardService, registry: ContentRegistry) -> RunSnapsh
 		base_effects.append(_make_effect(token.definition_id, "base_output", base_val, pos, name))
 	if base_effects.size() > 0:
 		phase_effects["base_output"] = base_effects
+
+	# item_bonus：被动道具对对应元素每个 token +1
+	var item_bonus_effects: Array = _build_item_bonus_effects(board, registry, active_item_defs)
+	if item_bonus_effects.size() > 0:
+		phase_effects["item_bonus"] = item_bonus_effects
 
 	# row_column：元素联动触发（火/水/土/风）
 	var element_effects: Array = _build_element_effects(board, registry)
@@ -184,6 +190,39 @@ func _build_element_effects(board: BoardService, registry: ContentRegistry) -> A
 		if n > 0:
 			effects.append(_make_effect(pos_to_def_id[pos], "wind_col_bonus", n, pos, pos_to_name[pos]))
 
+	return effects
+
+# 被动道具效果：对每个符合元素类型的 token +1 分。
+# active_item_defs 为 ItemDefinition 数组，只处理 effect_type == "passive" 的道具。
+func _build_item_bonus_effects(board: BoardService, registry: ContentRegistry, active_item_defs: Array) -> Array:
+	var effects: Array = []
+	# 元素 → trigger_rules 键名映射
+	const ELEMENT_RULE := {
+		"fire":  "fire_above_stack",
+		"water": "water_below_stack",
+		"earth": "earth_row_bonus",
+		"wind":  "wind_col_bonus",
+	}
+	for item_def in active_item_defs:
+		if String(item_def.effect_type) != "passive":
+			continue
+		var element := String(item_def.effect_data.get("element", ""))
+		var rule_key: String = ELEMENT_RULE.get(element, "")
+		if rule_key.is_empty():
+			continue
+		for row in board.height:
+			for col in board.width:
+				var pos := Vector2i(col, row)
+				if not board.has_token(pos):
+					continue
+				var token = board.get_token(pos)
+				if token.definition_id == EMPTY_TOKEN_ID:
+					continue
+				var def: TokenDefinition = registry.tokens.get(token.definition_id)
+				if def == null:
+					continue
+				if def.trigger_rules.get(rule_key, false):
+					effects.append(_make_effect(token.definition_id, "item_bonus", 1, pos, def.name))
 	return effects
 
 func _make_effect(source_token: String, phase_name: String, score_delta: int, pos: Vector2i = Vector2i(-1, -1), token_name: String = "") -> Dictionary:
