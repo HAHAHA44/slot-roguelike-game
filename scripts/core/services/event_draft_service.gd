@@ -53,7 +53,7 @@ func apply_event(run_session: RunSession, event: Dictionary) -> void:
 			if item_def == null:
 				return
 			if String(item_def.effect_type) == "instant":
-				_apply_instant_item(run_session, item_def, event)
+				_apply_instant_item(run_session, item_def)
 
 # ---------------------------------------------------------------------------
 # 私有构建辅助
@@ -119,7 +119,7 @@ func _delete_token_event(run_session: RunSession) -> Dictionary:
 # 即时道具效果
 # ---------------------------------------------------------------------------
 
-func _apply_instant_item(run_session: RunSession, item_def: ItemDefinition, event: Dictionary) -> void:
+func _apply_instant_item(run_session: RunSession, item_def: ItemDefinition) -> void:
 	var action := String(item_def.effect_data.get("action", ""))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = run_session.current_turn * 7919 + run_session.current_score * 31
@@ -134,6 +134,7 @@ func _apply_instant_item(run_session: RunSession, item_def: ItemDefinition, even
 func _apply_upgrade_random(run_session: RunSession, rng: RandomNumberGenerator) -> void:
 	# 收集可升级的 token（非传说稀有度，且下一稀有度版本存在于注册表中）
 	var upgradable: Array[String] = []
+	var upgradable_next: Dictionary = {}  # token_id → next_id
 	for token_id in run_session.token_pool:
 		if token_id == EMPTY_TOKEN_ID:
 			continue
@@ -143,16 +144,14 @@ func _apply_upgrade_random(run_session: RunSession, rng: RandomNumberGenerator) 
 		var next_id := _find_next_rarity_token(def)
 		if not next_id.is_empty():
 			upgradable.append(token_id)
+			upgradable_next[token_id] = next_id
 
 	if upgradable.is_empty():
 		return
 
 	var chosen_id: String = upgradable[rng.randi() % upgradable.size()]
-	var chosen_def: TokenDefinition = _content_registry.tokens.get(chosen_id)
-	var next_id := _find_next_rarity_token(chosen_def)
-
 	run_session.pool_remove(chosen_id)
-	run_session.pool_add(next_id)
+	run_session.pool_add(upgradable_next[chosen_id])
 
 func _apply_delete_random(run_session: RunSession, rng: RandomNumberGenerator, count: int) -> void:
 	for _i in count:
@@ -194,9 +193,3 @@ func _eligible_pool_tokens(run_session: RunSession) -> Array[String]:
 		seen[token_id] = true
 		result.append(token_id)
 	return result
-
-func _get_token_name(token_id: String) -> String:
-	if _content_registry == null:
-		return token_id
-	var def: TokenDefinition = _content_registry.tokens.get(token_id)
-	return def.name if def else token_id

@@ -19,7 +19,11 @@
       "Bash(GODOT_BIN=\"/mnt/c/Users/ax/Downloads/Godot_v4.6.1-stable_win64_console.exe\")",
       "Bash(\"$GODOT_BIN\" --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/integration/test_run_screen_flow.gd -gexit)",
       "Bash(find /mnt/c/Users/27391 -name Godot*.exe)",
-      "Bash(find /mnt/d -name Godot_v*.exe)"
+      "Bash(find /mnt/d -name Godot_v*.exe)",
+      "Bash(grep -r \"for.*_positions\\\\|def\\\\.name\\\\|token.*name\" /mnt/d/Documents/GodotProjects/slot-roguelike-game/scripts/core/services/*.gd)",
+      "Bash(grep:*)",
+      "Bash(find /mnt/d/Documents/GodotProjects/slot-roguelike-game -name \"*.gd\" -type f -exec grep -l \"5.*5\\\\|height.*width\" {} \\\\;)",
+      "Bash(sudo apt:*)"
     ]
   }
 }

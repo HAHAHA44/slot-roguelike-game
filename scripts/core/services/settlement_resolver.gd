@@ -18,6 +18,12 @@ const PHASES: Array[String] = [
 const MAX_ITERATION_DEPTH := 32
 const MAX_TRIGGER_COUNT_PER_TOKEN := 16
 const EMPTY_TOKEN_ID := "empty_token"
+const ELEMENT_RULE := {
+	"fire":  "fire_above_stack",
+	"water": "water_below_stack",
+	"earth": "earth_row_bonus",
+	"wind":  "wind_col_bonus",
+}
 
 # ---------------------------------------------------------------------------
 # 公开 API
@@ -196,13 +202,6 @@ func _build_element_effects(board: BoardService, registry: ContentRegistry) -> A
 # active_item_defs 为 ItemDefinition 数组，只处理 effect_type == "passive" 的道具。
 func _build_item_bonus_effects(board: BoardService, registry: ContentRegistry, active_item_defs: Array) -> Array:
 	var effects: Array = []
-	# 元素 → trigger_rules 键名映射
-	const ELEMENT_RULE := {
-		"fire":  "fire_above_stack",
-		"water": "water_below_stack",
-		"earth": "earth_row_bonus",
-		"wind":  "wind_col_bonus",
-	}
 	for item_def in active_item_defs:
 		if String(item_def.effect_type) != "passive":
 			continue
