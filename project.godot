@@ -22,3 +22,7 @@ Localization="*res://autoload/localization_service.gd"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/godot_state_charts/plugin.cfg")
+
+[gui]
+
+theme/custom="res://assets/theme/game_theme.tres"

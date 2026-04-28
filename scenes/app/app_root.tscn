@@ -1,8 +1,9 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
-[ext_resource type="PackedScene" path="res://scenes/run/run_screen.tscn" id="1_run_screen"]
+[ext_resource type="Script" path="res://scripts/app/app_root.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/menu/main_menu.tscn" id="2_main_menu"]
 
-[node name="AppRoot" type="Control"]
+[node name="AppRoot" type="Control" script=ExtResource("1_script")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -10,7 +11,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="RunScreen" parent="." instance=ExtResource("1_run_screen")]
+[node name="MainMenu" parent="." instance=ExtResource("2_main_menu")]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
