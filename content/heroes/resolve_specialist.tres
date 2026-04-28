@@ -5,11 +5,13 @@
 [resource]
 script = ExtResource("1")
 id = "resolve_specialist"
-name = "Resolve Specialist"
-starting_passive = "Crisis penalties are softened."
+name = "content.hero.resolve_specialist.name"
+starting_passive = "content.hero.resolve_specialist.starting_passive"
 attribute_bias = "Resolve"
 event_weight_modifiers = {
 "Guard": 0.5,
 "Grow": 0.25,
 "crisis_penalty_multiplier": 0.5
 }
+
+

@@ -10,3 +10,6 @@ extends Resource
 @export var unlock_type: String = ""
 @export var cost: int = 0
 @export var rewards: Dictionary = {}
+
+func get_display_name() -> String:
+	return L10n.text(name, id)

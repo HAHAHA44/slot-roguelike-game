@@ -9,3 +9,9 @@ extends Resource
 @export var name: String = ""
 @export var description: String = ""
 @export var modifiers: Dictionary = {}
+
+func get_display_name() -> String:
+	return L10n.text(name, id)
+
+func get_display_description() -> String:
+	return L10n.text(description)

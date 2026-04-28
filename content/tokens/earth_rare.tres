@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "earth_rare"
-name = "巨岩"
-description = "厚重的巨岩，同行土元素越多，基础越稳，加分越高。"
+name = "content.token.earth_rare.name"
+description = "content.token.earth_rare.description"
 rarity = "Rare"
 type = "Earth"
 tags = PackedStringArray("earth")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.3
 }
 remove_rules = {}
+
+

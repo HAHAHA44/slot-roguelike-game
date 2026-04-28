@@ -15,3 +15,9 @@ extends Resource
 @export var description: String = ""
 @export var effect_type: String = "passive"   # "passive" | "instant"
 @export var effect_data: Dictionary = {}
+
+func get_display_name() -> String:
+	return L10n.text(name, id)
+
+func get_display_description() -> String:
+	return L10n.text(description)

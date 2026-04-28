@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "shatter_drive"
-name = "Shatter Drive"
+name = "content.event.shatter_drive.name"
 type = "instant"
 primary_tag = "Break"
 stability = "risky"
 weight = 1.0
-description = "Break shells on cue for a fast payout."
+description = "content.event.shatter_drive.description"
 tags_affected = PackedStringArray("Break")
 duration = 1
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 2
 }
+
+

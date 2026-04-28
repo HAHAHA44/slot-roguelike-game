@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "water_rare"
-name = "洪流"
-description = "奔涌的洪流，汇聚下方一切水势，势不可挡。"
+name = "content.token.water_rare.name"
+description = "content.token.water_rare.description"
 rarity = "Rare"
 type = "Water"
 tags = PackedStringArray("water")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.3
 }
 remove_rules = {}
+
+

@@ -5,10 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "ascension_2"
-name = "Ascension 2"
-description = "Crisis cards show up more often and safe rolls degrade."
+name = "content.difficulty.ascension_2.name"
+description = "content.difficulty.ascension_2.description"
 modifiers = {
 "crisis_weight_bonus": 0.5,
 "stable_weight_multiplier": 0.75,
 "quality_penalty": 0.2
 }
+
+

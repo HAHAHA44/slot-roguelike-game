@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "fire_rare"
-name = "烈焰"
-description = "炽热的烈焰，汲取上方一切火势为己用。"
+name = "content.token.fire_rare.name"
+description = "content.token.fire_rare.description"
 rarity = "Rare"
 type = "Fire"
 tags = PackedStringArray("fire")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.3
 }
 remove_rules = {}
+
+

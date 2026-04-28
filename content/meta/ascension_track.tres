@@ -5,9 +5,11 @@
 [resource]
 script = ExtResource("1")
 id = "ascension_track"
-name = "Unlock Ascension Track"
+name = "content.meta.ascension_track.name"
 unlock_type = "difficulty"
 cost = 1
 rewards = {
 "difficulty_id": "ascension_1"
 }
+
+

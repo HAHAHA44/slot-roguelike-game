@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "spatial_echo"
-name = "Spatial Echo"
+name = "content.event.spatial_echo.name"
 type = "instant"
 primary_tag = "Spatial"
 stability = "volatile"
 weight = 0.7
-description = "Rare spatial pieces can cash out for a large swing."
+description = "content.event.spatial_echo.description"
 tags_affected = PackedStringArray("Spatial", "Link")
 duration = 1
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 4
 }
+
+

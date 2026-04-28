@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "garden_protocol"
-name = "Garden Protocol"
+name = "content.event.garden_protocol.name"
 type = "lasting"
 primary_tag = "Grow"
 stability = "stable"
 weight = 1.0
-description = "Reward compact Grow setups over the next few turns."
+description = "content.event.garden_protocol.description"
 tags_affected = PackedStringArray("Grow", "Guard")
 duration = 3
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 1
 }
+
+

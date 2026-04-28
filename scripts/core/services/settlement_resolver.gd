@@ -58,7 +58,7 @@ func build_snapshot(board: BoardService, registry: ContentRegistry, active_item_
 			continue
 		var definition: TokenDefinition = registry.tokens.get(token.definition_id)
 		var base_val: int = definition.base_value if definition else 1
-		var name: String = definition.name if definition else token.definition_id
+		var name: String = definition.get_display_name() if definition else token.definition_id
 		base_effects.append(_make_effect(token.definition_id, "base_output", base_val, pos, name))
 	if base_effects.size() > 0:
 		phase_effects["base_output"] = base_effects
@@ -147,7 +147,7 @@ func _build_element_effects(board: BoardService, registry: ContentRegistry) -> A
 			if def == null:
 				continue
 			pos_to_def_id[pos] = token.definition_id
-			pos_to_name[pos] = def.name
+			pos_to_name[pos] = def.get_display_name()
 			var rules: Dictionary = def.trigger_rules
 			if rules.get("fire_above_stack", false):
 				fire_positions.append(pos)
@@ -221,7 +221,7 @@ func _build_item_bonus_effects(board: BoardService, registry: ContentRegistry, a
 				if def == null:
 					continue
 				if def.trigger_rules.get(rule_key, false):
-					effects.append(_make_effect(token.definition_id, "item_bonus", 1, pos, def.name))
+					effects.append(_make_effect(token.definition_id, "item_bonus", 1, pos, def.get_display_name()))
 	return effects
 
 func _make_effect(source_token: String, phase_name: String, score_delta: int, pos: Vector2i = Vector2i(-1, -1), token_name: String = "") -> Dictionary:

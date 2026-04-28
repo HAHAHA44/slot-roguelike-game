@@ -15,10 +15,11 @@ theme_override_constants/margin_bottom = 12
 theme_override_constants/separation = 8
 
 [node name="LogTitle" type="Label" parent="MarginContainer/VBox"]
-text = "Settlement Log"
+text = "ui.settlement.title"
 
 [node name="SettlementLogList" type="ItemList" parent="MarginContainer/VBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 120)
 size_flags_vertical = 3
+
 

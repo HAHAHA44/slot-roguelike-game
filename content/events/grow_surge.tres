@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "grow_surge"
-name = "Grow Surge"
+name = "content.event.grow_surge.name"
 type = "instant"
 primary_tag = "Grow"
 stability = "stable"
 weight = 1.2
-description = "Lean into Grow lines for a steady score spike."
+description = "content.event.grow_surge.description"
 tags_affected = PackedStringArray("Grow")
 duration = 1
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 2
 }
+
+

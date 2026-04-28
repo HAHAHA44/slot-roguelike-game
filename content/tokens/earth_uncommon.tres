@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "earth_uncommon"
-name = "岩石"
-description = "坚实的岩石，感知同行土元素，每个+1积累加分。"
+name = "content.token.earth_uncommon.name"
+description = "content.token.earth_uncommon.description"
 rarity = "Uncommon"
 type = "Earth"
 tags = PackedStringArray("earth")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.6
 }
 remove_rules = {}
+
+

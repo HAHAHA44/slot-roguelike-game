@@ -5,10 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "ascension_3"
-name = "Ascension 3"
-description = "High pressure mode with narrow safe options."
+name = "content.difficulty.ascension_3.name"
+description = "content.difficulty.ascension_3.description"
 modifiers = {
 "crisis_weight_bonus": 0.9,
 "stable_weight_multiplier": 0.6,
 "quality_penalty": 0.35
 }
+
+

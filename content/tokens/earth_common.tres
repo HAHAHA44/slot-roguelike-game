@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "earth_common"
-name = "碎石"
-description = "微小的石块，与同行的土元素共鸣，+1加分。"
+name = "content.token.earth_common.name"
+description = "content.token.earth_common.description"
 rarity = "Common"
 type = "Earth"
 tags = PackedStringArray("earth")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 1.0
 }
 remove_rules = {}
+
+

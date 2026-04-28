@@ -5,9 +5,11 @@
 [resource]
 script = ExtResource("1")
 id = "anomaly_lab"
-name = "Unlock Anomaly Lab"
+name = "content.meta.anomaly_lab.name"
 unlock_type = "anomaly"
 cost = 2
 rewards = {
 "anomaly_pool": "core"
 }
+
+

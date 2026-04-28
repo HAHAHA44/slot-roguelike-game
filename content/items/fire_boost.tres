@@ -5,9 +5,11 @@
 [resource]
 script = ExtResource("1")
 id = "fire_boost"
-name = "火焰强化"
-description = "所有火焰 Token 计分 +1。"
+name = "content.item.fire_boost.name"
+description = "content.item.fire_boost.description"
 effect_type = "passive"
 effect_data = {
 "element": "fire"
 }
+
+

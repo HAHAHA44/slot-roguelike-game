@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "bulwark_tax"
-name = "Bulwark Tax"
+name = "content.event.bulwark_tax.name"
 type = "crisis"
 primary_tag = "Guard"
 stability = "risky"
 weight = 0.85
-description = "High Guard pressure yields a better contract reward."
+description = "content.event.bulwark_tax.description"
 tags_affected = PackedStringArray("Guard", "Grow")
 duration = 2
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 3
 }
+
+

@@ -27,26 +27,30 @@ func build_contract(event_data) -> Dictionary:
 
 func summarize_contract(contract: Dictionary) -> String:
 	var status := String(contract.get("status", "active"))
+	var goal_name := L10n.contract_goal_name(String(contract.get("goal_type", "reach_score")))
+	var goal_value := int(contract.get("goal_value", 0))
+	var reward := int(contract.get("reward_bundle", {}).get("score_bonus", 0))
+	var penalty := int(contract.get("penalty_bundle", {}).get("score_penalty", 0))
 	if status == "success":
-		return "Completed %s %s | Reward %+d" % [
-			contract.get("goal_type", "reach_score"),
-			contract.get("goal_value", 0),
-			int(contract.get("reward_bundle", {}).get("score_bonus", 0)),
-		]
+		return L10n.format_text("contract.summary.success", {
+			"goal": goal_name,
+			"value": goal_value,
+			"reward": reward,
+		})
 	if status == "failed":
-		return "Failed %s %s | Penalty %d" % [
-			contract.get("goal_type", "reach_score"),
-			contract.get("goal_value", 0),
-			int(contract.get("penalty_bundle", {}).get("score_penalty", 0)),
-		]
+		return L10n.format_text("contract.summary.failed", {
+			"goal": goal_name,
+			"value": goal_value,
+			"penalty": penalty,
+		})
 
-	return "Goal %s %s in %s turns | Reward %+d | Penalty -%d" % [
-		contract.get("goal_type", "reach_score"),
-		contract.get("goal_value", 0),
-		contract.get("turns_remaining", 0),
-		int(contract.get("reward_bundle", {}).get("score_bonus", 0)),
-		int(contract.get("penalty_bundle", {}).get("score_penalty", 0)),
-	]
+	return L10n.format_text("contract.summary.active", {
+		"goal": goal_name,
+		"value": goal_value,
+		"turns": int(contract.get("turns_remaining", 0)),
+		"reward": reward,
+		"penalty": penalty,
+	})
 
 func advance_contract(contract: Dictionary, turn_result: Dictionary) -> Dictionary:
 	var advanced := contract.duplicate(true)
@@ -97,7 +101,7 @@ func _normalize_event(event_data) -> Dictionary:
 	if event_data is EventDefinition:
 		return {
 			"id": event_data.id,
-			"name": event_data.name,
+			"name": event_data.get_display_name(),
 			"contract_template": event_data.contract_template.duplicate(true),
 			"reward_bundle": event_data.reward_bundle.duplicate(true),
 			"penalty_bundle": event_data.penalty_bundle.duplicate(true),

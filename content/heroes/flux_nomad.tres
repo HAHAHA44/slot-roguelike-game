@@ -5,11 +5,13 @@
 [resource]
 script = ExtResource("1")
 id = "flux_nomad"
-name = "Flux Nomad"
-starting_passive = "Anomalies and Wild events show up more often."
+name = "content.hero.flux_nomad.name"
+starting_passive = "content.hero.flux_nomad.starting_passive"
 attribute_bias = "Flux"
 event_weight_modifiers = {
 "Wild": 0.75,
 "Spatial": 0.75,
 "Link": 0.25
 }
+
+

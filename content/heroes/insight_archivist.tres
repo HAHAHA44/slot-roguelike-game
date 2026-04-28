@@ -5,11 +5,13 @@
 [resource]
 script = ExtResource("1")
 id = "insight_archivist"
-name = "Insight Archivist"
-starting_passive = "See one extra stable event option."
+name = "content.hero.insight_archivist.name"
+starting_passive = "content.hero.insight_archivist.starting_passive"
 attribute_bias = "Insight"
 event_weight_modifiers = {
 "Grow": 0.5,
 "Link": 0.25,
 "stable_visibility_bonus": 1.0
 }
+
+

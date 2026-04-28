@@ -5,9 +5,11 @@
 [resource]
 script = ExtResource("1")
 id = "random_upgrade"
-name = "进化冲击"
-description = "拾起时随机将背包中一个 Token 升级到更高稀有度。"
+name = "content.item.random_upgrade.name"
+description = "content.item.random_upgrade.description"
 effect_type = "instant"
 effect_data = {
 "action": "upgrade_random"
 }
+
+

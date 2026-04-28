@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "fire_legendary"
-name = "圣火"
-description = "神圣不灭之火，俯视棋盘，以上方所有火势凝聚力量。"
+name = "content.token.fire_legendary.name"
+description = "content.token.fire_legendary.description"
 rarity = "Legendary"
 type = "Fire"
 tags = PackedStringArray("fire")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.1
 }
 remove_rules = {}
+
+

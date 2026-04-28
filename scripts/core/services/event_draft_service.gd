@@ -1,12 +1,3 @@
-# 事件服务：
-# - 每轮奖励结算后，50% 概率触发事件；若触发，三种事件各 1/3 概率。
-# - 事件1 copy_token：从 token_pool 随机复制（新增）一个 token（玩家从 picker 选）。
-# - 事件2 delete_token：从 token_pool 随机删除一个 token（玩家从 picker 选）。
-# - 事件3 item：从注册表随机选一件道具发放；
-#     - passive 道具：加入道具栏，结算时持续生效。
-#     - instant 道具：拾起时立即执行效果（upgrade_random / delete_random），不进道具栏。
-# - build_event 返回描述事件内容的字典；apply_event 负责执行实际效果。
-# - 典型联动：RunScreen 在 offer_choice 之后调用 build_event，在玩家确认后调用 apply_event。
 class_name EventDraftService
 extends RefCounted
 
@@ -18,17 +9,13 @@ var _content_registry = null
 func _init(content_registry = null) -> void:
 	_content_registry = content_registry
 
-# 根据 seed_value 决定本轮事件内容，返回描述事件的字典。
-# 返回字段：event_type, title, description, token_id（可为空）, token_name（可为空）
 func build_event(run_session: RunSession, seed_value: int) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 
-	# 50% 概率无事件
 	if rng.randf() >= 0.5:
 		return _no_event()
 
-	# 三种事件各 1/3
 	match rng.randi_range(0, 2):
 		0:
 			return _copy_token_event(run_session)
@@ -37,7 +24,6 @@ func build_event(run_session: RunSession, seed_value: int) -> Dictionary:
 		_:
 			return _item_event(rng)
 
-# 执行事件效果（在玩家确认后调用）。
 func apply_event(run_session: RunSession, event: Dictionary) -> void:
 	match String(event.get("event_type", "")):
 		"copy_token":
@@ -55,15 +41,11 @@ func apply_event(run_session: RunSession, event: Dictionary) -> void:
 			if String(item_def.effect_type) == "instant":
 				_apply_instant_item(run_session, item_def)
 
-# ---------------------------------------------------------------------------
-# 私有构建辅助
-# ---------------------------------------------------------------------------
-
 func _no_event() -> Dictionary:
 	return {
 		"event_type": "no_event",
-		"title": "今日无事",
-		"description": "风平浪静，继续前进。",
+		"title_key": "event_draft.no_event.title",
+		"description_key": "event_draft.no_event.description",
 		"token_id": "",
 		"token_name": "",
 	}
@@ -78,8 +60,9 @@ func _item_event(rng: RandomNumberGenerator) -> Dictionary:
 
 	return {
 		"event_type": "item",
-		"title": "获得道具：%s" % item_def.name,
-		"description": item_def.description,
+		"title_key": "event_draft.item.title",
+		"title_params": {"item": item_def.name},
+		"description_key": item_def.description,
 		"token_id": "",
 		"token_name": "",
 		"item_id": item_def.id,
@@ -93,8 +76,8 @@ func _copy_token_event(run_session: RunSession) -> Dictionary:
 		return _no_event()
 	return {
 		"event_type": "copy_token",
-		"title": "复制 Token",
-		"description": "选择一个背包中的 Token 进行复制。",
+		"title_key": "event_draft.copy_token.title",
+		"description_key": "event_draft.copy_token.description",
 		"token_id": "",
 		"token_name": "",
 		"needs_token_pick": true,
@@ -107,17 +90,13 @@ func _delete_token_event(run_session: RunSession) -> Dictionary:
 		return _no_event()
 	return {
 		"event_type": "delete_token",
-		"title": "删除 Token",
-		"description": "选择一个背包中的 Token 将其删除。",
+		"title_key": "event_draft.delete_token.title",
+		"description_key": "event_draft.delete_token.description",
 		"token_id": "",
 		"token_name": "",
 		"needs_token_pick": true,
 		"eligible_tokens": eligible,
 	}
-
-# ---------------------------------------------------------------------------
-# 即时道具效果
-# ---------------------------------------------------------------------------
 
 func _apply_instant_item(run_session: RunSession, item_def: ItemDefinition) -> void:
 	var action := String(item_def.effect_data.get("action", ""))
@@ -132,9 +111,8 @@ func _apply_instant_item(run_session: RunSession, item_def: ItemDefinition) -> v
 			_apply_delete_random(run_session, rng, count)
 
 func _apply_upgrade_random(run_session: RunSession, rng: RandomNumberGenerator) -> void:
-	# 收集可升级的 token（非传说稀有度，且下一稀有度版本存在于注册表中）
 	var upgradable: Array[String] = []
-	var upgradable_next: Dictionary = {}  # token_id → next_id
+	var upgradable_next: Dictionary = {}
 	for token_id in run_session.token_pool:
 		if token_id == EMPTY_TOKEN_ID:
 			continue
@@ -155,7 +133,6 @@ func _apply_upgrade_random(run_session: RunSession, rng: RandomNumberGenerator) 
 
 func _apply_delete_random(run_session: RunSession, rng: RandomNumberGenerator, count: int) -> void:
 	for _i in count:
-		# 过滤掉 empty_token
 		var eligible: Array[String] = []
 		for token_id in run_session.token_pool:
 			if token_id != EMPTY_TOKEN_ID:
@@ -165,13 +142,12 @@ func _apply_delete_random(run_session: RunSession, rng: RandomNumberGenerator, c
 		var chosen: String = eligible[rng.randi() % eligible.size()]
 		run_session.pool_remove(chosen)
 
-# 给定一个 TokenDefinition，在注册表中查找同 type、下一稀有度的 token id；找不到返回空字符串。
 func _find_next_rarity_token(def: TokenDefinition) -> String:
 	if _content_registry == null:
 		return ""
 	var current_rarity_idx := RARITY_ORDER.find(def.rarity)
 	if current_rarity_idx < 0 or current_rarity_idx >= RARITY_ORDER.size() - 1:
-		return ""  # 已是 Legendary 或未知稀有度
+		return ""
 	var next_rarity: String = RARITY_ORDER[current_rarity_idx + 1]
 	for token_id in _content_registry.tokens.keys():
 		var candidate: TokenDefinition = _content_registry.tokens[token_id]
@@ -179,11 +155,6 @@ func _find_next_rarity_token(def: TokenDefinition) -> String:
 			return candidate.id
 	return ""
 
-# ---------------------------------------------------------------------------
-# 工具方法
-# ---------------------------------------------------------------------------
-
-# 返回 pool 中去重后的非空 token id 列表。
 func _eligible_pool_tokens(run_session: RunSession) -> Array[String]:
 	var seen: Dictionary = {}
 	var result: Array[String] = []

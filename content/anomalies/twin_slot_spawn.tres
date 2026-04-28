@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "twin_slot_spawn"
-name = "Twin Slot Spawn"
+name = "content.anomaly.twin_slot_spawn.name"
 anomaly_type = "spawn_rule"
 tags = PackedStringArray("Spatial", "Twin")
 rules = {
@@ -13,3 +13,5 @@ rules = {
 "spawn_shape": "2x1",
 "temporary": false
 }
+
+

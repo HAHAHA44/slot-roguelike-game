@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "wind_uncommon"
-name = "清风"
-description = "流动的清风，感知同列风元素，每个+1化为加分。"
+name = "content.token.wind_uncommon.name"
+description = "content.token.wind_uncommon.description"
 rarity = "Uncommon"
 type = "Wind"
 tags = PackedStringArray("wind")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.6
 }
 remove_rules = {}
+
+

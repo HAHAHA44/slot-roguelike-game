@@ -36,27 +36,27 @@ theme_override_constants/separation = 16
 
 [node name="RunStateLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
 unique_name_in_owner = true
-text = "State boot"
+text = "ui.run.state_placeholder"
 
 [node name="TurnLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
 unique_name_in_owner = true
-text = "Turn 1"
+text = "ui.run.turn_placeholder"
 
 [node name="ScoreLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
 unique_name_in_owner = true
-text = "Score 0 / 10"
+text = "ui.run.score_placeholder"
 
 [node name="ContractLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
 unique_name_in_owner = true
-text = "Contract None"
+text = "ui.run.contract_placeholder"
 
 [node name="TurnFlowModeButton" type="Button" parent="MainMargin/MainLayout/HeaderRow"]
 unique_name_in_owner = true
-text = "Mode: Auto"
+text = "ui.run.mode_button_placeholder"
 
 [node name="BagButton" type="Button" parent="MainMargin/MainLayout/HeaderRow"]
 unique_name_in_owner = true
-text = "Backpack"
+text = "ui.backpack.button"
 
 [node name="ItemsRow" type="FlowContainer" parent="MainMargin/MainLayout"]
 unique_name_in_owner = true
@@ -110,7 +110,7 @@ layout_mode = 2
 [node name="TitleLabel" type="Label" parent="BagPanel/MarginContainer/VBox/TitleRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "背包"
+text = "ui.backpack.title"
 theme_override_font_sizes/font_size = 24
 
 [node name="BagCloseButton" type="Button" parent="BagPanel/MarginContainer/VBox/TitleRow"]
@@ -153,10 +153,18 @@ theme_override_constants/separation = 8
 
 [node name="ConsoleTitle" type="Label" parent="ConsolePanel/MarginContainer/VBox"]
 layout_mode = 2
-text = "Console  [ ` ] to close"
+text = "ui.console.title"
 theme_override_font_sizes/font_size = 14
 
 [node name="ConsoleLogList" type="ItemList" parent="ConsolePanel/MarginContainer/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+
+
+
+
+
+
+
+

@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "earth_legendary"
-name = "磐石"
-description = "永恒的磐石，与同行所有土元素共振，震撼大地。"
+name = "content.token.earth_legendary.name"
+description = "content.token.earth_legendary.description"
 rarity = "Legendary"
 type = "Earth"
 tags = PackedStringArray("earth")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.1
 }
 remove_rules = {}
+
+

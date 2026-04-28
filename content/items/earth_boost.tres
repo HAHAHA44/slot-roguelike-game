@@ -5,9 +5,11 @@
 [resource]
 script = ExtResource("1")
 id = "earth_boost"
-name = "大地强化"
-description = "所有土元素 Token 计分 +1。"
+name = "content.item.earth_boost.name"
+description = "content.item.earth_boost.description"
 effect_type = "passive"
 effect_data = {
 "element": "earth"
 }
+
+

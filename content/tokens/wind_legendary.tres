@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "wind_legendary"
-name = "飓风"
-description = "毁天灭地的飓风，与同列所有风元素共鸣，不可阻挡。"
+name = "content.token.wind_legendary.name"
+description = "content.token.wind_legendary.description"
 rarity = "Legendary"
 type = "Wind"
 tags = PackedStringArray("wind")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.1
 }
 remove_rules = {}
+
+

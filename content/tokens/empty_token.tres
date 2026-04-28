@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "empty_token"
-name = "Empty"
+name = "content.token.empty_token.name"
 rarity = "Common"
 type = "Empty"
 tags = PackedStringArray()
@@ -16,3 +16,5 @@ spawn_rules = {
 "weight": 0.0
 }
 remove_rules = {}
+
+

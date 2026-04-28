@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "overgrowth_crisis"
-name = "Overgrowth Crisis"
+name = "content.event.overgrowth_crisis.name"
 type = "crisis"
 primary_tag = "Grow"
 stability = "volatile"
 weight = 0.8
-description = "Big payout if your Grow engine can clear a high target quickly."
+description = "content.event.overgrowth_crisis.description"
 tags_affected = PackedStringArray("Grow")
 duration = 2
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 4
 }
+
+

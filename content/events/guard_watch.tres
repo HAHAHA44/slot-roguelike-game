@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "guard_watch"
-name = "Guard Watch"
+name = "content.event.guard_watch.name"
 type = "instant"
 primary_tag = "Guard"
 stability = "stable"
 weight = 1.0
-description = "Stable payoff for keeping Guard pieces on the board."
+description = "content.event.guard_watch.description"
 tags_affected = PackedStringArray("Guard")
 duration = 1
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 1
 }
+
+

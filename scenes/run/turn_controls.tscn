@@ -7,7 +7,7 @@ theme_override_constants/separation = 8
 [node name="ModeLabel" type="Label" parent="."]
 unique_name_in_owner = true
 visible = false
-text = "Mode Place"
+text = "ui.run.action_placeholder"
 
 [node name="ModeButtons" type="HBoxContainer" parent="."]
 visible = false
@@ -17,45 +17,55 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 toggle_mode = true
 button_pressed = true
-text = "Place"
+text = "mode.place"
 
 [node name="RemoveModeButton" type="Button" parent="ModeButtons"]
 unique_name_in_owner = true
 toggle_mode = true
-text = "Remove"
+text = "mode.remove"
 
 [node name="SettleButton" type="Button" parent="."]
 unique_name_in_owner = true
 visible = false
-text = "Settle"
+text = "ui.turn_controls.settle"
 
 [node name="OfferTitleLabel" type="Label" parent="."]
 unique_name_in_owner = true
 visible = false
-text = "Reward Offer"
+text = "ui.turn_controls.offer_title"
 
 [node name="OfferButton1" type="Button" parent="."]
 unique_name_in_owner = true
 visible = false
-text = "Offer 1"
+text = "ui.turn_controls.offer_placeholder"
 
 [node name="OfferButton2" type="Button" parent="."]
 unique_name_in_owner = true
 visible = false
-text = "Offer 2"
+text = "ui.turn_controls.offer_placeholder"
 
 [node name="OfferButton3" type="Button" parent="."]
 unique_name_in_owner = true
 visible = false
-text = "Offer 3"
+text = "ui.turn_controls.offer_placeholder"
 
 [node name="NextTurnButton" type="Button" parent="."]
 unique_name_in_owner = true
 visible = false
-text = "Next Turn"
+text = "ui.turn_controls.next_turn"
 
 [node name="ContinueToRewardButton" type="Button" parent="."]
 unique_name_in_owner = true
 visible = false
-text = "Continue"
+text = "ui.turn_controls.continue"
+
+
+
+
+
+
+
+
+
+
 

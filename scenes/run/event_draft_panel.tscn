@@ -15,20 +15,20 @@ theme_override_constants/margin_bottom = 12
 theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBox"]
-text = "Event Draft"
+text = "ui.event_draft.title"
 
 [node name="SummaryLabel" type="Label" parent="MarginContainer/VBox"]
-text = "Choose an event."
+text = "ui.event_draft.summary_placeholder"
 autowrap_mode = 3
 
 [node name="EventButton1" type="Button" parent="MarginContainer/VBox"]
-text = "Event 1"
+text = "ui.event_draft.option_placeholder"
 
 [node name="EventButton2" type="Button" parent="MarginContainer/VBox"]
-text = "Event 2"
+text = "ui.event_draft.option_placeholder"
 
 [node name="EventButton3" type="Button" parent="MarginContainer/VBox"]
-text = "Event 3"
+text = "ui.event_draft.option_placeholder"
 
 [node name="TokenPickerScroll" type="ScrollContainer" parent="MarginContainer/VBox"]
 visible = false
@@ -39,3 +39,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
+
+
+
+
+

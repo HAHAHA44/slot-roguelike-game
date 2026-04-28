@@ -24,11 +24,13 @@ theme_override_constants/margin_bottom = 24
 theme_override_constants/separation = 12
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBox"]
-text = "Meta Progression"
+text = "ui.meta.title"
 
 [node name="SummaryLabel" type="Label" parent="MarginContainer/VBox"]
-text = "Unlocked heroes, ascension tracks, and anomaly systems appear here."
+text = "ui.meta.summary"
 autowrap_mode = 3
 
 [node name="UnlockList" type="ItemList" parent="MarginContainer/VBox"]
 size_flags_vertical = 3
+
+

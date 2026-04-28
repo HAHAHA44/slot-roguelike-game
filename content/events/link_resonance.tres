@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "link_resonance"
-name = "Link Resonance"
+name = "content.event.link_resonance.name"
 type = "instant"
 primary_tag = "Link"
 stability = "stable"
 weight = 1.1
-description = "Link lines gain a clean, reliable payoff."
+description = "content.event.link_resonance.description"
 tags_affected = PackedStringArray("Link")
 duration = 1
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 1
 }
+
+

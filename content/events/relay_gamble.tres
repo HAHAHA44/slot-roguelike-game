@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "relay_gamble"
-name = "Relay Gamble"
+name = "content.event.relay_gamble.name"
 type = "crisis"
 primary_tag = "Link"
 stability = "risky"
 weight = 0.95
-description = "Push for a bigger link payoff before the relay collapses."
+description = "content.event.relay_gamble.description"
 tags_affected = PackedStringArray("Link", "Wild")
 duration = 2
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 3
 }
+
+

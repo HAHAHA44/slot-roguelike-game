@@ -5,9 +5,9 @@ func test_smoke_playable_path_still_works() -> void:
 	if scene == null:
 		return
 
-	# Mainline: offer_choice → event_draft → roll_board → next turn → settling/settlement_result
-	scene.debug_force_reward_event_complete()  # select offer[0] → event_draft
-	scene.debug_force_reward_event_complete()  # select event[0] → roll_board
+	# Mainline: offer_choice 鈫?event_draft 鈫?roll_board 鈫?next turn 鈫?settling/settlement_result
+	scene.debug_force_reward_event_complete()  # select offer[0] 鈫?event_draft
+	scene.debug_force_reward_event_complete()  # select event[0] 鈫?roll_board
 
 	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
 	next_turn_button.emit_signal("pressed")
@@ -19,8 +19,8 @@ func test_mainline_round_progresses_without_manual_place_or_settle() -> void:
 	if scene == null:
 		return
 
-	scene.debug_force_reward_event_complete()  # offer → event_draft
-	scene.debug_force_reward_event_complete()  # event → roll_board
+	scene.debug_force_reward_event_complete()  # offer 鈫?event_draft
+	scene.debug_force_reward_event_complete()  # event 鈫?roll_board
 
 	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
 	next_turn_button.emit_signal("pressed")
@@ -43,7 +43,7 @@ func test_turn_flow_mode_defaults_to_auto() -> void:
 
 	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
 	assert_eq(scene.get_turn_flow_mode_name(), "auto")
-	assert_eq(mode_button.text, "Mode: Auto")
+	assert_eq(mode_button.text, "模式：自动")
 
 func test_next_turn_arrow_rolls_board_and_stops_on_settlement_result() -> void:
 	var scene = await _spawn_run_screen()
@@ -51,8 +51,8 @@ func test_next_turn_arrow_rolls_board_and_stops_on_settlement_result() -> void:
 		return
 
 	# Navigate mainline to roll_board
-	scene.debug_force_reward_event_complete()  # offer → event_draft
-	scene.debug_force_reward_event_complete()  # event → roll_board
+	scene.debug_force_reward_event_complete()  # offer 鈫?event_draft
+	scene.debug_force_reward_event_complete()  # event 鈫?roll_board
 	assert_eq(scene.get_active_state_name(), "roll_board")
 
 	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
@@ -110,12 +110,12 @@ func test_settlement_autoplay_reaches_settlement_result_in_order() -> void:
 
 	await _wait_for_state(scene, "settlement_result")
 
-	# 3 fire_common (余烬) placed at (0,0),(1,0),(2,0), row 0 → no fire above → 3 base_output + 1 cleanup
+	# 3 fire_common (浣欑儸) placed at (0,0),(1,0),(2,0), row 0 鈫?no fire above 鈫?3 base_output + 1 cleanup
 	assert_eq(scene.get_settlement_log_entries().size(), 4)
-	assert_eq(scene.get_settlement_log_entries()[0], "00 | (0,0) 余烬 | base_output | +1")
-	assert_eq(scene.get_settlement_log_entries()[1], "01 | (1,0) 余烬 | base_output | +1")
-	assert_eq(scene.get_settlement_log_entries()[2], "02 | (2,0) 余烬 | base_output | +1")
-	assert_eq(scene.get_settlement_log_entries()[3], "03 | cleanup | +0")
+	assert_eq(scene.get_settlement_log_entries()[0], "00 | (0,0) 余烬 | 基础产出 | +1")
+	assert_eq(scene.get_settlement_log_entries()[1], "01 | (1,0) 余烬 | 基础产出 | +1")
+	assert_eq(scene.get_settlement_log_entries()[2], "02 | (2,0) 余烬 | 基础产出 | +1")
+	assert_eq(scene.get_settlement_log_entries()[3], "03 | 清理 | +0")
 	assert_eq(scene.get_active_state_name(), "settlement_result")
 
 func test_offer_selection_transitions_through_event_draft() -> void:
@@ -147,7 +147,7 @@ func test_set_mode_routes_event_draft_to_player_turn() -> void:
 
 	mode_button.emit_signal("pressed")
 	assert_eq(scene.get_turn_flow_mode_name(), "set")
-	assert_eq(mode_button.text, "Mode: Set")
+	assert_eq(mode_button.text, "模式：手动")
 
 	offer_button.emit_signal("pressed")
 	assert_eq(scene.get_active_state_name(), "event_draft")
@@ -217,7 +217,9 @@ func test_add_reward_changes_the_next_rolled_board() -> void:
 
 	await _wait_for_state(scene, "settlement_result")
 
-	assert_gt(_count_cells_with_tooltip(scene, rewarded_token_id), 0)
+	var rewarded_definition: TokenDefinition = scene._content_registry.tokens.get(rewarded_token_id)
+	var rewarded_name := rewarded_definition.get_display_name() if rewarded_definition else rewarded_token_id
+	assert_gt(_count_cells_with_tooltip(scene, rewarded_name), 0)
 
 func test_empty_tokens_are_not_included_in_base_output() -> void:
 	var scene = await _spawn_run_screen()

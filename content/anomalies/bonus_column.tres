@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "bonus_column"
-name = "Bonus Column"
+name = "content.anomaly.bonus_column.name"
 anomaly_type = "board_shape"
 tags = PackedStringArray("Spatial", "Reward")
 rules = {
@@ -14,3 +14,5 @@ rules = {
 "bonus_columns": 1,
 "temporary": true
 }
+
+

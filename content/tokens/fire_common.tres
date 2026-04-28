@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "fire_common"
-name = "余烬"
-description = "微弱的火花，若上方有其他火元素，将获得叠加加分。"
+name = "content.token.fire_common.name"
+description = "content.token.fire_common.description"
 rarity = "Common"
 type = "Fire"
 tags = PackedStringArray("fire")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 1.0
 }
 remove_rules = {}
+
+

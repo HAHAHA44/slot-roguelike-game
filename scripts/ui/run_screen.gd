@@ -1,14 +1,14 @@
-# 主运行界面 / 流程编排器：
-# - 这是当前项目最核心的脚本，负责把场景、内容、service、状态机串成一条能玩的主循环。
-# - 它不直接写复杂规则，而是把“玩家输入 -> 状态切换 -> service 调用 -> UI 刷新”这条链路组织起来。
-# - 主要联动对象：
-#   - `ContentRegistry`：加载 token / event / hero / difficulty 等内容资源。
-#   - `RunSession`：保存本局持久状态，例如牌池、分数、回合和操作历史。
-#   - `BoardService` / `BoardRollService`：维护棋盘并在每轮开始时生成新板面。
-#   - `RewardOfferService` / `EventDraftService` / `ContractService` / `RunModifierService`：分别负责奖励、事件、合约和修正。
-#   - `SettlementResolver`：把一次回合的棋盘状态转成可播放的结算步骤。
-# - 状态机用 Godot State Charts 管理，默认主路径是 `offer_choice -> event_draft -> roll_board -> settling -> settlement_result -> offer_choice`。
-# - `player_turn` 现在作为正式的 set mode 分支保留；顶部按钮切到 set mode 后，事件确认会改为进入手动摆放。
+# 涓昏繍琛岀晫闈?/ 娴佺▼缂栨帓鍣細
+# - 杩欐槸褰撳墠椤圭洰鏈€鏍稿績鐨勮剼鏈紝璐熻矗鎶婂満鏅€佸唴瀹广€乻ervice銆佺姸鎬佹満涓叉垚涓€鏉¤兘鐜╃殑涓诲惊鐜€?
+# - 瀹冧笉鐩存帴鍐欏鏉傝鍒欙紝鑰屾槸鎶娾€滅帺瀹惰緭鍏?-> 鐘舵€佸垏鎹?-> service 璋冪敤 -> UI 鍒锋柊鈥濊繖鏉￠摼璺粍缁囪捣鏉ャ€?
+# - 涓昏鑱斿姩瀵硅薄锛?
+#   - `ContentRegistry`锛氬姞杞?token / event / hero / difficulty 绛夊唴瀹硅祫婧愩€?
+#   - `RunSession`锛氫繚瀛樻湰灞€鎸佷箙鐘舵€侊紝渚嬪鐗屾睜銆佸垎鏁般€佸洖鍚堝拰鎿嶄綔鍘嗗彶銆?
+#   - `BoardService` / `BoardRollService`锛氱淮鎶ゆ鐩樺苟鍦ㄦ瘡杞紑濮嬫椂鐢熸垚鏂版澘闈€?
+#   - `RewardOfferService` / `EventDraftService` / `ContractService` / `RunModifierService`锛氬垎鍒礋璐ｅ鍔便€佷簨浠躲€佸悎绾﹀拰淇銆?
+#   - `SettlementResolver`锛氭妸涓€娆″洖鍚堢殑妫嬬洏鐘舵€佽浆鎴愬彲鎾斁鐨勭粨绠楁楠ゃ€?
+# - 鐘舵€佹満鐢?Godot State Charts 绠＄悊锛岄粯璁や富璺緞鏄?`offer_choice -> event_draft -> roll_board -> settling -> settlement_result -> offer_choice`銆?
+# - `player_turn` 鐜板湪浣滀负姝ｅ紡鐨?set mode 鍒嗘敮淇濈暀锛涢《閮ㄦ寜閽垏鍒?set mode 鍚庯紝浜嬩欢纭浼氭敼涓鸿繘鍏ユ墜鍔ㄦ憜鏀俱€?
 extends Control
 
 const BOARD_WIDTH := 5
@@ -16,13 +16,13 @@ const BOARD_HEIGHT := 5
 const DEFAULT_TOKEN_ID := "fire_common"
 const EMPTY_TOKEN_ID := "empty_token"
 
-const SLOT_SPIN_DURATION_BASE := 0.5   # 第 0 列停止前的旋转时长（秒）
-const SLOT_SPIN_STAGGER := 0.18        # 每列额外延迟（秒），逐列停止
-const SLOT_SPIN_INTERVAL := 0.06       # 每帧符号切换间隔（秒）
+const SLOT_SPIN_DURATION_BASE := 0.5   # 绗?0 鍒楀仠姝㈠墠鐨勬棆杞椂闀匡紙绉掞級
+const SLOT_SPIN_STAGGER := 0.18        # 姣忓垪棰濆寤惰繜锛堢锛夛紝閫愬垪鍋滄
+const SLOT_SPIN_INTERVAL := 0.06       # 姣忓抚绗﹀彿鍒囨崲闂撮殧锛堢锛?
 
-const SETTLEMENT_STEP_INTERVAL := 0.30  # 每个结算步骤的总时长（秒）
-const SETTLEMENT_HIGHLIGHT_HOLD := 0.22 # 高亮持续时长（秒）
-const SETTLEMENT_POPUP_RISE := 55.0     # 得分浮字上升距离（像素）
+const SETTLEMENT_STEP_INTERVAL := 0.30  # 姣忎釜缁撶畻姝ラ鐨勬€绘椂闀匡紙绉掞級
+const SETTLEMENT_HIGHLIGHT_HOLD := 0.22 # 楂樹寒鎸佺画鏃堕暱锛堢锛?
+const SETTLEMENT_POPUP_RISE := 55.0     # 寰楀垎娴瓧涓婂崌璺濈锛堝儚绱狅級
 
 const RARITY_COLORS := {
 	"Common":    Color(0.25, 0.25, 0.28),
@@ -132,6 +132,15 @@ func _ready() -> void:
 	_sync_run_labels()
 	_sync_all_panels()
 
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_TRANSLATION_CHANGED or not is_node_ready():
+		return
+	_sync_board_ui()
+	_sync_run_labels()
+	_sync_all_panels()
+	if _bag_panel.visible:
+		_sync_bag_panel()
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_QUOTELEFT:
@@ -213,9 +222,9 @@ func debug_force_reward_event_complete() -> void:
 func debug_force_active_contract() -> void:
 	# Navigate to roll_board through the normal offer/event flow.
 	if _active_state_name == "offer_choice":
-		debug_force_reward_event_complete()  # → event_draft
+		debug_force_reward_event_complete()  # 鈫?event_draft
 	if _active_state_name == "event_draft":
-		debug_force_reward_event_complete()  # → roll_board
+		debug_force_reward_event_complete()  # 鈫?roll_board
 	# Events no longer set contracts; inject a test contract directly.
 	_active_contract = _contract_service.build_contract({
 		"id": "debug_contract",
@@ -267,7 +276,7 @@ func _build_state_chart() -> void:
 	]:
 		root_state.add_child(state)
 
-	# Default mainline: Boot → OfferChoice → EventDraft → RollBoard → Settling → SettlementResult → OfferChoice
+	# Default mainline: Boot 鈫?OfferChoice 鈫?EventDraft 鈫?RollBoard 鈫?Settling 鈫?SettlementResult 鈫?OfferChoice
 	_add_transition(_boot_state, "BootToOfferChoice", NodePath("../../OfferChoice"))
 	_add_transition(_offer_choice_state, "OfferChoiceToEventDraft", NodePath("../../EventDraft"), "offer_selected")
 	_add_transition(_event_draft_state, "EventDraftToRollBoard", NodePath("../../RollBoard"), "event_selected")
@@ -275,7 +284,7 @@ func _build_state_chart() -> void:
 	_add_transition(_settling_state, "SettlingToSettlementResult", NodePath("../../SettlementResult"), "settlement_complete")
 	_add_transition(_settlement_result_state, "SettlementResultToOfferChoice", NodePath("../../OfferChoice"), "continue_to_reward")
 
-	# Set-mode / compatibility path: manual placement → settle → settlement_result path
+	# Set-mode / compatibility path: manual placement 鈫?settle 鈫?settlement_result path
 	_add_transition(_offer_choice_state, "OfferChoiceToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
 	_add_transition(_roll_board_state, "RollBoardToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
 	_add_transition(_event_draft_state, "EventDraftToPlayerTurn", NodePath("../../PlayerTurn"), "debug_player_turn")
@@ -545,7 +554,7 @@ func _roll_board_from_pool() -> void:
 		var token := _make_token_instance_for_id(token_id)
 		_board_service.place_token(pos, token)
 
-# 老虎机动画：每列随机滚动，从左到右依次停下
+# 鑰佽檸鏈哄姩鐢伙細姣忓垪闅忔満婊氬姩锛屼粠宸﹀埌鍙充緷娆″仠涓?
 func _play_slot_animation() -> void:
 	var spin_pool: Array = []
 	for token_id in run_session.token_pool:
@@ -556,11 +565,11 @@ func _play_slot_animation() -> void:
 	if spin_pool.is_empty():
 		return
 
-	# 启动所有列的旋转协程（并发，不 await）
+	# 鍚姩鎵€鏈夊垪鐨勬棆杞崗绋嬶紙骞跺彂锛屼笉 await锛?
 	for col in BOARD_WIDTH:
 		_spin_column_anim(col, spin_pool, SLOT_SPIN_DURATION_BASE + col * SLOT_SPIN_STAGGER)
 
-	# 等待最后一列完成
+	# 绛夊緟鏈€鍚庝竴鍒楀畬鎴?
 	var total := SLOT_SPIN_DURATION_BASE + (BOARD_WIDTH - 1) * SLOT_SPIN_STAGGER + SLOT_SPIN_INTERVAL * 2.0
 	await get_tree().create_timer(total).timeout
 
@@ -574,7 +583,7 @@ func _spin_column_anim(col: int, spin_pool: Array, duration: float) -> void:
 		await get_tree().create_timer(SLOT_SPIN_INTERVAL).timeout
 		elapsed += SLOT_SPIN_INTERVAL
 
-	# 列停止时显示真实结果
+	# 鍒楀仠姝㈡椂鏄剧ず鐪熷疄缁撴灉
 	for row in BOARD_HEIGHT:
 		var pos := Vector2i(col, row)
 		var button: Button = _cell_buttons_by_pos[pos]
@@ -589,7 +598,7 @@ func _spin_column_anim(col: int, spin_pool: Array, duration: float) -> void:
 
 func _apply_token_id_to_button(button: Button, token_id: String) -> void:
 	if token_id.is_empty() or token_id == EMPTY_TOKEN_ID:
-		button.text = "·"
+		button.text = L10n.text("ui.board.empty_slot_short", "空")
 		button.icon = null
 		button.remove_theme_stylebox_override("normal")
 		button.remove_theme_stylebox_override("hover")
@@ -620,12 +629,12 @@ func _start_settlement_autoplay() -> void:
 	_run_settlement_autoplay()
 
 func _run_settlement_autoplay() -> void:
-	# 取出并清空 pending_steps，按得分从低到高排序
+	# 鍙栧嚭骞舵竻绌?pending_steps锛屾寜寰楀垎浠庝綆鍒伴珮鎺掑簭
 	var steps_to_play := _pending_steps.duplicate()
 	_pending_steps.clear()
 	steps_to_play.sort_custom(func(a, b): return a.score_delta < b.score_delta)
 
-	# 将相同 score_delta 的 steps 合并成一组，同组格子同时高亮
+	# 灏嗙浉鍚?score_delta 鐨?steps 鍚堝苟鎴愪竴缁勶紝鍚岀粍鏍煎瓙鍚屾椂楂樹寒
 	var groups: Array = []
 	for step in steps_to_play:
 		if groups.is_empty() or groups[-1][0].score_delta != step.score_delta:
@@ -638,7 +647,7 @@ func _run_settlement_autoplay() -> void:
 			_settlement_autoplay_running = false
 			return
 
-		# 收集本组所有格子，并写日志 & 累加分数
+		# 鏀堕泦鏈粍鎵€鏈夋牸瀛愶紝骞跺啓鏃ュ織 & 绱姞鍒嗘暟
 		var group_positions: Array = []
 		var group_delta: int = group[0].score_delta
 		for step in group:
@@ -657,7 +666,7 @@ func _run_settlement_autoplay() -> void:
 			await get_tree().process_frame
 			continue
 
-		# 同组格子同时高亮 & 弹出得分浮字
+		# 鍚岀粍鏍煎瓙鍚屾椂楂樹寒 & 寮瑰嚭寰楀垎娴瓧
 		for pos in group_positions:
 			var btn: Button = _cell_buttons_by_pos[pos]
 			_set_cell_highlighted(btn, true)
@@ -675,7 +684,7 @@ func _run_settlement_autoplay() -> void:
 	if _active_state_name == "settling":
 		_complete_settlement()
 
-# 给格子叠加金色高亮边框
+# 缁欐牸瀛愬彔鍔犻噾鑹查珮浜竟妗?
 func _set_cell_highlighted(button: Button, on: bool) -> void:
 	if on:
 		var base_color := Color(0.25, 0.25, 0.28)
@@ -692,7 +701,7 @@ func _set_cell_highlighted(button: Button, on: bool) -> void:
 		button.add_theme_stylebox_override("normal", hl)
 		button.add_theme_stylebox_override("hover", hl)
 
-# 恢复格子到棋盘当前 token 对应的稀有度样式
+# 鎭㈠鏍煎瓙鍒版鐩樺綋鍓?token 瀵瑰簲鐨勭█鏈夊害鏍峰紡
 func _restore_cell_style(pos: Vector2i, button: Button) -> void:
 	var token = _board_service.get_token(pos)
 	if token == null or token.definition_id.is_empty() or token.definition_id == EMPTY_TOKEN_ID:
@@ -705,7 +714,7 @@ func _restore_cell_style(pos: Vector2i, button: Button) -> void:
 		button.add_theme_stylebox_override("normal", style)
 		button.add_theme_stylebox_override("hover", style)
 
-# 在格子上方生成得分浮字并向上飞出淡化（fire-and-forget，不阻塞调用方）
+# 鍦ㄦ牸瀛愪笂鏂圭敓鎴愬緱鍒嗘诞瀛楀苟鍚戜笂椋炲嚭娣″寲锛坒ire-and-forget锛屼笉闃诲璋冪敤鏂癸級
 func _spawn_score_popup(button: Button, score_delta: int) -> void:
 	var popup := Label.new()
 	popup.text = "+%d" % score_delta if score_delta > 0 else "%d" % score_delta
@@ -714,7 +723,7 @@ func _spawn_score_popup(button: Button, score_delta: int) -> void:
 	popup.z_index = 10
 	add_child(popup)
 
-	# 等一帧让节点完成布局，获取真实尺寸
+	# 绛変竴甯ц鑺傜偣瀹屾垚甯冨眬锛岃幏鍙栫湡瀹炲昂瀵?
 	await get_tree().process_frame
 
 	var btn_rect := button.get_global_rect()
@@ -768,7 +777,7 @@ func _advance_active_contract() -> void:
 # Item helpers
 # ---------------------------------------------------------------------------
 
-# 返回当前道具栏中所有被动道具的 ItemDefinition 列表，供结算器使用。
+# 杩斿洖褰撳墠閬撳叿鏍忎腑鎵€鏈夎鍔ㄩ亾鍏风殑 ItemDefinition 鍒楄〃锛屼緵缁撶畻鍣ㄤ娇鐢ㄣ€?
 func _get_active_item_defs() -> Array:
 	var defs: Array = []
 	for item_id in _items:
@@ -803,9 +812,20 @@ func _append_log_entry(step) -> void:
 	var delta_text := "%+d" % step.score_delta
 	var line: String
 	if step.token_pos.x >= 0:
-		line = "%02d | (%d,%d) %s | %s | %s" % [step.sequence_index, step.token_pos.x, step.token_pos.y, step.token_name, step.phase, delta_text]
+		line = L10n.format_text("ui.settlement.log_with_pos", {
+			"index": "%02d" % step.sequence_index,
+			"x": step.token_pos.x,
+			"y": step.token_pos.y,
+			"token": step.token_name,
+			"phase": L10n.phase_name(step.phase),
+			"delta": delta_text,
+		})
 	else:
-		line = "%02d | %s | %s" % [step.sequence_index, step.phase, delta_text]
+		line = L10n.format_text("ui.settlement.log_without_pos", {
+			"index": "%02d" % step.sequence_index,
+			"phase": L10n.phase_name(step.phase),
+			"delta": delta_text,
+		})
 	_settlement_log_list.add_item(line)
 	print(line)
 
@@ -816,13 +836,13 @@ func _sync_board_ui() -> void:
 		if token == null:
 			button.text = ""
 			button.icon = null
-			button.tooltip_text = "Empty"
+			button.tooltip_text = L10n.text("ui.board.empty")
 			button.remove_theme_stylebox_override("normal")
 			button.remove_theme_stylebox_override("hover")
 		elif token.definition_id.is_empty() or token.definition_id == EMPTY_TOKEN_ID:
-			button.text = "·"
+			button.text = L10n.text("ui.board.empty_slot_short", "空")
 			button.icon = null
-			button.tooltip_text = "Empty token"
+			button.tooltip_text = L10n.text("ui.board.empty_token")
 			button.remove_theme_stylebox_override("normal")
 			button.remove_theme_stylebox_override("hover")
 		else:
@@ -831,7 +851,7 @@ func _sync_board_ui() -> void:
 			button.text = "" if icon_tex else token.definition_id.left(2).to_upper()
 			button.icon = icon_tex
 			button.expand_icon = true
-			button.tooltip_text = definition.name if definition else token.definition_id
+			button.tooltip_text = definition.get_display_name() if definition else token.definition_id
 			var rarity: String = definition.rarity if definition else "Common"
 			var style := _get_rarity_style(rarity)
 			button.add_theme_stylebox_override("normal", style)
@@ -841,15 +861,16 @@ func _build_token_tooltip(definition: TokenDefinition, fallback_id: String) -> S
 	if definition == null:
 		return fallback_id
 	var lines: PackedStringArray = []
-	lines.append(definition.name)
-	lines.append("%s  |  %s" % [definition.rarity, definition.type])
-	if definition.tags.size() > 0:
-		lines.append("Tags: " + ", ".join(definition.tags))
+	lines.append(definition.get_display_name())
+	lines.append("%s  |  %s" % [definition.get_display_rarity(), definition.get_display_type()])
+	var translated_tags := definition.get_display_tags()
+	if translated_tags.size() > 0:
+		lines.append(L10n.format_text("ui.tooltip.tags", {"tags": ", ".join(translated_tags)}))
 	if definition.base_value != 0:
-		lines.append("Base value: %d" % definition.base_value)
-	if not definition.description.is_empty():
+		lines.append(L10n.format_text("ui.tooltip.base_value", {"value": definition.base_value}))
+	if not definition.get_display_description().is_empty():
 		lines.append("")
-		lines.append(definition.description)
+		lines.append(definition.get_display_description())
 	return "\n".join(lines)
 
 func _get_token_icon(definition_id: String) -> Texture2D:
@@ -881,14 +902,13 @@ func _sync_bag_panel() -> void:
 	for child in _bag_list.get_children():
 		child.queue_free()
 
-	# 统计每种 token 的数量
 	var counts: Dictionary = {}
 	for token_id in run_session.token_pool:
 		counts[token_id] = counts.get(token_id, 0) + 1
 
 	if counts.is_empty():
 		var empty_label := Label.new()
-		empty_label.text = "Backpack is empty"
+		empty_label.text = L10n.text("ui.backpack.empty")
 		_bag_list.add_child(empty_label)
 		return
 
@@ -905,10 +925,9 @@ func _sync_bag_panel() -> void:
 	for token_id in sorted_ids:
 		var definition: TokenDefinition = _content_registry.tokens.get(token_id)
 		var rarity: String = definition.rarity if definition else "Common"
-		var display_name: String = definition.name if definition else token_id
+		var display_name: String = definition.get_display_name() if definition else token_id
 		var count: int = counts[token_id]
 
-		# 卡片容器（带稀有度背景，支持 tooltip）
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(90, 110)
 		card.add_theme_stylebox_override("panel", _get_rarity_style(rarity))
@@ -920,7 +939,6 @@ func _sync_bag_panel() -> void:
 		card_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 		card.add_child(card_vbox)
 
-		# 图标
 		var icon_tex := _get_token_icon(token_id)
 		if icon_tex:
 			var icon_rect := TextureRect.new()
@@ -936,7 +954,6 @@ func _sync_bag_panel() -> void:
 			placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			card_vbox.add_child(placeholder)
 
-		# 名称
 		var name_label := Label.new()
 		name_label.text = display_name
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -944,22 +961,25 @@ func _sync_bag_panel() -> void:
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card_vbox.add_child(name_label)
 
-		# 数量（>1 时才显示）
 		if count > 1:
 			var count_label := Label.new()
-			count_label.text = "x%d" % count
+			count_label.text = L10n.format_text("ui.backpack.count", {"count": count}, "x{count}")
 			count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			card_vbox.add_child(count_label)
 
 		_bag_list.add_child(card)
 
 func _sync_run_labels() -> void:
-	_run_state_label.text = "State %s" % _active_state_name
-	_turn_label.text = "Turn %d" % run_session.current_turn
-	_score_label.text = "Score %d / %d" % [run_session.current_score, run_session.phase_target]
-	_contract_label.text = "Contract %s" % (get_active_contract_summary() if not _active_contract.is_empty() else "None")
-	_turn_flow_mode_button.text = "Mode: %s" % get_turn_flow_mode_name().capitalize()
-	_mode_label.text = "Action %s | Next %s" % [_get_mode_name().capitalize(), _format_token_name(get_active_placement_token_id())]
+	_run_state_label.text = L10n.format_text("ui.run.state", {"state": L10n.state_name(_active_state_name)})
+	_turn_label.text = L10n.format_text("ui.run.turn", {"turn": run_session.current_turn})
+	_score_label.text = L10n.format_text("ui.run.score", {"score": run_session.current_score, "target": run_session.phase_target})
+	var contract_summary := get_active_contract_summary() if not _active_contract.is_empty() else L10n.text("ui.contract.none")
+	_contract_label.text = L10n.format_text("ui.run.contract", {"summary": contract_summary})
+	_turn_flow_mode_button.text = L10n.format_text("ui.run.mode_button", {"mode": L10n.mode_name(get_turn_flow_mode_name())})
+	_mode_label.text = L10n.format_text("ui.run.action", {
+		"action": L10n.mode_name(_get_mode_name()),
+		"token": _format_token_name(get_active_placement_token_id()),
+	})
 
 func _sync_all_panels() -> void:
 	_sync_debug_controls()
@@ -990,7 +1010,7 @@ func _sync_offer_buttons() -> void:
 			var offer: Dictionary = _active_offers[index]
 			var token_id := String(offer.get("token_id", ""))
 			var definition: TokenDefinition = _content_registry.tokens.get(token_id) if not token_id.is_empty() else null
-			button.text = definition.name if definition else _format_token_name(token_id)
+			button.text = definition.get_display_name() if definition else _format_token_name(token_id)
 			if definition:
 				var style := _get_rarity_style(definition.rarity)
 				button.add_theme_stylebox_override("normal", style)
@@ -1009,8 +1029,8 @@ func _sync_event_draft_ui() -> void:
 
 	if show_panel and not _active_event_options.is_empty():
 		var event_data: Dictionary = _active_event_options[0]
-		var title := String(event_data.get("title", ""))
-		var desc := String(event_data.get("description", ""))
+		var title := _resolve_event_text(event_data, "title")
+		var desc := _resolve_event_text(event_data, "description")
 		_event_summary_label.text = "%s\n%s" % [title, desc] if not desc.is_empty() else title
 
 		var needs_pick: bool = bool(event_data.get("needs_token_pick", false))
@@ -1022,7 +1042,7 @@ func _sync_event_draft_ui() -> void:
 		else:
 			_event_button_1.visible = true
 			_event_button_1.disabled = false
-			_event_button_1.text = "确认"
+			_event_button_1.text = L10n.text("ui.event_draft.confirm")
 			_clear_token_picker()
 	else:
 		_event_summary_label.text = ""
@@ -1040,7 +1060,7 @@ func _populate_token_picker(token_ids: Array) -> void:
 	for token_id in token_ids:
 		var btn := Button.new()
 		var definition: TokenDefinition = _content_registry.tokens.get(token_id)
-		btn.text = definition.name if definition else _format_token_name(token_id)
+		btn.text = definition.get_display_name() if definition else _format_token_name(token_id)
 		if definition:
 			var style := _get_rarity_style(definition.rarity)
 			btn.add_theme_stylebox_override("normal", style)
@@ -1059,11 +1079,11 @@ func _sync_items_row() -> void:
 	for item_id in _items:
 		var item_def: ItemDefinition = _content_registry.items.get(item_id) if _content_registry else null
 		var btn := Button.new()
-		btn.text = item_def.name if item_def else item_id.replace("_", " ").capitalize()
+		btn.text = item_def.get_display_name() if item_def else item_id.replace("_", " ").capitalize()
 		btn.disabled = true
 		btn.custom_minimum_size = Vector2(80, 36)
-		if item_def and not item_def.description.is_empty():
-			btn.tooltip_text = item_def.description
+		if item_def and not item_def.get_display_description().is_empty():
+			btn.tooltip_text = item_def.get_display_description()
 		_items_row.add_child(btn)
 	_items_row.visible = not _items.is_empty()
 
@@ -1080,22 +1100,41 @@ func _event_buttons() -> Array[Button]:
 func _format_offer(offer: Dictionary) -> String:
 	var token_id := String(offer.get("token_id", ""))
 	if token_id.is_empty():
-		return "No Token"
+		return L10n.text("ui.offer.no_token")
 	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
 	if definition != null:
-		return definition.name
+		return definition.get_display_name()
 	return _format_token_name(token_id)
 
 func _format_event(event_data: Dictionary) -> String:
-	return "%s [%s]" % [event_data.get("name", event_data.get("id", "Event")), event_data.get("primary_tag", "Tag")]
+	return "%s [%s]" % [
+		_resolve_event_text(event_data, "title"),
+		L10n.tag_name(String(event_data.get("primary_tag", "tag"))),
+	]
 
 func _format_token_name(token_id: String) -> String:
 	if token_id.is_empty():
-		return "No-op"
+		return L10n.text("ui.token.none")
 	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
 	if definition != null:
-		return definition.name
+		return definition.get_display_name()
 	return token_id.replace("_", " ").capitalize()
+
+func _resolve_event_text(event_data: Dictionary, prefix: String) -> String:
+	var key := String(event_data.get("%s_key" % prefix, ""))
+	var params: Dictionary = event_data.get("%s_params" % prefix, {})
+	if key.is_empty():
+		return String(event_data.get(prefix, ""))
+	if params.is_empty():
+		return L10n.text(key)
+	var localized_params: Dictionary = {}
+	for param_key in params.keys():
+		var value = params[param_key]
+		if value is String:
+			localized_params[param_key] = L10n.text(String(value), String(value))
+		else:
+			localized_params[param_key] = value
+	return L10n.format_text(key, localized_params)
 
 func _get_mode_name() -> String:
 	if _remove_mode_button.button_pressed:

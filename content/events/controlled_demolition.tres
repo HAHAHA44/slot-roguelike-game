@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "controlled_demolition"
-name = "Controlled Demolition"
+name = "content.event.controlled_demolition.name"
 type = "lasting"
 primary_tag = "Break"
 stability = "stable"
 weight = 0.95
-description = "Break lines get paid if collateral stays low."
+description = "content.event.controlled_demolition.description"
 tags_affected = PackedStringArray("Break", "Guard")
 duration = 3
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 1
 }
+
+

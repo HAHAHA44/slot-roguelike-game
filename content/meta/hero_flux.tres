@@ -5,9 +5,11 @@
 [resource]
 script = ExtResource("1")
 id = "hero_flux"
-name = "Unlock Flux Nomad"
+name = "content.meta.hero_flux.name"
 unlock_type = "hero"
 cost = 1
 rewards = {
 "hero_id": "flux_nomad"
 }
+
+

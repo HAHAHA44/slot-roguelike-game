@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "water_legendary"
-name = "深渊"
-description = "无底的深渊，以下方所有水势化为终极力量。"
+name = "content.token.water_legendary.name"
+description = "content.token.water_legendary.description"
 rarity = "Legendary"
 type = "Water"
 tags = PackedStringArray("water")
@@ -19,3 +19,5 @@ spawn_rules = {
 "weight": 0.1
 }
 remove_rules = {}
+
+

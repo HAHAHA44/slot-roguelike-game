@@ -14,14 +14,18 @@ theme_override_constants/margin_bottom = 12
 theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBox"]
-text = "Endless Summary"
+text = "ui.endless.title"
 
 [node name="LoopLabel" type="Label" parent="MarginContainer/VBox"]
-text = "Loop 1"
+text = "ui.endless.loop_placeholder"
 
 [node name="TargetLabel" type="Label" parent="MarginContainer/VBox"]
-text = "Next Target 25"
+text = "ui.endless.target_placeholder"
 
 [node name="AnomalyLabel" type="Label" parent="MarginContainer/VBox"]
-text = "Active Anomaly None"
+text = "ui.endless.anomaly_placeholder"
 autowrap_mode = 3
+
+
+
+

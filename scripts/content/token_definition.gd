@@ -19,3 +19,21 @@ const ALLOWED_RARITIES := ["Common", "Uncommon", "Rare", "Legendary"]
 @export var state_fields: Dictionary = {}
 @export var spawn_rules: Dictionary = {}
 @export var remove_rules: Dictionary = {}
+
+func get_display_name() -> String:
+	return L10n.text(name, id)
+
+func get_display_description() -> String:
+	return L10n.text(description)
+
+func get_display_rarity() -> String:
+	return L10n.rarity_name(rarity)
+
+func get_display_type() -> String:
+	return L10n.token_type_name(type)
+
+func get_display_tags() -> PackedStringArray:
+	var translated_tags := PackedStringArray()
+	for tag in tags:
+		translated_tags.append(L10n.tag_name(tag))
+	return translated_tags

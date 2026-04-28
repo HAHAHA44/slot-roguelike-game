@@ -5,10 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "random_delete_two"
-name = "精简协议"
-description = "拾起时随机从背包中删除两个 Token。"
+name = "content.item.random_delete_two.name"
+description = "content.item.random_delete_two.description"
 effect_type = "instant"
 effect_data = {
 "action": "delete_random",
 "count": 2
 }
+
+

@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "network_blossom"
-name = "Network Blossom"
+name = "content.event.network_blossom.name"
 type = "lasting"
 primary_tag = "Link"
 stability = "stable"
 weight = 0.9
-description = "Link and Grow both score if you keep the network tidy."
+description = "content.event.network_blossom.description"
 tags_affected = PackedStringArray("Link", "Grow")
 duration = 3
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 2
 }
+
+

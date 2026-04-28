@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1")
 id = "wild_harmonics"
-name = "Wild Harmonics"
+name = "content.event.wild_harmonics.name"
 type = "lasting"
 primary_tag = "Wild"
 stability = "risky"
 weight = 0.8
-description = "Wild pieces spike harder, but the contract margin tightens."
+description = "content.event.wild_harmonics.description"
 tags_affected = PackedStringArray("Wild", "Link")
 duration = 3
 contract_template = {
@@ -24,3 +24,5 @@ reward_bundle = {
 penalty_bundle = {
 "score_penalty": 3
 }
+
+

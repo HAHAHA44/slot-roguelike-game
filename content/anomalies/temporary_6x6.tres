@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "temporary_6x6"
-name = "Temporary 6x6"
+name = "content.anomaly.temporary_6x6.name"
 anomaly_type = "board_shape"
 tags = PackedStringArray("Spatial", "Expansion")
 rules = {
@@ -13,3 +13,5 @@ rules = {
 "board_width": 6,
 "temporary": true
 }
+
+
