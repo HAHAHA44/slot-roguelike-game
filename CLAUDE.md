@@ -48,109 +48,121 @@ Reference games: 幸运房东, Balatro, Loop Hero.
 
 ```
 autoload/
-  content_registry.gd   # Scans content/ and indexes resources by id
-  run_session.gd         # Persistent per-run state (token_pool, score, turn, modifiers)
-  save_service.gd        # Serialise/deserialise RunSession to disk
+  content_registry.gd          # ContentRegistry: load_all() scans content/, indexes by id
+  run_session.gd               # RunSession: persistent per-run state (token_pool, score, turn, modifiers)
+  save_service.gd              # SaveService: RunSession ⇄ Dictionary, disk I/O
+  localization_service.gd      # Localization (the only true Godot autoload — see project.godot)
 
 scripts/
-  content/               # Resource class definitions (data schemas)
+  app/
+    app_root.gd                # Empty Control root for the application scene
+  content/                     # Resource class definitions (data schemas)
     token_definition.gd
     event_definition.gd
     hero_definition.gd
     difficulty_modifier.gd
     anomaly_definition.gd
     meta_unlock_definition.gd
+    item_definition.gd
     content_definition_validator.gd
 
   core/
-    services/            # Pure business logic, no scene deps
-      board_roll_service.gd      # Builds round pool from token_pool + empties, shuffles
-      board_service.gd           # Manages board state (BoardPos → TokenInstance)
-      trigger_scanner.gd         # Evaluates token trigger rules against the board
-      settlement_resolver.gd     # Runs triggers, accumulates score, emits SettlementReport
-      reward_offer_service.gd    # Generates reward offers from ContentRegistry + RunSession
-      event_draft_service.gd     # Drafts event choices weighted by tags/hero
-      contract_service.gd        # Tracks multi-round contract state & resolution
-      endless_service.gd         # Manages score scaling in Endless mode
-      run_modifier_service.gd    # Applies hero & difficulty modifiers to run state
+    services/                  # Pure business logic, no scene deps
+      board_roll_service.gd          # Builds round pool from token_pool + empties, shuffles
+      board_service.gd               # Manages board state (BoardPos → TokenInstance)
+      trigger_scanner.gd             # Tag/row/column scan helpers (skeleton — not yet wired)
+      settlement_resolver.gd         # Runs phases, accumulates score, emits SettlementReport
+      reward_offer_service.gd        # Generates 3 add-only token offers per round
+      event_draft_service.gd         # Random copy/delete/item events (no weighted draft)
+      contract_service.gd            # Tracks multi-round contract state & resolution
+      endless_service.gd             # Score scaling for Endless mode (skeleton — not yet wired)
+      run_modifier_service.gd        # Applies hero & difficulty modifiers (skeleton)
 
-    value_objects/        # Immutable data carriers
-      board_pos.gd        # (col, row) wrapper
-      token_instance.gd   # Runtime token state on the board
-      run_snapshot.gd     # Snapshot of board + session for settlement
-      settlement_step.gd  # One trigger firing within a settlement
-      settlement_report.gd# Full result of one settlement pass
+    value_objects/             # Immutable data carriers
+      board_pos.gd
+      token_instance.gd
+      run_snapshot.gd
+      settlement_step.gd
+      settlement_report.gd
 
   meta/
-    meta_progression_service.gd  # Unlocks, meta currency, cross-run state
+    meta_progression_service.gd  # Unlocks, meta currency, cross-run state (skeleton)
+
+  localization/
+    l10n.gd                    # L10n: static text/format helpers backed by TranslationServer
 
   ui/
-    run_screen.gd         # Main orchestrator: reads state charts, calls services, updates board
+    run_screen.gd              # Main orchestrator: state charts + services + board
+    main_menu.gd               # Start / settings / quit
 
-content/                  # .tres resource files (game data)
-  tokens/                 # 7 tokens: anchor_glyph, empty_token, hollow_shell,
-                          #           pulse_seed, relay_prism, twin_monolith, wild_signal
-  events/                 # 12 events
-  heroes/                 # 3 heroes
-  difficulty/             # 3 difficulty modifiers
-  anomalies/              # 3 anomalies
-  meta/                   # 3 meta unlocks
+content/                       # .tres resource files (game data)
+  tokens/                      # 16 tokens (4 elements × 4 rarities) + empty_token
+  events/                      # 12 events
+  items/                       # 6 items (passive boosts + instant effects)
+  heroes/                      # 3 heroes
+  difficulty/                  # 3 difficulty modifiers
+  anomalies/                   # 3 anomalies
+  meta/                        # 3 meta unlocks
 
 scenes/
+  app/app_root.tscn            # Top-level shell
+  menu/main_menu.tscn          # Title screen (entry point)
   run/
-    run_screen.tscn       # Main playable scene (Godot State Charts root)
-    board_grid.tscn       # 5×5 grid UI
-    token_cell.tscn       # Individual cell
-    turn_controls.tscn    # Next-turn arrow + debug controls
+    run_screen.tscn            # Main playable scene (Godot State Charts root)
+    board_grid.tscn            # 5×5 grid UI
+    token_cell.tscn
+    turn_controls.tscn         # Next-turn arrow + debug controls
     event_draft_panel.tscn
     settlement_log_panel.tscn
+  endless/endless_summary_panel.tscn  # Not yet referenced by any flow
+  meta/meta_screen.tscn               # Not yet referenced by any flow
+
+locale/
+  messages.csv                 # Translation table consumed by TranslationServer
 
 tests/
-  unit/core/              # GUT unit tests for each service
+  unit/core/                   # GUT unit tests per service
   integration/
-    test_run_screen_flow.gd   # Smoke test: full bag-roll round trip
+    test_run_screen_flow.gd    # Smoke test: full bag-roll round trip
     test_meta_save_load.gd
 
 docs/
-  2026-03-24-slot-roguelike-prd.md      # Full PRD (Chinese)
+  2026-03-24-slot-roguelike-prd.md   # Full PRD (Chinese)
   engineering/
-    content-schema.md    # Resource field specs and registry rules
+    content-schema.md          # Resource field specs and registry rules
     balance-checklist.md
     plugin-decisions.md
-  superpowers/
-    plans/               # Implementation plans (task-by-task checklists)
-    specs/               # Design specs
-  status/
-    2026-03-24-stage-report.md  # Current milestone assessment
 ```
 
 ---
 
 ## Core Architecture
 
-### Autoloads (singletons, always available)
+### Long-lived singletons
 
-- **`ContentRegistry`** — call `ContentRegistry.get_token(id)` to get a `TokenDefinition`. Populated at startup by scanning `res://content/`.
-- **`RunSession`** — the single source of truth for a run in progress. Passed by reference to services. Key fields:
-  - `token_pool: Array[String]` — the persistent multiset (duplicates are meaningful).
-  - `current_turn`, `current_score`, `phase_index`, `phase_target`.
-  - `active_modifiers: Array` — hero + difficulty modifier refs.
-  - Pool mutation API: `pool_add(id)`, `pool_remove(id)`, `pool_count(id)`.
-- **`SaveService`** — wraps `RunSession.to_dict()` / `from_dict()` for disk I/O.
+The only true Godot autoload is `Localization` (registered in `project.godot`); it loads `locale/messages.csv` into `TranslationServer`. The other "session" objects are `class_name` types that `RunScreen._ready()` instantiates and owns:
+
+- **`ContentRegistry`** — `tokens / events / items / heroes / difficulty_modifiers / meta_unlocks / anomalies` dictionaries indexed by `id`. `RunScreen` calls `load_all()` once at startup; it walks each `content/<kind>/` directory and validates every `.tres` via `ContentDefinitionValidator`.
+- **`RunSession`** — single source of truth for an in-progress run. Key fields: `token_pool: Array[String]` (persistent multiset, duplicates meaningful), `current_turn`, `current_score`, `phase_index`, `phase_target`, `active_modifiers`. Pool mutation API: `pool_add(id)`, `pool_remove(id)`, `pool_count(id)`.
+- **`SaveService`** — `RunSession.to_dict()` / `from_dict()` plus disk I/O. Not yet wired to a main-menu load button.
+- **`L10n`** — static utility helpers (`L10n.text(key, fallback)`, `format_text`, `rarity_name`, `state_name`, `mode_name`, …) that call `TranslationServer.translate` under the hood. Used wherever UI strings need the locale layer.
 
 ### Service Layer (pure GDScript, `RefCounted`)
 
 Services have **no scene dependencies**. They take data in, return data out. Instantiate with `ClassName.new()`.
 
-| Service | Input | Output |
-|---------|-------|--------|
-| `BoardRollService` | `token_pool`, `board_capacity`, `empty_token_id`, `rng` | flat `Array` of token ids |
-| `BoardService` | board map dict | board state queries |
-| `TriggerScanner` | `RunSnapshot` | `Array[SettlementStep]` |
-| `SettlementResolver` | `RunSnapshot` | `SettlementReport` |
-| `RewardOfferService` | `RunSession`, `ContentRegistry` | offer options |
-| `EventDraftService` | `RunSession`, `ContentRegistry` | event choices |
-| `ContractService` | `RunSession` | contract status |
+| Service | Input | Output | Status |
+|---------|-------|--------|--------|
+| `BoardRollService` | `token_pool`, `board_capacity`, `empty_token_id`, `rng` | flat `Array` of token ids | live |
+| `BoardService` | width, height | place/remove/query API | live |
+| `SettlementResolver` | `BoardService`, `ContentRegistry`, active items | `SettlementReport` | live |
+| `RewardOfferService` | `RunSession`, `ContentRegistry` | three add-only offers | live |
+| `EventDraftService` | `RunSession`, `ContentRegistry`, seed | one random copy/delete/item event | live |
+| `ContractService` | `RunSession` | contract status | live |
+| `TriggerScanner` | board snapshot | tag/row/column counts | skeleton, no caller |
+| `EndlessService` | loop index, anomaly | scaled target, expanded context | skeleton, no caller |
+| `RunModifierService` | `RunSession`, hero/difficulty | aggregated modifiers | skeleton |
+| `MetaProgressionService` | meta state, unlocks | persistent progression | skeleton |
 
 ### Value Objects (immutable data carriers)
 
@@ -167,27 +179,29 @@ Never mutate these after construction. Create new ones.
 ## Default Game Loop (bag-roll)
 
 ```
-[reward_choice state]
-  → player selects reward → pool_add / pool_remove mutates RunSession.token_pool
+[offer_choice state]
+  → player picks one of three add_token offers → RunSession.pool_add(token_id)
 
-[event_draft state]  (optional)
-  → player selects event option → modifier applied to RunSession
+[event_draft state]
+  → EventDraftService.build_event(session, seed) → no_event / copy_token / delete_token / item
+  → apply_event mutates pool or installs a passive/instant item
 
 [roll_board state]
   → BoardRollService.build_round_pool(token_pool, 25, "empty_token", rng)
-  → BoardService.set_board(pool_to_board_map(round_pool, 5))
-  → auto-trigger SettlementResolver
+  → BoardService receives row-major map → auto-transition to settling
 
 [settling state]
-  → SettlementReport accumulated
+  → SettlementResolver.resolve_board(board, registry, active_items)
+  → SettlementReport accumulated and animated step-by-step
 
 [settlement_result state]
-  → player views log, clicks continue
+  → player reads the log, clicks continue
 
-→ loops back to [reward_choice]
+→ loops back to [offer_choice]
 ```
 
 The **next-turn arrow** in `TurnControls` drives the `roll_board` transition.
+Settlement phases (in order): `base_output → item_bonus → adjacency → row_column → conditional → copy_amplify → cleanup`. `adjacency / conditional / copy_amplify` are reserved phase slots — no token rules emit into them yet.
 
 ---
 
@@ -203,13 +217,27 @@ Rarity values: `Common`, `Uncommon`, `Rare`, `Legendary`
 - Auto-injected to pad pool to 25. Never appears in reward offers.
 - Participates in settlement but contributes 0 score.
 
+### Token roster (4 elements × 4 rarities)
+
+`fire / water / earth / wind` × `common / uncommon / rare / legendary` → 16 token files in `content/tokens/`, plus `empty_token`. Element rules implemented in `SettlementResolver`:
+
+- **fire** — triangular bonus from fire tokens stacked *above* in the same column.
+- **water** — triangular bonus from water tokens stacked *below* in the same column.
+- **earth** — +1 per other earth token in the same row.
+- **wind** — +1 per other wind token in the same column.
+
 ### Registry rules
-- `ContentRegistry` scans `res://content/tokens/*.tres` on startup.
-- `id` must be globally unique.
-- `spawn_rules.weight == 0` tokens are excluded from player-facing offer pools.
+- `ContentRegistry.load_all()` walks `content/<kind>/*.tres` for each kind (tokens / events / items / heroes / difficulty / meta / anomalies) and indexes by `id`.
+- `id` must be globally unique within its kind.
+- `spawn_rules.weight == 0` tokens are excluded from reward offers; `RewardOfferService` weights remaining tokens `Common 4 / Uncommon 3 / Rare 2 / Legendary 1`.
+
+### ItemDefinition (active items)
+`id`, `name`, `description`, `effect_type` (`passive` / `instant`), `effect_data` (Dictionary).
+- `passive` items grant `item_bonus` phase points based on `effect_data.element`.
+- `instant` items run `effect_data.action` once via `EventDraftService._apply_instant_item` (e.g. `upgrade_random`, `delete_random`).
 
 ### EventDefinition fields
-`id`, `name`, `type` (`instant`/`lasting`/`crisis`), `tags_affected`, `duration`, `contract_template`, `reward_bundle`, `penalty_bundle`
+`id`, `name`, `type` (`instant`/`lasting`/`crisis`), `tags_affected`, `duration`, `contract_template`, `reward_bundle`, `penalty_bundle` — defined but **not yet used** by the current `EventDraftService`, which generates events procedurally rather than drafting from the `.tres` pool.
 
 ---
 
@@ -285,15 +313,22 @@ Claude 在执行任务时遵守此规则：每完成一个有意义节点就主�
 
 ---
 
-## What Is NOT Yet Implemented (as of 2026-03-25)
+## What Is NOT Yet Implemented (as of 2026-05-17)
 
-- Score threshold failure / run-end flow
-- Endless mode progression
-- Full hero passive system wired into settlement
-- Full difficulty modifier UI
-- Meta progression unlock screen
-- Save/load from main menu
-- Sound, music, visual polish
+Wired up:
+- Main menu → run screen → bag-roll → settlement → reward loop.
+- Item system (passive + instant) flowing through the event draft.
+- Localization through `Localization` autoload + `L10n` static helpers.
+
+Skeleton or unwired:
+- `EndlessService` and `content/anomalies/` — code exists, no caller.
+- `TriggerScanner` — class exists, settlement doesn't use it.
+- `MetaProgressionService` and `scenes/meta/meta_screen.tscn` — class + scene exist, no caller.
+- `RunModifierService` — exists, but hero / difficulty effects aren't merged into settlement yet.
+- `scenes/endless/endless_summary_panel.tscn` — exists, never instantiated.
+- Score-threshold run-end flow — `run_failed` / `run_cleared` referenced in `RunScreen` but not driven by the main loop.
+- `EventDefinition` `.tres` files — exist as data, but `EventDraftService` is procedural; the data is unused.
+- Save/load from main menu, sound, music, visual polish.
 
 ---
 
@@ -301,8 +336,5 @@ Claude 在执行任务时遵守此规则：每完成一个有意义节点就主�
 
 | Doc | When |
 |-----|------|
-| `docs/2026-03-24-slot-roguelike-prd.md` | Full product spec |
+| `docs/2026-03-24-slot-roguelike-prd.md` | Full product spec (note: token count predates current roster) |
 | `docs/engineering/content-schema.md` | Resource field reference |
-| `docs/superpowers/plans/2026-03-25-bag-roll-core-loop-plan.md` | Current active implementation plan |
-| `docs/superpowers/specs/2026-03-25-bag-roll-core-loop-design.md` | Design rationale for bag-roll |
-| `docs/status/2026-03-24-stage-report.md` | What's done vs. what's missing |
