@@ -182,24 +182,6 @@ func get_board_token_count() -> int:
 				count += 1
 	return count
 
-# Advances one settlement step manually (used by older tests / debug).
-func advance_settlement_playback() -> bool:
-	if _active_state_name != "settling":
-		return false
-	if _pending_steps.is_empty():
-		return false
-
-	var step = _pending_steps.pop_front()
-	_append_log_entry(step)
-	run_session.current_score += step.score_delta
-	_last_settlement_score_gain += step.score_delta
-	_sync_run_labels()
-
-	if _pending_steps.is_empty():
-		_complete_settlement()
-
-	return true
-
 # Debug helpers (for tests that need to skip the mainline flow).
 func debug_force_reward_event_complete() -> void:
 	# Ensure offers exist (they're built on offer_choice entry, but call just in case).
@@ -1093,24 +1075,6 @@ func _sync_roll_board_ui() -> void:
 
 func _offer_buttons() -> Array[Button]:
 	return [_offer_button_1, _offer_button_2, _offer_button_3]
-
-func _event_buttons() -> Array[Button]:
-	return [_event_button_1, _event_button_2, _event_button_3]
-
-func _format_offer(offer: Dictionary) -> String:
-	var token_id := String(offer.get("token_id", ""))
-	if token_id.is_empty():
-		return L10n.text("ui.offer.no_token")
-	var definition: TokenDefinition = _content_registry.tokens.get(token_id)
-	if definition != null:
-		return definition.get_display_name()
-	return _format_token_name(token_id)
-
-func _format_event(event_data: Dictionary) -> String:
-	return "%s [%s]" % [
-		_resolve_event_text(event_data, "title"),
-		L10n.tag_name(String(event_data.get("primary_tag", "tag"))),
-	]
 
 func _format_token_name(token_id: String) -> String:
 	if token_id.is_empty():
