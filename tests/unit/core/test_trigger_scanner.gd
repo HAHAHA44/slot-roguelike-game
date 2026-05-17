@@ -14,9 +14,9 @@ func test_scanner_counts_tags_on_board() -> void:
 	var board = board_service_script.new(5, 5)
 	var scanner = trigger_scanner_script.new()
 
-	board.place_token(Vector2i(1, 1), token_instance_script.new("pulse_seed", PackedStringArray(["Grow", "Charge"])))
-	board.place_token(Vector2i(2, 1), token_instance_script.new("relay_prism", PackedStringArray(["Link"])))
-	board.place_token(Vector2i(3, 1), token_instance_script.new("wild_signal", PackedStringArray(["Wild", "Grow"])))
+	board.place_token(Vector2i(1, 1), token_instance_script.new("fire_common", PackedStringArray(["Grow", "Charge"])))
+	board.place_token(Vector2i(2, 1), token_instance_script.new("water_common", PackedStringArray(["Link"])))
+	board.place_token(Vector2i(3, 1), token_instance_script.new("wind_common", PackedStringArray(["Wild", "Grow"])))
 
 	var tag_counts = scanner.count_tags(board.snapshot())
 

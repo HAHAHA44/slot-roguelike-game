@@ -32,13 +32,13 @@ func test_place_replace_and_remove_token() -> void:
 		return
 
 	var board = board_service_script.new(5, 5)
-	var seed_token = token_instance_script.new("pulse_seed", PackedStringArray(["Grow"]))
-	var prism = token_instance_script.new("relay_prism", PackedStringArray(["Link"]))
+	var seed_token = token_instance_script.new("fire_common", PackedStringArray(["Grow"]))
+	var prism = token_instance_script.new("water_common", PackedStringArray(["Link"]))
 
 	assert_true(board.place_token(Vector2i(1, 1), seed_token))
-	assert_eq(board.get_token(Vector2i(1, 1)).definition_id, "pulse_seed")
+	assert_eq(board.get_token(Vector2i(1, 1)).definition_id, "fire_common")
 	assert_false(board.place_token(Vector2i(1, 1), prism))
 	assert_true(board.replace_token(Vector2i(1, 1), prism))
-	assert_eq(board.get_token(Vector2i(1, 1)).definition_id, "relay_prism")
-	assert_eq(board.remove_token(Vector2i(1, 1)).definition_id, "relay_prism")
+	assert_eq(board.get_token(Vector2i(1, 1)).definition_id, "water_common")
+	assert_eq(board.remove_token(Vector2i(1, 1)).definition_id, "water_common")
 	assert_null(board.get_token(Vector2i(1, 1)))

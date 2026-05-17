@@ -33,13 +33,13 @@ func test_validator_rejects_duplicate_ids() -> void:
 	var validator = validator_script.new()
 	var definition = token_definition_script.new()
 
-	definition.id = "pulse_seed"
+	definition.id = "fire_common"
 	definition.name = "Duplicate Pulse Seed"
 	definition.rarity = "Common"
 	definition.type = "Engine"
 	definition.tags = PackedStringArray(["Grow"])
 
-	var errors = validator.validate_definition(definition, {"pulse_seed": true})
+	var errors = validator.validate_definition(definition, {"fire_common": true})
 
 	assert_true(errors.any(func(message: String) -> bool: return message.contains("duplicate")))
 

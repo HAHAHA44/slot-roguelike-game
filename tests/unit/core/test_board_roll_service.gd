@@ -2,15 +2,15 @@ extends GutTest
 
 func test_round_pool_is_filled_with_empty_tokens_to_board_capacity() -> void:
 	var service := BoardRollService.new()
-	var rolled := service.build_round_pool(["pulse_seed", "relay_prism"], 25, "empty_token", RandomNumberGenerator.new())
+	var rolled := service.build_round_pool(["fire_common", "water_common"], 25, "empty_token", RandomNumberGenerator.new())
 	assert_eq(rolled.size(), 25)
 	assert_eq(rolled.count("empty_token"), 23)
 
 func test_board_roll_preserves_exact_token_counts() -> void:
 	var service := BoardRollService.new()
-	var rolled := service.build_round_pool(["pulse_seed", "pulse_seed", "relay_prism"], 5, "empty_token", RandomNumberGenerator.new())
-	assert_eq(rolled.count("pulse_seed"), 2)
-	assert_eq(rolled.count("relay_prism"), 1)
+	var rolled := service.build_round_pool(["fire_common", "fire_common", "water_common"], 5, "empty_token", RandomNumberGenerator.new())
+	assert_eq(rolled.count("fire_common"), 2)
+	assert_eq(rolled.count("water_common"), 1)
 	assert_eq(rolled.count("empty_token"), 2)
 
 func test_round_pool_size_equals_capacity_when_pool_is_empty() -> void:
@@ -22,24 +22,24 @@ func test_round_pool_size_equals_capacity_when_pool_is_empty() -> void:
 func test_round_pool_does_not_truncate_when_pool_equals_capacity() -> void:
 	var pool: Array = []
 	for _i in 25:
-		pool.append("pulse_seed")
+		pool.append("fire_common")
 	var service := BoardRollService.new()
 	var rolled := service.build_round_pool(pool, 25, "empty_token", RandomNumberGenerator.new())
 	assert_eq(rolled.size(), 25)
-	assert_eq(rolled.count("pulse_seed"), 25)
+	assert_eq(rolled.count("fire_common"), 25)
 	assert_eq(rolled.count("empty_token"), 0)
 
 func test_round_pool_is_clamped_to_board_capacity_when_pool_exceeds_capacity() -> void:
 	var pool: Array = []
 	for index in 30:
-		pool.append("pulse_seed" if index < 15 else "relay_prism")
+		pool.append("fire_common" if index < 15 else "water_common")
 	var service := BoardRollService.new()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var rolled := service.build_round_pool(pool, 25, "empty_token", rng)
 	assert_eq(rolled.size(), 25)
 	assert_eq(rolled.count("empty_token"), 0)
-	assert_eq(rolled.count("pulse_seed") + rolled.count("relay_prism"), 25)
+	assert_eq(rolled.count("fire_common") + rolled.count("water_common"), 25)
 
 func test_pool_to_board_map_maps_index_to_row_major_position() -> void:
 	var service := BoardRollService.new()
