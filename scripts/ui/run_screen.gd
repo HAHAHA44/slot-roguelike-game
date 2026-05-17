@@ -40,7 +40,6 @@ const RunSessionScript := preload("res://autoload/run_session.gd")
 const ContentRegistryScript := preload("res://autoload/content_registry.gd")
 const EventDraftServiceScript := preload("res://scripts/core/services/event_draft_service.gd")
 const ContractServiceScript := preload("res://scripts/core/services/contract_service.gd")
-const RunModifierServiceScript := preload("res://scripts/core/services/run_modifier_service.gd")
 
 const StateChartScript := preload("res://addons/godot_state_charts/state_chart.gd")
 const CompoundStateScript := preload("res://addons/godot_state_charts/compound_state.gd")
@@ -58,7 +57,6 @@ var _reward_offer_service = RewardOfferServiceScript.new()
 var _content_registry = ContentRegistryScript.new()
 var _event_draft_service
 var _contract_service = ContractServiceScript.new()
-var _run_modifier_service = RunModifierServiceScript.new()
 var _selected_hero: HeroDefinition
 var _selected_difficulty: DifficultyModifier
 
