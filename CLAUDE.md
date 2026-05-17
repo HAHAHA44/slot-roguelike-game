@@ -215,19 +215,29 @@ Rarity values: `Common`, `Uncommon`, `Rare`, `Legendary`
 
 ## Testing
 
-### Run unit tests
-```powershell
-$env:GODOT_BIN="C:\path\to\Godot_v4.6.1-stable_win64_console.exe"
-& $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit/core -ginclude_subdirs -gexit
+> **WSL / Linux 主路径**：用 `scripts/dev/run-tests.sh` 封装。
+> **Windows 端**：保留下方 PowerShell 命令做对照。
+
+### WSL / Linux（推荐，Claude 在用）
+
+前置：`~/.local/bin/godot` 是 Linux 版 4.6.1，`$GODOT_BIN` 已在 `~/.bashrc` 配好。
+
+```bash
+scripts/dev/run-tests.sh unit          # 所有 unit
+scripts/dev/run-tests.sh integration   # 所有 integration
+scripts/dev/run-tests.sh smoke         # 仅 smoke test（每次提交前必跑）
+scripts/dev/run-tests.sh one res://tests/unit/core/test_xxx.gd
+scripts/dev/run-tests.sh shot res://scenes/run/run_screen.tscn  # 截图到 screenshots/
 ```
 
-### Run integration tests
+截图依赖 WSLg 提供的 display（WSL2 + Win11 默认开启），**不能** 加 `--headless`。
+
+### Windows / PowerShell（手动跑 Godot 编辑器时备用）
+
 ```powershell
+$env:GODOT_BIN="C:\Users\27391\Desktop\Godot_v4.6.1-stable_win64.exe"
+& $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -ginclude_subdirs -gexit
 & $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gdir=res://tests/integration -ginclude_subdirs -gexit
-```
-
-### Smoke test (must always pass)
-```powershell
 & $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/integration/test_run_screen_flow.gd -gexit
 ```
 
@@ -252,6 +262,26 @@ Every task must keep this smoke path green before commit.
 - Tests use GUT's `extends GutTest`. Prefix test methods with `test_`.
 - Use `assert_eq`, `assert_true`, etc. from GUT — not `assert()`.
 - TDD workflow: write the test first (RED), then implement (GREEN), then refactor.
+
+---
+
+## Commit Discipline（小步提交）
+
+**每完成一个"能用一句话讲清楚"的改动就立刻 commit**，不要把多个无关改动堆到一次提交，也不要让未提交的改动跨过下一次对话回合。
+
+判断"该提交了"的信号：
+- 一个 service 实现 + 它的 GUT 测试都绿了 → 提交
+- 加一个工具脚本/截图脚本 → 提交
+- 一次 bugfix 修完 → 提交（不要顺手改无关 typo）
+- 一段文档/CLAUDE.md 更新 → 提交
+
+硬性要求：
+- **提交前必须本地跑过相关测试**（service 改动跑 `scripts/dev/run-tests.sh unit`，流程改动跑 `smoke`），红的不提。
+- Commit message 用 `<type>: <一句话描述>` 格式（`feat` / `fix` / `refactor` / `docs` / `test` / `chore` / `perf` / `ci`）。**禁止** `update` / `wip` / `misc` 这种空话。
+- 一次 commit 只做一件事。如果 message 里出现 "and" 或 "顺便"，应该拆成两次提交。
+- 永远不要 `--no-verify`、`--amend` 已经 push 的提交、或 `push --force` 到 main。
+
+Claude 在执行任务时遵守此规则：每完成一个有意义节点就主动 commit，不需要每次再问。
 
 ---
 
