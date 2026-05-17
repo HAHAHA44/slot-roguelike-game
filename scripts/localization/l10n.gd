@@ -26,11 +26,11 @@ static func tag_name(tag: String) -> String:
 static func phase_name(phase: String) -> String:
 	return text("settlement.phase.%s" % _normalize_key(phase), _humanize_identifier(phase))
 
-static func state_name(state_name: String) -> String:
-	return text("state.%s" % _normalize_key(state_name), _humanize_identifier(state_name))
+static func state_name(state_id: String) -> String:
+	return text("state.%s" % _normalize_key(state_id), _humanize_identifier(state_id))
 
-static func mode_name(mode_name: String) -> String:
-	return text("mode.%s" % _normalize_key(mode_name), _humanize_identifier(mode_name))
+static func mode_name(mode_id: String) -> String:
+	return text("mode.%s" % _normalize_key(mode_id), _humanize_identifier(mode_id))
 
 static func contract_goal_name(goal_type: String) -> String:
 	return text("contract.goal.%s" % _normalize_key(goal_type), _humanize_identifier(goal_type))

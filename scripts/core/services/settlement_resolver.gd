@@ -160,23 +160,27 @@ func _build_element_effects(board: BoardService, registry: ContentRegistry) -> A
 
 	var effects: Array = []
 
-	# 火：同列上方火token越多，累加奖励越高（三角数）
+	# 火：同列上方火token越多，累加奖励越高（三角数 n*(n+1)/2，n*(n+1) 必为偶数）
 	for pos in fire_positions:
 		var n := 0
 		for other in fire_positions:
 			if other.x == pos.x and other.y < pos.y:
 				n += 1
 		if n > 0:
-			effects.append(_make_effect(pos_to_def_id[pos], "fire_above_stack", n * (n + 1) / 2, pos, pos_to_name[pos]))
+			@warning_ignore("integer_division")
+			var bonus := n * (n + 1) / 2
+			effects.append(_make_effect(pos_to_def_id[pos], "fire_above_stack", bonus, pos, pos_to_name[pos]))
 
-	# 水：同列下方水token越多，累加奖励越高（三角数）
+	# 水：同列下方水token越多，累加奖励越高（三角数 n*(n+1)/2，n*(n+1) 必为偶数）
 	for pos in water_positions:
 		var n := 0
 		for other in water_positions:
 			if other.x == pos.x and other.y > pos.y:
 				n += 1
 		if n > 0:
-			effects.append(_make_effect(pos_to_def_id[pos], "water_below_stack", n * (n + 1) / 2, pos, pos_to_name[pos]))
+			@warning_ignore("integer_division")
+			var bonus := n * (n + 1) / 2
+			effects.append(_make_effect(pos_to_def_id[pos], "water_below_stack", bonus, pos, pos_to_name[pos]))
 
 	# 土：同一行每有一个其他土token，+1
 	for pos in earth_positions:

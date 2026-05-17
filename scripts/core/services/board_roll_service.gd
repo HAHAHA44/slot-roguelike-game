@@ -29,6 +29,7 @@ func pool_to_board_map(round_pool: Array, board_width: int) -> Dictionary:
 	var result: Dictionary = {}
 	for index in round_pool.size():
 		var col := index % board_width
+		@warning_ignore("integer_division")
 		var row := index / board_width
 		result[Vector2i(col, row)] = String(round_pool[index])
 	return result
