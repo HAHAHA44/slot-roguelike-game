@@ -14,6 +14,7 @@ const DIFFICULTY_PATH := "res://content/difficulty"
 const META_PATH := "res://content/meta"
 const ANOMALY_PATH := "res://content/anomalies"
 const ITEM_PATH := "res://content/items"
+const ZODIAC_PATH := "res://content/zodiac"
 
 var tokens: Dictionary = {}
 var events: Dictionary = {}
@@ -22,6 +23,7 @@ var difficulty_modifiers: Dictionary = {}
 var meta_unlocks: Dictionary = {}
 var anomalies: Dictionary = {}
 var items: Dictionary = {}
+var zodiacs: Dictionary = {}
 var validator := ContentDefinitionValidator.new()
 
 func load_all() -> void:
@@ -32,6 +34,7 @@ func load_all() -> void:
 	meta_unlocks.clear()
 	anomalies.clear()
 	items.clear()
+	zodiacs.clear()
 	_load_resources_from_dir(TOKEN_PATH, tokens)
 	_load_resources_from_dir(EVENT_PATH, events)
 	_load_resources_from_dir(HERO_PATH, heroes)
@@ -39,6 +42,7 @@ func load_all() -> void:
 	_load_resources_from_dir(META_PATH, meta_unlocks)
 	_load_resources_from_dir(ANOMALY_PATH, anomalies)
 	_load_resources_from_dir(ITEM_PATH, items)
+	_load_resources_from_dir(ZODIAC_PATH, zodiacs)
 
 func _load_resources_from_dir(dir_path: String, target_index: Dictionary) -> void:
 	var directory := DirAccess.open(dir_path)

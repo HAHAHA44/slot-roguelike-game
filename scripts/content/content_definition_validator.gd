@@ -6,6 +6,8 @@
 class_name ContentDefinitionValidator
 extends RefCounted
 
+const ZodiacDefinitionScript := preload("res://scripts/content/zodiac_definition.gd")
+
 func validate_definition(definition: Resource, existing_ids: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
 	var definition_id := String(definition.get("id")).strip_edges()
@@ -29,6 +31,8 @@ func validate_definition(definition: Resource, existing_ids: Dictionary) -> Arra
 		_validate_anomaly_definition(definition, errors)
 	elif definition is ItemDefinition:
 		_validate_item_definition(definition, errors)
+	elif definition is ZodiacDefinitionScript:
+		_validate_zodiac_definition(definition, errors)
 
 	return errors
 
@@ -111,3 +115,9 @@ func _validate_item_definition(definition: ItemDefinition, errors: Array[String]
 		errors.append("effect_type must be 'passive' or 'instant'")
 	if definition.effect_data == null:
 		errors.append("effect_data must not be null")
+
+func _validate_zodiac_definition(definition, errors: Array[String]) -> void:
+	if definition.display_name.strip_edges().is_empty():
+		errors.append("display_name must not be empty")
+	if definition.order < 0 or definition.order >= 12:
+		errors.append("order must be in [0, 12)")
