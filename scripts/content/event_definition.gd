@@ -22,6 +22,16 @@ const ALLOWED_STABILITIES := ["stable", "risky", "volatile"]
 @export var reward_bundle: Dictionary = {}
 @export var penalty_bundle: Dictionary = {}
 
+# M2+ life-sim 字段（旧 contract/bundle 字段保留至 M7 抛光清理）：
+# - sanity_weights：{"high"/"mid"/"low" -> float}，EventDraftService 按当前精神档抽权。
+# - lethal_flag：true = 死亡事件，仅在 low sanity 段非零权重。
+# - effects：事件结算时按序执行的 ScriptableEffect 列表（M3 EventResolverService 消费）。
+# - karma_delta：本事件对当局 karma 的贡献（M6 KarmaService 累加）。
+@export var sanity_weights: Dictionary = {}
+@export var lethal_flag: bool = false
+@export var effects: Array[ScriptableEffect] = []
+@export var karma_delta: int = 0
+
 func get_display_name() -> String:
 	return L10n.text(name, id)
 
