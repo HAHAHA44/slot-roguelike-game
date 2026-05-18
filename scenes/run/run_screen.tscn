@@ -1,9 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/run_screen.gd" id="1_run_screen"]
-[ext_resource type="PackedScene" path="res://scenes/run/board_grid.tscn" id="2_board_grid"]
-[ext_resource type="PackedScene" path="res://scenes/run/turn_controls.tscn" id="3_turn_controls"]
-[ext_resource type="PackedScene" path="res://scenes/run/event_draft_panel.tscn" id="5_event_draft_panel"]
+[ext_resource type="PackedScene" path="res://scenes/run/zodiac_ring.tscn" id="2_zodiac_ring"]
 
 [node name="RunScreen" type="Control"]
 layout_mode = 3
@@ -13,6 +11,15 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_run_screen")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.06, 0.09, 1)
 
 [node name="MainMargin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -30,141 +37,100 @@ theme_override_constants/margin_bottom = 24
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="HeaderRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
+[node name="HudRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 24
 
-[node name="RunStateLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
-unique_name_in_owner = true
-text = "ui.run.state_placeholder"
-
-[node name="TurnLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
-unique_name_in_owner = true
-text = "ui.run.turn_placeholder"
-
-[node name="ScoreLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
-unique_name_in_owner = true
-text = "ui.run.score_placeholder"
-
-[node name="ContractLabel" type="Label" parent="MainMargin/MainLayout/HeaderRow"]
-unique_name_in_owner = true
-text = "ui.run.contract_placeholder"
-
-[node name="TurnFlowModeButton" type="Button" parent="MainMargin/MainLayout/HeaderRow"]
-unique_name_in_owner = true
-text = "ui.run.mode_button_placeholder"
-
-[node name="BagButton" type="Button" parent="MainMargin/MainLayout/HeaderRow"]
-unique_name_in_owner = true
-text = "ui.backpack.button"
-
-[node name="ItemsRow" type="FlowContainer" parent="MainMargin/MainLayout"]
+[node name="BirthLabel" type="Label" parent="MainMargin/MainLayout/HudRow"]
 unique_name_in_owner = true
 layout_mode = 2
-visible = false
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_font_sizes/font_size = 18
+text = "出生：—"
+
+[node name="YearLabel" type="Label" parent="MainMargin/MainLayout/HudRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "第 0 年 · —"
+
+[node name="AgeLabel" type="Label" parent="MainMargin/MainLayout/HudRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "年龄 0 / 寿 0"
+
+[node name="SanityLabel" type="Label" parent="MainMargin/MainLayout/HudRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "精神 50/100"
+
+[node name="StageLabel" type="Label" parent="MainMargin/MainLayout/HudRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "阶段：—"
+
+[node name="BirthYearTag" type="Label" parent="MainMargin/MainLayout/HudRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1.0, 0.82, 0.20, 1.0)
+text = ""
+horizontal_alignment = 2
 
 [node name="ContentRow" type="HBoxContainer" parent="MainMargin/MainLayout"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 16
+theme_override_constants/separation = 24
 
-[node name="BoardGrid" parent="MainMargin/MainLayout/ContentRow" instance=ExtResource("2_board_grid")]
+[node name="RingPanel" type="CenterContainer" parent="MainMargin/MainLayout/ContentRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ZodiacRing" parent="MainMargin/MainLayout/ContentRow/RingPanel" instance=ExtResource("2_zodiac_ring")]
 unique_name_in_owner = true
 
 [node name="Sidebar" type="VBoxContainer" parent="MainMargin/MainLayout/ContentRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
-[node name="TurnControls" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("3_turn_controls")]
+[node name="LogTitle" type="Label" parent="MainMargin/MainLayout/ContentRow/Sidebar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+text = "年度日志"
 
-[node name="EventDraftPanel" parent="MainMargin/MainLayout/ContentRow/Sidebar" instance=ExtResource("5_event_draft_panel")]
-
-[node name="BagPanel" type="PanelContainer" parent="."]
+[node name="YearlyLogList" type="ItemList" parent="MainMargin/MainLayout/ContentRow/Sidebar"]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-visible = false
-
-[node name="MarginContainer" type="MarginContainer" parent="BagPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
-
-[node name="VBox" type="VBoxContainer" parent="BagPanel/MarginContainer"]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="TitleRow" type="HBoxContainer" parent="BagPanel/MarginContainer/VBox"]
-layout_mode = 2
-
-[node name="TitleLabel" type="Label" parent="BagPanel/MarginContainer/VBox/TitleRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "ui.backpack.title"
-theme_override_font_sizes/font_size = 24
-
-[node name="BagCloseButton" type="Button" parent="BagPanel/MarginContainer/VBox/TitleRow"]
-unique_name_in_owner = true
-text = "×"
-theme_override_font_sizes/font_size = 20
-
-[node name="ScrollContainer" type="ScrollContainer" parent="BagPanel/MarginContainer/VBox"]
+custom_minimum_size = Vector2(360, 0)
 layout_mode = 2
 size_flags_vertical = 3
+auto_height = false
+allow_reselect = false
+allow_rmb_select = false
 
-[node name="BagList" type="GridContainer" parent="BagPanel/MarginContainer/VBox/ScrollContainer"]
+[node name="LegendLabel" type="Label" parent="MainMargin/MainLayout/ContentRow/Sidebar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.55, 0.55, 0.62, 1)
+text = "○ 当年奖励格 · ★ 本命年"
+
+[node name="DeathLabel" type="Label" parent="MainMargin/MainLayout/ContentRow/Sidebar"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
-columns = 8
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 12
-
-[node name="ConsolePanel" type="PanelContainer" parent="."]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1.0, 0.55, 0.45, 1)
+text = ""
 visible = false
 
-[node name="MarginContainer" type="MarginContainer" parent="ConsolePanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 24
-
-[node name="VBox" type="VBoxContainer" parent="ConsolePanel/MarginContainer"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="ConsoleTitle" type="Label" parent="ConsolePanel/MarginContainer/VBox"]
-layout_mode = 2
-text = "ui.console.title"
-theme_override_font_sizes/font_size = 14
-
-[node name="ConsoleLogList" type="ItemList" parent="ConsolePanel/MarginContainer/VBox"]
+[node name="StepButton" type="Button" parent="MainMargin/MainLayout/ContentRow/Sidebar"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-size_flags_vertical = 3
-
-
-
-
-
-
-
-
+theme_override_font_sizes/font_size = 22
+text = "下一年"

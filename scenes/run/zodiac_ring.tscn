@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/zodiac_ring.gd" id="1_zodiac_ring"]
+
+[node name="ZodiacRing" type="Control"]
+custom_minimum_size = Vector2(420, 420)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_zodiac_ring")
