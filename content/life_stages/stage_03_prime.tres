@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="LifeStageDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/life_stage_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "prime"
+display_name = "content.life_stage.prime.name"
+order = 3
+start_age = 36
+narrative = "content.life_stage.prime.narrative"

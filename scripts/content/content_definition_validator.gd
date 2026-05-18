@@ -7,6 +7,7 @@ class_name ContentDefinitionValidator
 extends RefCounted
 
 const ZodiacDefinitionScript := preload("res://scripts/content/zodiac_definition.gd")
+const LifeStageDefScript := preload("res://scripts/content/life_stage_definition.gd")
 
 func validate_definition(definition: Resource, existing_ids: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
@@ -33,6 +34,8 @@ func validate_definition(definition: Resource, existing_ids: Dictionary) -> Arra
 		_validate_item_definition(definition, errors)
 	elif definition is ZodiacDefinitionScript:
 		_validate_zodiac_definition(definition, errors)
+	elif definition is LifeStageDefScript:
+		_validate_life_stage_definition(definition, errors)
 
 	return errors
 
@@ -121,3 +124,11 @@ func _validate_zodiac_definition(definition, errors: Array[String]) -> void:
 		errors.append("display_name must not be empty")
 	if definition.order < 0 or definition.order >= 12:
 		errors.append("order must be in [0, 12)")
+
+func _validate_life_stage_definition(definition, errors: Array[String]) -> void:
+	if definition.display_name.strip_edges().is_empty():
+		errors.append("display_name must not be empty")
+	if definition.order < 0 or definition.order >= 7:
+		errors.append("order must be in [0, 7)")
+	if definition.start_age < 0:
+		errors.append("start_age must be >= 0")
