@@ -20,6 +20,16 @@ const ALLOWED_RARITIES := ["Common", "Uncommon", "Rare", "Legendary"]
 @export var spawn_rules: Dictionary = {}
 @export var remove_rules: Dictionary = {}
 
+# M1+ life-sim 字段（旧 5×5 字段保留至 M7 抛光清理）：
+# - base_score：cascade 进盘时的初始分；M1 SettlementService 消费。
+# - effects：cascade 触发时按序执行的 ScriptableEffect 列表。
+# - zodiac_affinity：与该 token 共鸣的生肖 id（""=无）。
+# - stat_scaling：{stat_key: float} 乘子，M4 token scaling 用，本批默认空。
+@export var base_score: int = 0
+@export var effects: Array[ScriptableEffect] = []
+@export var zodiac_affinity: String = ""
+@export var stat_scaling: Dictionary = {}
+
 func get_display_name() -> String:
 	return L10n.text(name, id)
 
