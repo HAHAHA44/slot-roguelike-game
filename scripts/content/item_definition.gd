@@ -16,6 +16,16 @@ extends Resource
 @export var effect_type: String = "passive"   # "passive" | "instant"
 @export var effect_data: Dictionary = {}
 
+# M3+ life-sim hook 字段（旧 effect_type/effect_data 保留至 M7 抛光清理）：
+# - 4 个 hook 在 yearly loop 的对应时机触发：
+#   on_year_start：年初装备生效；on_settle：cascade 结算时；
+#   on_event：事件结算时；on_death：死亡瞬间（M6 karma_delta 也可来自这里）。
+# - 各 hook 的 ScriptableEffect 列表按序执行；空列表 = 该 hook 无效果。
+@export var on_year_start: Array[ScriptableEffect] = []
+@export var on_settle: Array[ScriptableEffect] = []
+@export var on_event: Array[ScriptableEffect] = []
+@export var on_death: Array[ScriptableEffect] = []
+
 func get_display_name() -> String:
 	return L10n.text(name, id)
 
