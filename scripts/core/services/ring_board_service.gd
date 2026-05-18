@@ -55,6 +55,7 @@ func occupied_slots() -> Array:
 func neighbors(slot: int, radius: int = 1) -> Array:
 	if not _is_in_range(slot):
 		return []
+	@warning_ignore("integer_division")
 	var max_radius: int = RING_SIZE / 2
 	@warning_ignore("shadowed_variable_base_class")
 	var r: int = clampi(radius, 0, max_radius)
