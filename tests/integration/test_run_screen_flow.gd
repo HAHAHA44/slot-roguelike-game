@@ -1,368 +1,65 @@
+# M0 集成测试：人生模拟 yearly loop 跑得通。
+#
+# 历史：本文件原先有 17 个测试覆盖 5×5 bag-roll 流程（offer → event → roll → settle
+# → settlement_result → offer），已随 M0 RunScreen 改装一并退役。如需考古，去 git
+# history（2026-05-18 之前的版本）。
 extends GutTest
 
-func test_smoke_playable_path_still_works() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	# Mainline: offer_choice 鈫?event_draft 鈫?roll_board 鈫?next turn 鈫?settling/settlement_result
-	scene.debug_force_reward_event_complete()  # select offer[0] 鈫?event_draft
-	scene.debug_force_reward_event_complete()  # select event[0] 鈫?roll_board
-
-	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
-	next_turn_button.emit_signal("pressed")
-
-	assert_true(scene.get_active_state_name() in ["settling", "settlement_result"])
-
-func test_mainline_round_progresses_without_manual_place_or_settle() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	scene.debug_force_reward_event_complete()  # offer 鈫?event_draft
-	scene.debug_force_reward_event_complete()  # event 鈫?roll_board
-
-	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
-	next_turn_button.emit_signal("pressed")
-
-	await _wait_for_state(scene, "settlement_result")
-
-	assert_true(true)
-
-func test_run_screen_builds_25_cells() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	assert_eq(scene.get_node("%BoardGrid").get_child_count(), 25)
-
-func test_turn_flow_mode_defaults_to_auto() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
-	assert_eq(scene.get_turn_flow_mode_name(), "auto")
-	assert_eq(mode_button.text, "模式：自动")
-
-func test_next_turn_arrow_rolls_board_and_stops_on_settlement_result() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	# Navigate mainline to roll_board
-	scene.debug_force_reward_event_complete()  # offer 鈫?event_draft
-	scene.debug_force_reward_event_complete()  # event 鈫?roll_board
-	assert_eq(scene.get_active_state_name(), "roll_board")
-
-	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
-	next_turn_button.emit_signal("pressed")
-
-	await _wait_for_state(scene, "settlement_result")
-
-	assert_eq(scene.get_active_state_name(), "settlement_result")
-	assert_eq(scene.get_board_token_count(), 25)
-
-func test_clicking_a_cell_places_a_token_during_player_turn() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	scene.debug_enter_player_turn()
-	var cell := scene.get_node("%BoardGrid").get_child(0) as Button
-	cell.emit_signal("pressed")
-
-	assert_eq(cell.text, "P")
-
-func test_remove_mode_clears_an_occupied_cell() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	scene.debug_enter_player_turn()
-	var board_grid: Node = scene.get_node("%BoardGrid")
-	var cell := board_grid.get_child(0) as Button
-	var remove_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/RemoveModeButton") as Button
-
-	cell.emit_signal("pressed")
-	remove_button.emit_signal("pressed")
-	cell.emit_signal("pressed")
-
-	assert_eq(cell.text, "")
-
-func test_settlement_autoplay_reaches_settlement_result_in_order() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	scene.debug_enter_player_turn()
-	var board_grid: Node = scene.get_node("%BoardGrid")
-	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
-
-	for index in [0, 1, 2]:
-		var cell := board_grid.get_child(index) as Button
-		cell.emit_signal("pressed")
-
-	settle_button.emit_signal("pressed")
-
-	assert_eq(scene.get_active_state_name(), "settling")
-	assert_eq(scene.get_settlement_log_entries().size(), 0)
-
-	await _wait_for_state(scene, "settlement_result")
-
-	# 3 fire_common (浣欑儸) placed at (0,0),(1,0),(2,0), row 0 鈫?no fire above 鈫?3 base_output + 1 cleanup
-	assert_eq(scene.get_settlement_log_entries().size(), 4)
-	assert_eq(scene.get_settlement_log_entries()[0], "00 | (0,0) 余烬 | 基础产出 | +1")
-	assert_eq(scene.get_settlement_log_entries()[1], "01 | (1,0) 余烬 | 基础产出 | +1")
-	assert_eq(scene.get_settlement_log_entries()[2], "02 | (2,0) 余烬 | 基础产出 | +1")
-	assert_eq(scene.get_settlement_log_entries()[3], "03 | 清理 | +0")
-	assert_eq(scene.get_active_state_name(), "settlement_result")
-
-func test_offer_selection_transitions_through_event_draft() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
-
-	assert_eq(scene.get_active_state_name(), "offer_choice")
-
-	offer_button.emit_signal("pressed")
-	assert_eq(scene.get_active_state_name(), "event_draft")
-
-	_confirm_first_event(scene)
-
-	assert_eq(scene.get_active_state_name(), "roll_board")
-
-func test_set_mode_routes_event_draft_to_player_turn() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
-	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
-	var place_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/PlaceModeButton") as Button
-	var remove_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ModeButtons/RemoveModeButton") as Button
-	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
-
-	mode_button.emit_signal("pressed")
-	assert_eq(scene.get_turn_flow_mode_name(), "set")
-	assert_eq(mode_button.text, "模式：手动")
-
-	offer_button.emit_signal("pressed")
-	assert_eq(scene.get_active_state_name(), "event_draft")
-
-	_confirm_first_event(scene)
-	assert_eq(scene.get_active_state_name(), "player_turn")
-	assert_true(place_button.visible)
-	assert_true(remove_button.visible)
-	assert_true(settle_button.visible)
-
-func test_switching_to_set_mode_from_roll_board_enters_player_turn() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
-
-	scene.debug_force_reward_event_complete()
-	scene.debug_force_reward_event_complete()
-	assert_eq(scene.get_active_state_name(), "roll_board")
-
-	mode_button.emit_signal("pressed")
-
-	assert_eq(scene.get_turn_flow_mode_name(), "set")
-	assert_eq(scene.get_active_state_name(), "player_turn")
-
-func test_switching_back_to_auto_in_player_turn_keeps_current_manual_turn() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
-	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
-
-	scene.debug_force_reward_event_complete()
-	scene.debug_force_reward_event_complete()
-	mode_button.emit_signal("pressed")
-	assert_eq(scene.get_active_state_name(), "player_turn")
-
-	mode_button.emit_signal("pressed")
-	assert_eq(scene.get_turn_flow_mode_name(), "auto")
-	assert_eq(scene.get_active_state_name(), "player_turn")
-
-	settle_button.emit_signal("pressed")
-	await _wait_for_state(scene, "settlement_result")
-	assert_eq(scene.get_active_state_name(), "settlement_result")
-
-func test_add_reward_changes_the_next_rolled_board() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
-
-	offer_button.emit_signal("pressed")
-
-	var rewarded_token_id: String = scene.get_active_placement_token_id()
-	assert_ne(rewarded_token_id, "")
-	assert_eq(scene.get_active_state_name(), "event_draft")
-
-	_confirm_first_event(scene)
-
-	assert_eq(scene.get_active_state_name(), "roll_board")
-
-	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
-	next_turn_button.emit_signal("pressed")
-
-	await _wait_for_state(scene, "settlement_result")
-
-	var rewarded_definition: TokenDefinition = scene._content_registry.tokens.get(rewarded_token_id)
-	var rewarded_name := rewarded_definition.get_display_name() if rewarded_definition else rewarded_token_id
-	assert_gt(_count_cells_with_tooltip(scene, rewarded_name), 0)
-
-func test_empty_tokens_are_not_included_in_base_output() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	scene._board_service.place_token(Vector2i(0, 0), scene._make_token_instance_for_id("fire_common"))
-	scene._board_service.place_token(Vector2i(1, 0), scene._make_token_instance_for_id("empty_token"))
-	scene._board_service.place_token(Vector2i(2, 0), scene._make_token_instance_for_id("empty_token"))
-
-	var snapshot = scene._settlement_resolver.build_snapshot(scene._board_service, scene._content_registry)
-	var base_output: Array = snapshot.get_phase_effects("base_output")
-
-	assert_eq(base_output.size(), 1)
-	assert_eq(base_output[0]["source_token"], "fire_common")
-
-func test_contract_ticks_after_a_completed_rolled_round() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	scene.debug_force_active_contract()
-	assert_eq(scene.get_active_state_name(), "roll_board")
-
-	var next_turn_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/NextTurnButton") as Button
-	next_turn_button.emit_signal("pressed")
-
-	await _wait_for_state(scene, "settlement_result")
-
-	assert_eq(scene.get_active_contract_data()["turns_remaining"], 2)
-
-func test_switching_back_to_auto_only_affects_next_turn_branch() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	var mode_button := scene.get_node("%TurnFlowModeButton") as Button
-	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
-	var continue_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ContinueToRewardButton") as Button
-	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
-	var board_grid: Node = scene.get_node("%BoardGrid")
-
-	scene.debug_force_reward_event_complete()
-	scene.debug_force_reward_event_complete()
-	mode_button.emit_signal("pressed")
-	assert_eq(scene.get_active_state_name(), "player_turn")
-
-	var cell := board_grid.get_child(0) as Button
-	cell.emit_signal("pressed")
-	mode_button.emit_signal("pressed")
-	assert_eq(scene.get_turn_flow_mode_name(), "auto")
-	assert_eq(scene.get_active_state_name(), "player_turn")
-
-	settle_button.emit_signal("pressed")
-	await _wait_for_state(scene, "settlement_result")
-	continue_button.emit_signal("pressed")
-	assert_eq(scene.get_active_state_name(), "offer_choice")
-
-	offer_button.emit_signal("pressed")
-	assert_eq(scene.get_active_state_name(), "event_draft")
-	_confirm_first_event(scene)
-	assert_eq(scene.get_active_state_name(), "roll_board")
-
-func test_contract_turns_tick_after_the_next_scored_turn() -> void:
-	var scene = await _spawn_run_screen()
-	if scene == null:
-		return
-
-	var board_grid: Node = scene.get_node("%BoardGrid")
-	var settle_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/SettleButton") as Button
-	var offer_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/OfferButton1") as Button
-	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
-	var continue_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/TurnControls/ContinueToRewardButton") as Button
-
-	# First turn: settle via debug path to reach settlement_result, then continue to offer_choice
-	scene.debug_enter_player_turn()
-	for index in [0, 1, 2]:
-		var cell := board_grid.get_child(index) as Button
-		cell.emit_signal("pressed")
-	settle_button.emit_signal("pressed")
-	await _wait_for_state(scene, "settlement_result")
-	continue_button.emit_signal("pressed")
-	assert_eq(scene.get_active_state_name(), "offer_choice")
-
-	# Inject contract and navigate to roll_board, then enter player_turn via debug path
-	scene.debug_force_active_contract()
-	assert_eq(scene.get_active_state_name(), "roll_board")
-	scene.debug_enter_player_turn()
-
-	var initial_contract: Dictionary = scene.get_active_contract_data()
-	var initial_turns := int(initial_contract.get("turns_remaining", 0))
-	assert_gt(initial_turns, 0)
-
-	for index in [3, 4, 5]:
-		var next_cell := board_grid.get_child(index) as Button
-		next_cell.emit_signal("pressed")
-
-	settle_button.emit_signal("pressed")
-	await _wait_for_state(scene, "settlement_result")
-	continue_button.emit_signal("pressed")
-	assert_eq(scene.get_active_state_name(), "offer_choice")
-
-	var advanced_contract: Dictionary = scene.get_active_contract_data()
-	assert_eq(int(advanced_contract.get("turns_remaining", 0)), initial_turns - 1)
-	assert_eq(advanced_contract.get("status", ""), "active")
-	assert_gt(int(advanced_contract.get("progress_value", 0)), 0)
-
-func _spawn_run_screen():
-	var packed_scene: PackedScene = load("res://scenes/run/run_screen.tscn")
-	assert_not_null(packed_scene)
-	if packed_scene == null:
-		return null
-
-	var scene := packed_scene.instantiate()
+const RunScreenScene := preload("res://scenes/run/run_screen.tscn")
+
+func _spawn(autoplay: bool):
+	var scene = RunScreenScene.instantiate()
+	scene.autoplay_on_ready = autoplay
 	add_child_autofree(scene)
-	await get_tree().process_frame
 	await get_tree().process_frame
 	return scene
 
-func _wait_for_state(scene, expected_state: String, max_frames: int = 20) -> void:
-	for _index in max_frames:
-		if scene.get_active_state_name() == expected_state:
-			return
-		await get_tree().process_frame
+# 关键质量门：stub yearly loop 能从出生跑到自然死，每年日志格式正确。
+func test_smoke_yearly_loop_alive() -> void:
+	var scene = await _spawn(true)
+	assert_false(scene.is_alive(), "lifespan=80 应该跑完自然死")
+	assert_eq(scene.get_current_age(), 80, "自然死时 age 等于 lifespan")
+	var log_entries: Array = scene.get_yearly_log()
+	# 1 行出生 + 80 行年记录 + 1 行自然死 = 82 行
+	assert_eq(log_entries.size(), 82, "应有 82 条日志（出生 + 80 年 + 自然死）")
+	assert_true(log_entries[0].begins_with("出生："), "首行是出生")
+	assert_true(log_entries[1].begins_with("年 0："), "第二行是年 0")
+	assert_true(log_entries[-1].begins_with("自然死"), "末行是自然死")
 
-	assert_eq(scene.get_active_state_name(), expected_state)
+# 手动步进控制能用：测试可在 12 年后停下，断言生肖循环。
+func test_step_year_advances_age_and_logs_zodiac() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("tiger", 80)
+	assert_eq(scene.get_current_age(), 0)
+	for i in 12:
+		scene.step_year()
+	assert_eq(scene.get_current_age(), 12, "12 步应推进到年 12")
+	var entries: Array = scene.get_yearly_log()
+	# 第 0 行是出生，年 0..年 11 各一行
+	assert_true(entries[1].contains("生肖 rat"), "年 0 是鼠")
+	assert_true(entries[3].contains("生肖 tiger"), "年 2 是虎")
+	assert_true(entries[3].contains("本命年命中: true"), "tiger 出生 + 年 2 应命中本命年")
+	assert_true(entries[1].contains("本命年命中: false"), "年 0 不是本命年")
 
-func _confirm_first_event(scene) -> void:
-	var event_button := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/EventButton1") as Button
-	if event_button.visible and not event_button.disabled:
-		event_button.emit_signal("pressed")
-		return
+# 寿命到顶后 step_year 不再推进。
+func test_step_year_noop_after_death() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("rat", 3)
+	for i in 5:
+		scene.step_year()
+	assert_false(scene.is_alive())
+	# 寿命 3 → 跑 3 年到 age=3 自然死；额外的 step 不应推进 age
+	assert_eq(scene.get_current_age(), 3)
+	assert_true(scene.get_yearly_log()[-1].begins_with("自然死"))
 
-	var token_picker_flow := scene.get_node("MainMargin/MainLayout/ContentRow/Sidebar/EventDraftPanel/MarginContainer/VBox/TokenPickerScroll/TokenPickerFlow") as FlowContainer
-	assert_gt(token_picker_flow.get_child_count(), 0)
-	var token_button := token_picker_flow.get_child(0) as Button
-	token_button.emit_signal("pressed")
-
-func _count_cells_with_tooltip(scene, tooltip_text: String) -> int:
-	var board_grid: Node = scene.get_node("%BoardGrid")
-	var count := 0
-	for index in board_grid.get_child_count():
-		var cell := board_grid.get_child(index) as Button
-		if cell.tooltip_text == tooltip_text:
-			count += 1
-	return count
+# 12 格生肖盘 stub 投放：每槽位放对应生肖 id。
+func test_board_populates_with_12_zodiacs_in_order() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	scene.step_year()
+	var board = scene.get_ring_board()
+	var expected := ["rat", "ox", "tiger", "rabbit", "dragon", "snake",
+		"horse", "goat", "monkey", "rooster", "dog", "pig"]
+	for slot in 12:
+		assert_eq(board.token_at(slot), expected[slot],
+			"slot %d 应放 %s" % [slot, expected[slot]])
