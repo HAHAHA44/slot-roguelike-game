@@ -20,6 +20,9 @@ var zodiac_birth: String = ""
 var stage_idx: int = 0
 var stats: Dictionary = {}
 var karma_in_run: int = 0
+# NPC 关系表：{npc_id: String -> {"kind": String, "score": int}}。
+# kind ∈ {"family", "friend", "lover"}；M4 RelationshipService 维护。
+var relationships: Dictionary = {}
 
 # -- 5x5 遗留字段（legacy，等 M1+ 替换 settlement/reward/event 时清理） -------
 var schema_version: int = SCHEMA_VERSION
@@ -104,6 +107,7 @@ func to_dict() -> Dictionary:
 		"stage_idx": stage_idx,
 		"stats": stats.duplicate(true),
 		"karma_in_run": karma_in_run,
+		"relationships": relationships.duplicate(true),
 		# 5×5 遗留字段
 		"current_turn": current_turn,
 		"phase_index": phase_index,
@@ -130,6 +134,11 @@ static func from_dict(data: Dictionary) -> RunSession:
 	else:
 		session.stats = {}
 	session.karma_in_run = int(data.get("karma_in_run", 0))
+	var incoming_relationships = data.get("relationships", {})
+	if incoming_relationships is Dictionary:
+		session.relationships = (incoming_relationships as Dictionary).duplicate(true)
+	else:
+		session.relationships = {}
 	# 5×5 遗留字段
 	session.current_turn = int(data.get("current_turn", 1))
 	session.phase_index = int(data.get("phase_index", 0))
