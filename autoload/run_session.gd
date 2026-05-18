@@ -1,15 +1,27 @@
 # 本局运行状态：
-# - 保存一局游戏里需要跨回合保留的数据，例如分数、回合数、token 池、操作历史、激活的合约修正。
-# - `token_pool` 是 bag-roll 的核心数据结构，表示“持久 token 池”，不是单个下一张 token。
-# - `pool_*` 系列方法是新循环使用的多重集合接口；`get_active_token_id()` / `token_cursor` 主要给调试手动放置路径使用。
-# - `to_dict()` / `from_dict()` 用于存档、回放和测试重建。
-# - 典型联动：`RewardOfferService` 改 `token_pool`，`RunScreen` 读 `current_turn/current_score/active_modifiers`，存档系统序列化整个对象。
+# - M0 起进入"人生模拟"语义：每年 = 一格生肖盘转一圈，整局以"死亡"收束。
+# - 新字段（人生模拟）：age / lifespan / sanity / zodiac_birth / stage_idx / stats / karma_in_run
+# - 旧字段（5×5 bag-roll，文件保留作历史）：current_turn / current_score / phase_index / phase_target /
+#   token_pool / token_cursor / operation_history / active_modifiers。
+#   这些字段仍被 reward_offer_service / event_draft_service / settlement_resolver 等遗留服务
+#   及其单元测试使用；它们会在 M1+ 被新服务取代后再彻底移除。
+# - `to_dict()` / `from_dict()` 同时序列化新旧字段；存档新版可读旧字段（缺失时按默认）。
 class_name RunSession
 extends RefCounted
 
 const SCHEMA_VERSION := 1
 const DEFAULT_TOKEN_ID := "fire_common"
 
+# -- 人生模拟字段（M0+，新流程主用） -----------------------------------------
+var age: int = 0
+var lifespan: int = 0
+var sanity: int = 50
+var zodiac_birth: String = ""
+var stage_idx: int = 0
+var stats: Dictionary = {}
+var karma_in_run: int = 0
+
+# -- 5x5 遗留字段（legacy，等 M1+ 替换 settlement/reward/event 时清理） -------
 var schema_version: int = SCHEMA_VERSION
 var current_turn: int = 1
 var phase_index: int = 0
@@ -84,6 +96,15 @@ func pool_count(token_id: String) -> int:
 func to_dict() -> Dictionary:
 	return {
 		"schema_version": schema_version,
+		# 人生模拟字段
+		"age": age,
+		"lifespan": lifespan,
+		"sanity": sanity,
+		"zodiac_birth": zodiac_birth,
+		"stage_idx": stage_idx,
+		"stats": stats.duplicate(true),
+		"karma_in_run": karma_in_run,
+		# 5×5 遗留字段
 		"current_turn": current_turn,
 		"phase_index": phase_index,
 		"phase_target": phase_target,
@@ -97,6 +118,19 @@ func to_dict() -> Dictionary:
 static func from_dict(data: Dictionary) -> RunSession:
 	var session := RunSession.new()
 	session.schema_version = int(data.get("schema_version", SCHEMA_VERSION))
+	# 人生模拟字段（新存档读得到，旧存档按默认）
+	session.age = int(data.get("age", 0))
+	session.lifespan = int(data.get("lifespan", 0))
+	session.sanity = int(data.get("sanity", 50))
+	session.zodiac_birth = String(data.get("zodiac_birth", ""))
+	session.stage_idx = int(data.get("stage_idx", 0))
+	var incoming_stats = data.get("stats", {})
+	if incoming_stats is Dictionary:
+		session.stats = (incoming_stats as Dictionary).duplicate(true)
+	else:
+		session.stats = {}
+	session.karma_in_run = int(data.get("karma_in_run", 0))
+	# 5×5 遗留字段
 	session.current_turn = int(data.get("current_turn", 1))
 	session.phase_index = int(data.get("phase_index", 0))
 	session.phase_target = int(data.get("phase_target", 10))
@@ -110,4 +144,3 @@ static func from_dict(data: Dictionary) -> RunSession:
 	session.operation_history = data.get("operation_history", []).duplicate(true)
 	session.active_modifiers = data.get("active_modifiers", []).duplicate(true)
 	return session
-
