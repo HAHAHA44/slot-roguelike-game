@@ -8,18 +8,23 @@ extends RefCounted
 
 const MIN_VALUE := 0
 const MAX_VALUE := 100
+const DEFAULT_HIGH := 70
+const DEFAULT_LOW := 30
 
 var _high_threshold: int
 var _low_threshold: int
 
-func _init(high_threshold: int = 70, low_threshold: int = 30) -> void:
-	if high_threshold <= low_threshold:
-		push_warning("SanityService 阈值错配：high=%d <= low=%d；改用默认 70/30" % [high_threshold, low_threshold])
-		_high_threshold = 70
-		_low_threshold = 30
+# 参数名不叫 high_threshold / low_threshold：那会遮蔽同名的两个访问器方法，
+# GDScript 会报 shadowed_variable 警告，而本项目把警告当测试错误。
+func _init(high: int = DEFAULT_HIGH, low: int = DEFAULT_LOW) -> void:
+	if high <= low:
+		push_warning("SanityService 阈值错配：high=%d <= low=%d；改用默认 %d/%d"
+			% [high, low, DEFAULT_HIGH, DEFAULT_LOW])
+		_high_threshold = DEFAULT_HIGH
+		_low_threshold = DEFAULT_LOW
 	else:
-		_high_threshold = high_threshold
-		_low_threshold = low_threshold
+		_high_threshold = high
+		_low_threshold = low
 
 func clamp_value(v: int) -> int:
 	return clampi(v, MIN_VALUE, MAX_VALUE)
