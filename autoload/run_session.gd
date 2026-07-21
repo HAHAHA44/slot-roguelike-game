@@ -10,7 +10,10 @@ class_name RunSession
 extends RefCounted
 
 const SCHEMA_VERSION := 1
-const DEFAULT_TOKEN_ID := "fire_common"
+# 5×5 遗留：token_pool 的兜底值，保证它永不为空（旧的 remove/cursor 逻辑依赖这个不变量）。
+# 原本指向 fire_common，随 5×5 四元素 token 一起删除后改指 diligence。
+# 新流程不依赖它——begin_run 会用起始池整体覆盖 token_pool。
+const DEFAULT_TOKEN_ID := "diligence"
 
 # -- 人生模拟字段（M0+，新流程主用） -----------------------------------------
 var age: int = 0

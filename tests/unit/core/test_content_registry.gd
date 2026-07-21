@@ -11,9 +11,8 @@ func test_registry_loads_seed_tokens() -> void:
 
 	registry.load_all()
 
-	# 退役的 4 elements × 4 rarities + empty_token = 17，加 M1 的 5 个人生模拟 token。
-	# 旧的 17 个在 M7 抛光时清理，届时这个数字会再降。
-	assert_eq(registry.tokens.size(), 22)
+	# 只剩 M1 的 5 个人生模拟 token；5×5 四元素 token 和 empty_token 已删除。
+	assert_eq(registry.tokens.size(), 5)
 
 	# M1 起始 token 池
 	assert_true(registry.starting_pools.has("default_pool"), "应加载默认起始 token 池")
