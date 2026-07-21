@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mundane"
+name = "content.token.mundane.name"
+description = "content.token.mundane.description"
+rarity = "Common"
+type = "mundane"
+tags = PackedStringArray("mundane")
+spawn_rules = {
+"weight": 0.0
+}
+base_score = 1
+zodiac_affinity = ""

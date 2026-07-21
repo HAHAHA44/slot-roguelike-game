@@ -42,6 +42,20 @@ func clear_all() -> void:
 	for i in RING_SIZE:
 		_slots[i] = ""
 
+# 洗牌投盘：把 token_ids 打乱后铺满 12 格。
+# - 多于 12 张：只投前 12 张（洗过牌，所以每年投上来的子集不同）。
+# - 少于 12 张：剩余槽位填 filler_token_id。玩家删牌后池子会缩水，
+#   补位 token 让「少一张」在盘上有具体形状，而不是一个看不懂的空洞。
+# - filler_token_id 为空串时剩余槽位留空，SettlementService 会跳过空槽。
+func fill_from_pool(token_ids: Array, filler_token_id: String = "") -> void:
+	var shuffled: Array = token_ids.duplicate()
+	shuffled.shuffle()
+	for slot in RING_SIZE:
+		if slot < shuffled.size():
+			_slots[slot] = String(shuffled[slot])
+		else:
+			_slots[slot] = filler_token_id
+
 func occupied_slots() -> Array:
 	var result: Array = []
 	for i in RING_SIZE:

@@ -14,6 +14,11 @@ extends Resource
 @export var display_name: String = ""
 @export var token_ids: PackedStringArray = PackedStringArray()
 
+# 池子不足 12 张时用来补满剩余槽位的 token id（""=留空槽）。
+# 玩家删牌后池子会缩水，补位 token 决定「少一张」在盘上长什么样。
+# 放在这里而不是写死在 RunScreen：补位 token 是内容，代码里不该出现它的 id。
+@export var filler_token_id: String = ""
+
 func get_display_name() -> String:
 	return L10n.text(display_name, id)
 

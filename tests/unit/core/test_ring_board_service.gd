@@ -85,3 +85,62 @@ func test_neighbors_rejects_out_of_range_slot() -> void:
 	var b = _make()
 	assert_eq(b.neighbors(-1, 1), [])
 	assert_eq(b.neighbors(12, 1), [])
+
+# -- fill_from_pool（M1 投盘 + 补位） -----------------------------------------
+
+func test_fill_from_pool_exactly_twelve_uses_every_entry() -> void:
+	var b = _make()
+	var pool: Array = []
+	for i in 12:
+		pool.append("t%d" % i)
+	b.fill_from_pool(pool, "mundane")
+	var placed: Array = []
+	for slot in 12:
+		placed.append(b.token_at(slot))
+	placed.sort()
+	pool.sort()
+	assert_eq(placed, pool, "12 张正好铺满，每张都该上盘（顺序被洗过，比排序后的集合）")
+
+# 玩家删牌后池子缩水，空出来的槽位由补位 token 顶上。
+func test_fill_from_pool_pads_short_pool_with_filler() -> void:
+	var b = _make()
+	b.fill_from_pool(["a", "b", "c"], "mundane")
+	var filler_count: int = 0
+	for slot in 12:
+		if b.token_at(slot) == "mundane":
+			filler_count += 1
+	assert_eq(filler_count, 9, "3 张真牌 + 9 张补位 = 12 格")
+
+func test_fill_from_pool_empty_filler_leaves_slots_blank() -> void:
+	var b = _make()
+	b.fill_from_pool(["a", "b"], "")
+	assert_eq(b.occupied_slots().size(), 2, "补位 id 为空时剩余槽位留空")
+
+func test_fill_from_pool_empty_pool_is_all_filler() -> void:
+	var b = _make()
+	b.fill_from_pool([], "mundane")
+	assert_eq(b.occupied_slots().size(), 12)
+	assert_eq(b.token_at(0), "mundane")
+
+func test_fill_from_pool_larger_pool_takes_twelve() -> void:
+	var b = _make()
+	var pool: Array = []
+	for i in 20:
+		pool.append("t%d" % i)
+	b.fill_from_pool(pool, "mundane")
+	assert_eq(b.occupied_slots().size(), 12)
+	for slot in 12:
+		assert_ne(b.token_at(slot), "mundane", "池子够大时不该出现补位 token")
+
+func test_fill_from_pool_overwrites_previous_layout() -> void:
+	var b = _make()
+	b.place(0, "stale")
+	b.fill_from_pool(["a"], "mundane")
+	assert_ne(b.token_at(0), "stale", "投盘应整盘覆盖，不留上一年的残留")
+
+# 洗牌是「不改动传入数组」的：RunScreen 递进来的是 RunSession.token_pool 本体。
+func test_fill_from_pool_does_not_mutate_caller_array() -> void:
+	var b = _make()
+	var pool: Array = ["a", "b", "c"]
+	b.fill_from_pool(pool, "mundane")
+	assert_eq(pool, ["a", "b", "c"], "洗牌不该打乱调用方的池子")
