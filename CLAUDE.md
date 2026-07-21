@@ -1,6 +1,6 @@
 # Reelbound — Agent Reference
 
-**Engine:** Godot 4.6.1-stable / GDScript  
+**Engine:** Godot 4.7.1-stable / GDScript  
 **Stage:** M0 — stub yearly loop（人生模拟重设计）
 
 ## What it is
@@ -53,7 +53,7 @@ docs/             PRD + engineering notes — content-schema.md is the authorita
 
 | Tool | Version |
 |------|---------|
-| Godot | 4.6.1-stable |
+| Godot | 4.7.1-stable |
 | GUT | 9.6.0 |
 | Godot State Charts | 0.22.3（M0 起未使用；M2 事件状态机可能恢复）|
 
@@ -64,10 +64,10 @@ scripts/dev/run-tests.sh unit          # all unit tests
 scripts/dev/run-tests.sh integration   # all integration tests
 scripts/dev/run-tests.sh smoke         # test_run_screen_flow.gd (includes the smoke test)
 scripts/dev/run-tests.sh one res://tests/unit/core/test_xxx.gd
-scripts/dev/run-tests.sh shot res://scenes/run/run_screen.tscn   # screenshot via WSLg
+scripts/dev/run-tests.sh shot res://scenes/run/run_screen.tscn   # screenshot (needs a display)
 ```
 
-`GODOT_BIN` must point at Linux Godot 4.6.x (default `~/.local/bin/godot`). Screenshots need WSLg, so don't add `--headless` when taking them. Windows PowerShell equivalents live in `README.md`.
+`GODOT_BIN` must point at Godot 4.7.x (default `~/.local/bin/godot`; on macOS `/Applications/Godot.app/Contents/MacOS/Godot`). Screenshots need a real display — WSLg on WSL, the desktop session on macOS/Linux — so don't add `--headless` when taking them. Windows PowerShell equivalents live in `README.md`.
 
 ## Commit discipline
 

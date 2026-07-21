@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GUT 测试 / 截图统一入口（WSL / Linux）。
+# GUT 测试 / 截图统一入口（macOS / Linux / WSL）。
 #
 # 用法：
 #   scripts/dev/run-tests.sh unit          # 所有 unit 测试
@@ -9,9 +9,10 @@
 #   scripts/dev/run-tests.sh shot <scene>  # 截图指定场景到 screenshots/
 #
 # 依赖：
-#   - $GODOT_BIN 指向 Linux Godot 4.6.x（建议放 ~/.local/bin/godot）
+#   - $GODOT_BIN 指向 Godot 4.7.x（默认 ~/.local/bin/godot；
+#     macOS 用 /Applications/Godot.app/Contents/MacOS/Godot）
 #   - GUT 9.6.0 在 addons/gut
-#   - 截图需要 display（WSLg 自动满足）
+#   - 截图需要 display（WSL 走 WSLg；macOS / Linux 用桌面会话）
 
 set -euo pipefail
 

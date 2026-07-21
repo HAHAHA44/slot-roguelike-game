@@ -1,10 +1,10 @@
 # Reelbound
 
-Godot 4.6.1 prototype for a 5×5 slot roguelike. See `CLAUDE.md` for the full agent reference.
+Godot 4.7.1 prototype for a 5×5 slot roguelike. See `CLAUDE.md` for the full agent reference.
 
 ## Requirements
 
-- Godot `4.6.1-stable`
+- Godot `4.7.1-stable`
 - GUT `9.6.0` (vendored in `addons/gut/`)
 - Godot State Charts `0.22.3` (vendored in `addons/godot_state_charts/`)
 
@@ -17,7 +17,7 @@ Godot 4.6.1 prototype for a 5×5 slot roguelike. See `CLAUDE.md` for the full ag
 - `tests/` — GUT unit + integration tests.
 - `docs/` — PRD and engineering notes.
 
-## Run Tests (WSL / Linux, recommended)
+## Run Tests (macOS / Linux / WSL)
 
 ```bash
 scripts/dev/run-tests.sh unit          # all unit tests
@@ -27,12 +27,12 @@ scripts/dev/run-tests.sh one res://tests/unit/core/test_xxx.gd
 scripts/dev/run-tests.sh shot res://scenes/run/run_screen.tscn  # screenshot
 ```
 
-The script expects `GODOT_BIN` to point at the Linux Godot 4.6.x binary (default `~/.local/bin/godot`). Screenshots rely on WSLg, so do not add `--headless` when taking them.
+The script expects `GODOT_BIN` to point at a Godot 4.7.x binary (default `~/.local/bin/godot`). On macOS that is `/Applications/Godot.app/Contents/MacOS/Godot`. Screenshots need a real display (WSLg on WSL, the desktop session on macOS/Linux), so do not add `--headless` when taking them.
 
 ## Run Tests (Windows / PowerShell)
 
 ```powershell
-$env:GODOT_BIN = "C:\path\to\Godot_v4.6.1-stable_win64.exe"
+$env:GODOT_BIN = "C:\path\to\Godot_v4.7.1-stable_win64.exe"
 & $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -ginclude_subdirs -gexit
 & $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gdir=res://tests/integration -ginclude_subdirs -gexit
 & $env:GODOT_BIN --headless --path . -d -s addons/gut/gut_cmdln.gd -gtest=res://tests/integration/test_run_screen_flow.gd -gexit

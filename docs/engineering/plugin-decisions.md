@@ -4,7 +4,7 @@
 
 | Plugin | Version | Source | Why now |
 | --- | --- | --- | --- |
-| GUT | `9.6.0` | `https://github.com/bitwes/Gut` | Required immediately for unit and integration tests on Godot `4.6.x`. |
+| GUT | `9.6.0` | `https://github.com/bitwes/Gut` | Required immediately for unit and integration tests on Godot `4.7.x`. |
 | Godot State Charts | `0.22.3` | `https://github.com/derkork/godot-statecharts` | Approved for later run-flow state management; installed now to keep the project baseline stable. |
 | Locker | not installed | TBD | Deferred until save-versioning and multiple save slots become real requirements. |
 
