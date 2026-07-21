@@ -23,6 +23,9 @@ var zodiac_birth: String = ""
 var stage_idx: int = 0
 var stats: Dictionary = {}
 var karma_in_run: int = 0
+# 剩余删牌次数。出生时由起始池的 delete_charges 填入，删一张扣一次，用完为止。
+# 是一次性资源而非每年刷新——「这辈子只能改五次」才有取舍。
+var token_delete_charges: int = 0
 # NPC 关系表：{npc_id: String -> {"kind": String, "score": int}}。
 # kind ∈ {"family", "friend", "lover"}；M4 RelationshipService 维护。
 var relationships: Dictionary = {}
@@ -110,6 +113,7 @@ func to_dict() -> Dictionary:
 		"stage_idx": stage_idx,
 		"stats": stats.duplicate(true),
 		"karma_in_run": karma_in_run,
+		"token_delete_charges": token_delete_charges,
 		"relationships": relationships.duplicate(true),
 		# 5×5 遗留字段
 		"current_turn": current_turn,
@@ -137,6 +141,7 @@ static func from_dict(data: Dictionary) -> RunSession:
 	else:
 		session.stats = {}
 	session.karma_in_run = int(data.get("karma_in_run", 0))
+	session.token_delete_charges = int(data.get("token_delete_charges", 0))
 	var incoming_relationships = data.get("relationships", {})
 	if incoming_relationships is Dictionary:
 		session.relationships = (incoming_relationships as Dictionary).duplicate(true)

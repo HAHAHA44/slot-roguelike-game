@@ -27,6 +27,8 @@ func test_registry_loads_seed_tokens() -> void:
 	assert_false(String(pool.filler_token_id).is_empty(), "默认池应配了补位 token")
 	assert_true(registry.tokens.has(String(pool.filler_token_id)),
 		"补位 token「%s」必须存在于 content/tokens/" % pool.filler_token_id)
+	assert_gt(pool.delete_charges, 0, "默认池应给玩家若干次删牌机会")
+
 	# 补位 token 是「什么都没发生的一年」：有分但不该带联动，
 	# 否则删牌反而会凭空多出联动，删牌的取舍就假了。
 	var filler = registry.tokens.get(String(pool.filler_token_id))

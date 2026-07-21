@@ -19,6 +19,10 @@ extends Resource
 # 放在这里而不是写死在 RunScreen：补位 token 是内容，代码里不该出现它的 id。
 @export var filler_token_id: String = ""
 
+# 出生时给的删牌次数。删牌是一次性资源，用完不再生（M3 事件经济可能补充）。
+# 同样是平衡旋钮，调它不该改代码。
+@export var delete_charges: int = 0
+
 func get_display_name() -> String:
 	return L10n.text(display_name, id)
 

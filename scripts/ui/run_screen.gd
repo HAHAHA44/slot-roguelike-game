@@ -14,6 +14,7 @@ const RingBoardServiceScript := preload("res://scripts/core/services/ring_board_
 const ZodiacServiceScript := preload("res://scripts/core/services/zodiac_service.gd")
 const LifeStageServiceScript := preload("res://scripts/core/services/life_stage_service.gd")
 const SettlementServiceScript := preload("res://scripts/core/services/settlement_service.gd")
+const TokenInventoryServiceScript := preload("res://scripts/core/services/token_inventory_service.gd")
 
 # 起始 token 池的 id。池子构成在 content/run_start/default_pool.tres 里调，不在这里。
 const DEFAULT_POOL_ID := "default_pool"
@@ -30,6 +31,9 @@ var _ring_board
 var _zodiac_service
 var _life_stage_service
 var _settlement_service
+var _token_inventory_service
+# 池子不足 12 张时的补位 token id，出生时从起始池定义读进来（内容，不是常量）。
+var _filler_token_id: String = ""
 var _yearly_log: Array[String] = []
 var _alive: bool = false
 # 最近一年的 CascadeReport。T1.6 的顺序点亮 / 数字弹跳会逐条回放它的 steps。
@@ -48,6 +52,8 @@ var autoplay_on_ready: bool = false
 @onready var _log_list: ItemList = %YearlyLogList
 @onready var _step_button: Button = %StepButton
 @onready var _death_label: Label = %DeathLabel
+@onready var _backpack_button: Button = %BackpackButton
+@onready var _backpack_panel = %BackpackPanel
 
 func _ready() -> void:
 	_content_registry = ContentRegistryScript.new()
@@ -56,10 +62,13 @@ func _ready() -> void:
 	_zodiac_service = ZodiacServiceScript.new(_content_registry.zodiacs.values())
 	_life_stage_service = LifeStageServiceScript.new(_content_registry.life_stages.values())
 	_settlement_service = SettlementServiceScript.new(_content_registry.tokens)
+	_token_inventory_service = TokenInventoryServiceScript.new()
 	run_session = RunSessionScript.new()
 
 	_zodiac_ring.bind_content(_zodiac_service, _content_registry.tokens)
 	_step_button.pressed.connect(_on_step_pressed)
+	_backpack_button.pressed.connect(_on_backpack_pressed)
+	_backpack_panel.delete_requested.connect(_on_backpack_delete_requested)
 
 	begin_run(DEFAULT_BIRTH_ZODIAC, DEFAULT_LIFESPAN)
 	if autoplay_on_ready:
@@ -78,6 +87,9 @@ func begin_run(zodiac_birth: String, lifespan: int) -> void:
 	run_session.karma_in_run = 0
 	run_session.token_pool = _draw_starting_pool()
 	_alive = true
+	if _backpack_panel != null:
+		_backpack_panel.bind_content(_content_registry.tokens, _filler_token_id)
+		_backpack_panel.close()
 	_last_cascade_report = null
 	_yearly_log.clear()
 	_ring_board.clear_all()
@@ -133,6 +145,16 @@ func get_zodiac_service():
 func get_last_cascade_report():
 	return _last_cascade_report
 
+func get_backpack_panel():
+	return _backpack_panel
+
+func get_delete_charges() -> int:
+	return _token_inventory_service.charges(run_session)
+
+# 池子不足 12 张时补上盘面的 token id（""=留空槽）。
+func get_filler_token_id() -> String:
+	return _filler_token_id
+
 # -- UI refresh --------------------------------------------------------------
 
 func _refresh_all() -> void:
@@ -145,6 +167,7 @@ func _refresh_all() -> void:
 	_refresh_ring()
 	_refresh_log()
 	_refresh_button()
+	_refresh_backpack()
 
 func _refresh_hud() -> void:
 	var birth_z = _zodiac_service.get_by_id(run_session.zodiac_birth) if not run_session.zodiac_birth.is_empty() else null
@@ -209,7 +232,35 @@ func _refresh_button() -> void:
 			"自然死，享年 %d。重新开始？" % run_session.age)
 		_death_label.visible = true
 
+func _refresh_backpack() -> void:
+	if _backpack_button == null:
+		return
+	_backpack_button.text = L10n.format_text("ui.run.button.backpack",
+		{"count": run_session.token_pool.size()},
+		"背包（%d）" % run_session.token_pool.size())
+	if _backpack_panel != null and _backpack_panel.is_open():
+		_backpack_panel.refresh(run_session.token_pool,
+			_token_inventory_service.charges(run_session))
+
 # -- input handlers ----------------------------------------------------------
+
+func _on_backpack_pressed() -> void:
+	if _backpack_panel == null:
+		return
+	if _backpack_panel.is_open():
+		_backpack_panel.close()
+	else:
+		_backpack_panel.open(run_session.token_pool,
+			_token_inventory_service.charges(run_session))
+
+# 删牌只改池子，不改本年已经投好的盘面——本年的 cascade 已经结算过了，
+# 回头去动它等于让玩家看到的分数凭空变化。删掉的那张从下一年起消失。
+func _on_backpack_delete_requested(pool_index: int) -> void:
+	if not _token_inventory_service.delete_at(run_session, pool_index):
+		return
+	_log("删除人生碎片：剩余 %d 张，可删除次数 %d" %
+		[run_session.token_pool.size(), run_session.token_delete_charges])
+	_refresh_all()
 
 func _on_step_pressed() -> void:
 	if _alive:
@@ -233,6 +284,8 @@ func _start_next_life() -> void:
 # 池子构成是内容（content/run_start/），不是代码；这里只负责取。
 func _draw_starting_pool() -> Array[String]:
 	var pool: Array[String] = []
+	_filler_token_id = ""
+	run_session.token_delete_charges = 0
 	var definition = _content_registry.starting_pools.get(DEFAULT_POOL_ID, null)
 	if definition == null:
 		# 内容缺失不该静默变成空盘——那会让每年 cascade=0，看起来像结算坏了。
@@ -240,17 +293,14 @@ func _draw_starting_pool() -> Array[String]:
 		return pool
 	for token_id in definition.token_ids:
 		pool.append(String(token_id))
+	_filler_token_id = String(definition.filler_token_id)
+	run_session.token_delete_charges = int(definition.delete_charges)
 	return pool
 
-# 每年把池子洗牌投上 12 格。池子多于 12 张时只投前 12 张，少于 12 张时剩余槽位留空
-# （SettlementService 会跳过空槽）。M3 事件经济接管后池子才会在一生中增减。
+# 每年把池子洗牌投上 12 格。池子少于 12 张（玩家删过牌）时用补位 token 填满剩余槽位。
+# 洗牌 + 补位的规则在 RingBoardService 里，这里只负责把「池子」和「补什么」递进去。
 func _populate_board() -> void:
-	_ring_board.clear_all()
-	var shuffled: Array = run_session.token_pool.duplicate()
-	shuffled.shuffle()
-	var count: int = mini(shuffled.size(), RingBoardServiceScript.RING_SIZE)
-	for slot in count:
-		_ring_board.place(slot, String(shuffled[slot]))
+	_ring_board.fill_from_pool(run_session.token_pool, _filler_token_id)
 
 func _stub_event_skip() -> void:
 	# stub：M2 加 EventDraftService（sanity 加权）+ EventResolverService。

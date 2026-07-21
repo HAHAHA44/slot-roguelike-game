@@ -8,3 +8,4 @@ id = "default_pool"
 display_name = "content.starting_pool.default_pool.name"
 token_ids = PackedStringArray("diligence", "diligence", "diligence", "diligence", "close_friend", "close_friend", "close_friend", "close_friend", "kinsman", "kinsman", "benefactor", "ancestral_blessing")
 filler_token_id = "mundane"
+delete_charges = 5

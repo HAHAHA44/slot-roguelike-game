@@ -142,6 +142,10 @@ func _validate_starting_pool_definition(definition, errors: Array[String]) -> vo
 	if definition.token_ids == null or definition.token_ids.is_empty():
 		errors.append("token_ids must not be empty")
 		return
+	if int(definition.delete_charges) < 0:
+		errors.append("delete_charges must not be negative")
+	# filler_token_id 允许为空（""=池子不足时留空槽），所以这里不校验非空。
+	# 它指向的 token 是否存在只能在 ContentRegistry 全量加载后才知道，见 test_content_registry。
 	for token_id in definition.token_ids:
 		if String(token_id).strip_edges().is_empty():
 			errors.append("token_ids must not contain empty entries")

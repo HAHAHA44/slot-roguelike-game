@@ -93,3 +93,69 @@ func test_cascade_produces_score_and_chains() -> void:
 	assert_eq(report.steps.size(), 12, "12 格应各结算一次")
 	assert_gt(report.total_score, 0, "年收益应为正，而不是 stub 的 0")
 	assert_gt(report.chain_count, 0, "默认池含挚友 / 同乡 / 贵人 / 祖荫，应产生联动")
+
+# -- M1 背包 ------------------------------------------------------------------
+
+# 背包按钮开合面板，面板列出的就是当前池子。
+func test_backpack_opens_and_lists_the_pool() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	var panel = scene.get_backpack_panel()
+	assert_false(panel.is_open(), "默认应是关着的")
+	panel.open(scene.run_session.token_pool, scene.get_delete_charges())
+	assert_true(panel.is_open())
+	assert_eq(panel.get_node("%TokenList").item_count, 12, "面板应列出池中全部 12 张")
+
+# 起始删牌次数来自起始池定义，不是代码里的常量。
+func test_delete_charges_come_from_starting_pool() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	assert_eq(scene.get_delete_charges(), 5, "默认池给 5 次删牌机会")
+
+# 删牌走完整回路：面板发信号 → 服务改池子 → 池子少一张、次数少一次。
+func test_delete_request_shrinks_pool_and_spends_charge() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	var panel = scene.get_backpack_panel()
+	panel.open(scene.run_session.token_pool, scene.get_delete_charges())
+	panel.get_node("%TokenList").select(0)
+	panel.delete_requested.emit(0)
+	assert_eq(scene.run_session.token_pool.size(), 11, "删掉一张后池子剩 11")
+	assert_eq(scene.get_delete_charges(), 4, "删一张扣一次")
+
+# 次数用尽后删不动：第 6 次请求应被服务挡下，池子不再缩。
+func test_delete_stops_after_charges_run_out() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	for i in 6:
+		scene.get_backpack_panel().delete_requested.emit(0)
+	assert_eq(scene.get_delete_charges(), 0)
+	assert_eq(scene.run_session.token_pool.size(), 7, "12 张只删得掉 5 张")
+
+# 任务 3 的核心：池子不足 12 张时，剩余槽位由补位 token 顶上，盘面永远是满的。
+func test_short_pool_fills_board_with_filler_token() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	var filler: String = scene.get_filler_token_id()
+	assert_false(filler.is_empty(), "起始池应配了补位 token")
+	for i in 3:
+		scene.get_backpack_panel().delete_requested.emit(0)
+	scene.step_year()
+	var board = scene.get_ring_board()
+	var filler_count: int = 0
+	for slot in 12:
+		assert_false(board.token_at(slot).is_empty(), "slot %d 不该是空的" % slot)
+		if board.token_at(slot) == filler:
+			filler_count += 1
+	assert_eq(filler_count, 3, "删掉 3 张 → 3 格补位 token")
+
+# 补位 token 必须是 registry 认得的正式 token，否则 cascade 会吐 warning、这 3 格白给。
+func test_filler_token_settles_without_warnings() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	for i in 5:
+		scene.get_backpack_panel().delete_requested.emit(0)
+	scene.step_year()
+	var report = scene.get_last_cascade_report()
+	assert_eq(report.warnings.size(), 0, "补位 token 应能被 SettlementService 正常结算")
+	assert_eq(report.steps.size(), 12, "补位后 12 格仍应各结算一次")
