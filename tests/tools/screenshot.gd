@@ -15,6 +15,8 @@
 #   --out=<文件路径>       PNG 输出，路径相对项目根（必填）
 #   --frames=<int>        渲染多少帧后再截图，默认 2，给 UI 一点稳定时间
 #   --size=<W>x<H>        视口尺寸，默认 1280x720
+#   --steps=<int>         截图前先调 N 次 step_year()，默认 0。
+#                         出生态盘面是空的，看投盘/结算结果至少要 --steps=1。
 #
 # 退出码：
 #   0 = 截图成功；非 0 = 失败（参数缺失、场景加载失败、保存失败）。
@@ -56,6 +58,19 @@ func _initialize() -> void:
 	# 等指定帧数，让 _ready / _process / layout 跑完
 	for i in range(max(1, frames)):
 		await process_frame
+
+	# 可选：截图前先推进 N 年。出生态的盘面是空的（begin_run 会 clear_all），
+	# 想看投盘/结算后的样子必须先 step。
+	var steps: int = int(args.get("steps", 0))
+	if steps > 0:
+		if not instance.has_method("step_year"):
+			push_error("screenshot.gd: --steps 需要场景实现 step_year()，%s 没有" % scene_path)
+			quit(6)
+			return
+		for i in steps:
+			instance.step_year()
+		for i in range(max(1, frames)):
+			await process_frame
 
 	var image: Image = root_window.get_texture().get_image()
 	if image == null:
