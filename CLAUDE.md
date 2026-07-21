@@ -37,7 +37,9 @@
 
 ```
 autoload/         ContentRegistry, RunSession, SaveService (class_name only);
-                  Localization is the only real Godot autoload.
+                  Localization 是本项目唯一的业务 autoload。
+                  （project.godot 里还有 _mcp_game_helper，是 godot_ai 插件的开发工具
+                    钩子，非游戏逻辑 —— 不要往它上面挂东西。）
 scripts/core/     services/ (pure logic) + value_objects/ (immutable carriers)
 scripts/content/  Resource class definitions (data schemas only, no logic)
 scripts/ui/       run_screen.gd (yearly loop orchestrator), main_menu.gd
