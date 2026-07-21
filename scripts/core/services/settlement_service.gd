@@ -71,9 +71,10 @@ func settle(ring_board) -> CascadeReport:
 			if context.effect_hit():
 				chain_count += 1
 
+		var links: Array = context.step_links().duplicate()
 		var affected: Array = []
 		var chain_kind: String = ""
-		for link in context.step_links():
+		for link in links:
 			affected.append(int(link["slot"]))
 			if chain_kind.is_empty():
 				chain_kind = String(link["kind"])
@@ -85,6 +86,7 @@ func settle(ring_board) -> CascadeReport:
 			score_before,
 			int(scores[next_slot]),
 			affected,
+			links,
 			chain_kind,
 			chain_count
 		))

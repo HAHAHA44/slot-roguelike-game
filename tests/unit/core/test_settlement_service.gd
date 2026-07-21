@@ -178,6 +178,37 @@ func test_zodiac_chain_skips_tokens_without_affinity() -> void:
 	assert_eq(report.total_score, 3, "空 affinity 不应互相联动（否则无属性 token 会全场共鸣）")
 	assert_eq(report.chain_count, 0, "空 affinity 不记 chain")
 
+# -- 单步多种联动 ------------------------------------------------------------
+
+func test_step_records_every_link_kind_separately() -> void:
+	# 一个 token 同时挂同生肖和邻接两个 effect：chain_kind 只记第一条，
+	# 但 chain_links / chain_kinds() 必须两条都留下，否则 UI 会漏画一种颜色的连线。
+	var zodiac_effect = TriggerZodiacChainScript.new()
+	zodiac_effect.amount = 9
+	var neighbor_effect = ModifyNeighborScript.new()
+	neighbor_effect.amount = 3
+	neighbor_effect.radius = 1
+	var defs := _registry([
+		_make_token("dual", 1, [zodiac_effect, neighbor_effect], "dragon"),
+		_make_token("kin", 5, [], "dragon"),
+		_make_token("plain", 5, [], ""),
+	])
+	var service = SettlementServiceScript.new(defs)
+	# dual 在 slot 0；同生肖目标 kin 在 slot 6（非邻接），邻接目标 plain 在 slot 1。
+	var report = service.settle(_board({0: "dual", 6: "kin", 1: "plain"}))
+	var first = report.steps[0]
+	assert_eq(first.token_id, "dual", "base 1 最低，dual 先结算")
+	assert_eq(first.chain_kinds(), ["zodiac", "adjacent"],
+		"同一步产生的两种联动都要保留，UI 才能同时画红线和蓝线")
+	assert_eq(first.chain_links.size(), 2, "两条 link 各自独立记录")
+	assert_eq(report.chain_count, 2, "两个 effect 各命中一次，记 2 次 chain")
+
+func test_chain_kinds_is_empty_without_links() -> void:
+	var defs := _registry([_make_token("plain", 1)])
+	var service = SettlementServiceScript.new(defs)
+	var report = service.settle(_board({0: "plain"}))
+	assert_eq(report.steps[0].chain_kinds(), [], "没有联动时应返回空数组")
+
 # -- 全场 12 连 --------------------------------------------------------------
 
 func test_full_board_twelve_tokens_all_settle() -> void:

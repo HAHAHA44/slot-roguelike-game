@@ -16,7 +16,12 @@ var score_before: int
 var score_after: int
 # 本步 effect 打到的其他槽位，按 effect 产生顺序排列（空 = 没触发联动）。
 var affected_slots: Array
-# 联动类型，取本步第一条 link 的 kind："" / "zodiac" / "adjacent"。
+# 本步的全部联动 link：[{slot: int, delta: int, kind: String}, ...]。
+# UI 靠它逐条画连线——同一个 step 可能同时产生同生肖（红线）和邻接（蓝线），
+# 例如「祖荫」同时挂 TriggerZodiacChain 和 ModifyNeighbor。只看 chain_kind 会丢线。
+var chain_links: Array
+# 本步的主联动类型（第一条 link 的 kind）："" / "zodiac" / "adjacent"。
+# 只用于摘要展示（日志行、banner 配色）；画线一律走 chain_links。
 var chain_kind: String
 # 本步结束后的累计 chain 数，UI 靠它决定何时弹连击 banner（3 / 5 / 7 / 12）。
 var chain_count_after: int
@@ -28,6 +33,7 @@ func _init(
 	before: int = 0,
 	after: int = 0,
 	affected: Array = [],
+	links: Array = [],
 	kind: String = "",
 	chain_after: int = 0
 ) -> void:
@@ -37,5 +43,16 @@ func _init(
 	score_before = before
 	score_after = after
 	affected_slots = affected
+	chain_links = links
 	chain_kind = kind
 	chain_count_after = chain_after
+
+# 本步出现过的联动类型集合，去重、保持首次出现顺序。UI 用它决定要画哪几种颜色的线。
+func chain_kinds() -> Array:
+	var result: Array = []
+	for link in chain_links:
+		var kind := String(link.get("kind", ""))
+		if kind.is_empty() or result.has(kind):
+			continue
+		result.append(kind)
+	return result
