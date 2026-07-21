@@ -1,6 +1,8 @@
 # Reelbound
 
-Godot 4.7.1 prototype for a 5×5 slot roguelike. See `CLAUDE.md` for the full agent reference.
+Godot 4.7.1 prototype for a life-sim roguelike: a 12-slot zodiac ring, cascade settlement, and year-end events. See `CLAUDE.md` for the full agent reference.
+
+Currently at **M0** — the yearly loop is wired end to end but cascade and events are still stubs. Milestones are tracked in `docs/2026-05-18-life-sim-dev-plan.md`.
 
 ## Requirements
 
@@ -12,8 +14,8 @@ Godot 4.7.1 prototype for a 5×5 slot roguelike. See `CLAUDE.md` for the full ag
 
 - `autoload/` — core session-scoped classes (`ContentRegistry`, `RunSession`, `SaveService`) and the `Localization` autoload.
 - `scripts/` — services, value objects, UI controllers.
-- `scenes/` — `app/`, `menu/`, `run/`, `endless/`, `meta/`.
-- `content/` — `.tres` data resources (tokens, events, items, heroes, …).
+- `scenes/` — `app/`, `menu/`, `run/`.
+- `content/` — `.tres` data resources (zodiac, life stages, tokens, events, items, …).
 - `tests/` — GUT unit + integration tests.
 - `docs/` — PRD and engineering notes.
 
@@ -22,7 +24,7 @@ Godot 4.7.1 prototype for a 5×5 slot roguelike. See `CLAUDE.md` for the full ag
 ```bash
 scripts/dev/run-tests.sh unit          # all unit tests
 scripts/dev/run-tests.sh integration   # all integration tests
-scripts/dev/run-tests.sh smoke         # run_screen flow + bag-roll smoke
+scripts/dev/run-tests.sh smoke         # run_screen yearly-loop flow
 scripts/dev/run-tests.sh one res://tests/unit/core/test_xxx.gd
 scripts/dev/run-tests.sh shot res://scenes/run/run_screen.tscn  # screenshot
 ```
@@ -40,10 +42,11 @@ $env:GODOT_BIN = "C:\path\to\Godot_v4.7.1-stable_win64.exe"
 
 ## Smoke Path
 
-Every change must keep `test_smoke_playable_path_still_works` green. It verifies:
+Every change must keep `test_smoke_yearly_loop_alive` green. It verifies the yearly loop:
 
-1. The game boots into `RunScreen` → `offer_choice`.
-2. A reward offer and an event are selected.
-3. The next-turn arrow rolls the board (25 tokens including injected `empty_token` padding).
-4. Settlement resolves automatically through every phase.
-5. The UI reaches `settlement_result`, then loops back to `offer_choice`.
+1. The game boots into `RunScreen`, which builds the registry, session, and services.
+2. Birth sets the zodiac and lifespan.
+3. Each year: the 12-slot ring is populated, cascade settles, the year-end event resolves, and age advances.
+4. The run ends at natural death once age reaches lifespan.
+
+Steps 3's cascade and event are stubs until M1/M2 land — the test asserts the loop shape, not the payoff.
