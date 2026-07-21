@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StartingPoolDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/starting_pool_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "default_pool"
+display_name = "content.starting_pool.default_pool.name"
+token_ids = PackedStringArray("diligence", "diligence", "diligence", "diligence", "close_friend", "close_friend", "close_friend", "close_friend", "kinsman", "kinsman", "benefactor", "ancestral_blessing")

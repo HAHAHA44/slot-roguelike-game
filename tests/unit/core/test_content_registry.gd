@@ -15,6 +15,15 @@ func test_registry_loads_seed_tokens() -> void:
 	# 旧的 17 个在 M7 抛光时清理，届时这个数字会再降。
 	assert_eq(registry.tokens.size(), 22)
 
+	# M1 起始 token 池
+	assert_true(registry.starting_pools.has("default_pool"), "应加载默认起始 token 池")
+	var pool = registry.starting_pools.get("default_pool")
+	assert_not_null(pool)
+	assert_eq(pool.token_ids.size(), 12, "默认池应有 12 张，正好铺满 12 格 ring")
+	for token_id in pool.token_ids:
+		assert_true(registry.tokens.has(String(token_id)),
+			"起始池引用的 token「%s」必须存在于 content/tokens/" % token_id)
+
 	# 12 生肖（鼠–猪）
 	assert_eq(registry.zodiacs.size(), 12, "应加载 12 生肖")
 	assert_true(registry.zodiacs.has("rat"))

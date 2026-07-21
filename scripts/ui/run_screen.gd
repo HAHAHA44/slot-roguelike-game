@@ -1,7 +1,8 @@
-# 主运行界面 / 人生模拟流程编排器（M0 可视化层）：
-# - 持有 ContentRegistry / RunSession / RingBoardService / ZodiacService / LifeStageService。
-# - 跑 stub yearly loop：出生 → 12 格生肖盘 stub 投放 → stub cascade（返回 0）
-#   → stub event（跳过）→ age++ → 寿命到顶自然死。M1+ 会替换 stub 部分。
+# 主运行界面 / 人生模拟流程编排器（M1）：
+# - 持有 ContentRegistry / RunSession / RingBoardService / ZodiacService /
+#   LifeStageService / SettlementService。
+# - 跑 yearly loop：出生（发起始 token 池）→ 洗牌投 12 格 → 真实 cascade 结算
+#   → stub event（跳过，M2 实装）→ age++ → 寿命到顶自然死。
 # - UI 层：HUD（出生/当年/年龄+寿命/精神/阶段/本命年标志）+ 12 格 ZodiacRing +
 #   年度日志 ItemList + 「下一年 / 重新开始」按钮。
 # - autoplay 路径保留（smoke test 用），默认关闭；玩家走主菜单进来时点按钮逐年推进。
@@ -12,7 +13,10 @@ const ContentRegistryScript := preload("res://autoload/content_registry.gd")
 const RingBoardServiceScript := preload("res://scripts/core/services/ring_board_service.gd")
 const ZodiacServiceScript := preload("res://scripts/core/services/zodiac_service.gd")
 const LifeStageServiceScript := preload("res://scripts/core/services/life_stage_service.gd")
+const SettlementServiceScript := preload("res://scripts/core/services/settlement_service.gd")
 
+# 起始 token 池的 id。池子构成在 content/run_start/default_pool.tres 里调，不在这里。
+const DEFAULT_POOL_ID := "default_pool"
 const DEFAULT_BIRTH_ZODIAC := "tiger"
 const DEFAULT_LIFESPAN := 80
 const LIFESPAN_MIN := 60
@@ -25,8 +29,11 @@ var _content_registry
 var _ring_board
 var _zodiac_service
 var _life_stage_service
+var _settlement_service
 var _yearly_log: Array[String] = []
 var _alive: bool = false
+# 最近一年的 CascadeReport。T1.6 的顺序点亮 / 数字弹跳会逐条回放它的 steps。
+var _last_cascade_report = null
 
 # 测试通过 _spawn() 显式置 true 跑 autoplay；玩家从主菜单进入时保持 false，等点按钮推进。
 var autoplay_on_ready: bool = false
@@ -48,6 +55,7 @@ func _ready() -> void:
 	_ring_board = RingBoardServiceScript.new()
 	_zodiac_service = ZodiacServiceScript.new(_content_registry.zodiacs.values())
 	_life_stage_service = LifeStageServiceScript.new(_content_registry.life_stages.values())
+	_settlement_service = SettlementServiceScript.new(_content_registry.tokens)
 	run_session = RunSessionScript.new()
 
 	_zodiac_ring.bind_zodiac_service(_zodiac_service)
@@ -68,10 +76,13 @@ func begin_run(zodiac_birth: String, lifespan: int) -> void:
 	run_session.stage_idx = 0
 	run_session.stats = {}
 	run_session.karma_in_run = 0
+	run_session.token_pool = _draw_starting_pool()
 	_alive = true
+	_last_cascade_report = null
 	_yearly_log.clear()
 	_ring_board.clear_all()
-	_log("出生：生肖 %s，寿命 %d 年" % [zodiac_birth, lifespan])
+	_log("出生：生肖 %s，寿命 %d 年，人生碎片 %d 张" %
+		[zodiac_birth, lifespan, run_session.token_pool.size()])
 	_refresh_all()
 
 func step_year() -> void:
@@ -81,11 +92,14 @@ func step_year() -> void:
 	var current_zodiac = _zodiac_service.current_year_zodiac(year)
 	var current_id: String = String(current_zodiac.id) if current_zodiac != null else ""
 	var birth_hit: bool = _zodiac_service.is_birth_year(year, run_session.zodiac_birth)
-	_populate_board_stub()
-	var cascade_score: int = _stub_cascade()
+	_populate_board()
+	var report = _settlement_service.settle(_ring_board)
+	_last_cascade_report = report
+	for warning in report.warnings:
+		push_warning("cascade（年 %d）：%s" % [year, warning])
 	_stub_event_skip()
-	_log("年 %d：当年生肖 %s，本命年命中: %s，cascade=%d" %
-		[year, current_id, str(birth_hit), cascade_score])
+	_log("年 %d：当年生肖 %s，本命年命中: %s，cascade=%d，连击 %d" %
+		[year, current_id, str(birth_hit), report.total_score, report.chain_count])
 	run_session.age += 1
 	if run_session.lifespan > 0 and run_session.age >= run_session.lifespan:
 		_alive = false
@@ -114,6 +128,10 @@ func get_ring_board():
 
 func get_zodiac_service():
 	return _zodiac_service
+
+# 最近一年的 CascadeReport（未结算过则为 null）。T1.6 的顺序点亮回放从这里取 steps。
+func get_last_cascade_report():
+	return _last_cascade_report
 
 # -- UI refresh --------------------------------------------------------------
 
@@ -209,21 +227,30 @@ func _start_next_life() -> void:
 	var next_lifespan: int = randi_range(LIFESPAN_MIN, LIFESPAN_MAX)
 	begin_run(next_zodiac, next_lifespan)
 
-# -- stub internals (M1+ 会替换为真实实现) ------------------------------------
+# -- 投盘 --------------------------------------------------------------------
 
-func _populate_board_stub() -> void:
-	# stub：把 12 生肖按 order 各放一格。M1 真实实现：从 RunSession.token_pool
-	# 抽 12 张（含 padding empty）洗牌投放。
+# 出生时发牌：把起始池的 token_ids 拷进 RunSession.token_pool。
+# 池子构成是内容（content/run_start/），不是代码；这里只负责取。
+func _draw_starting_pool() -> Array[String]:
+	var pool: Array[String] = []
+	var definition = _content_registry.starting_pools.get(DEFAULT_POOL_ID, null)
+	if definition == null:
+		# 内容缺失不该静默变成空盘——那会让每年 cascade=0，看起来像结算坏了。
+		push_error("找不到起始 token 池「%s」，本局将没有任何人生碎片" % DEFAULT_POOL_ID)
+		return pool
+	for token_id in definition.token_ids:
+		pool.append(String(token_id))
+	return pool
+
+# 每年把池子洗牌投上 12 格。池子多于 12 张时只投前 12 张，少于 12 张时剩余槽位留空
+# （SettlementService 会跳过空槽）。M3 事件经济接管后池子才会在一生中增减。
+func _populate_board() -> void:
 	_ring_board.clear_all()
-	for slot in 12:
-		var z = _zodiac_service.get_by_order(slot)
-		if z == null:
-			continue
-		_ring_board.place(slot, String(z.id))
-
-func _stub_cascade() -> int:
-	# stub：M1 实现 SettlementService cascade min-score-first。
-	return 0
+	var shuffled: Array = run_session.token_pool.duplicate()
+	shuffled.shuffle()
+	var count: int = mini(shuffled.size(), RingBoardServiceScript.RING_SIZE)
+	for slot in count:
+		_ring_board.place(slot, String(shuffled[slot]))
 
 func _stub_event_skip() -> void:
 	# stub：M2 加 EventDraftService（sanity 加权）+ EventResolverService。
