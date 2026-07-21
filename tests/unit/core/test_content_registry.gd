@@ -11,8 +11,9 @@ func test_registry_loads_seed_tokens() -> void:
 
 	registry.load_all()
 
-	# 4 elements × 4 rarities + empty_token
-	assert_eq(registry.tokens.size(), 17)
+	# 退役的 4 elements × 4 rarities + empty_token = 17，加 M1 的 5 个人生模拟 token。
+	# 旧的 17 个在 M7 抛光时清理，届时这个数字会再降。
+	assert_eq(registry.tokens.size(), 22)
 
 	# 12 生肖（鼠–猪）
 	assert_eq(registry.zodiacs.size(), 12, "应加载 12 生肖")
