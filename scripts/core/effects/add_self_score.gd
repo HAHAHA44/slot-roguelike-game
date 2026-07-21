@@ -11,3 +11,7 @@ func execute(context) -> void:
 	if context == null or amount == 0:
 		return
 	context.add_self(amount)
+
+func describe() -> String:
+	return L10n.format_text("effect.add_self_score", {"amount": amount},
+		"自身 +%d" % amount)

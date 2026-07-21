@@ -21,3 +21,8 @@ func execute(context) -> void:
 		var slot_index := int(target_slot)
 		var delta: int = context.scaled_delta(slot_index, amount, percent)
 		context.link(slot_index, delta, CascadeContext.KIND_ADJACENT)
+
+func describe() -> String:
+	return L10n.format_text("effect.modify_neighbor",
+		{"radius": radius, "gain": ScriptableEffect.format_gain(amount, percent)},
+		"%d 格内每格 %s" % [radius, ScriptableEffect.format_gain(amount, percent)])

@@ -30,3 +30,8 @@ func execute(context) -> void:
 			continue
 		var delta: int = context.scaled_delta(slot_index, amount, percent)
 		context.link(slot_index, delta, CascadeContext.KIND_ZODIAC)
+
+func describe() -> String:
+	return L10n.format_text("effect.trigger_zodiac_chain",
+		{"gain": ScriptableEffect.format_gain(amount, percent)},
+		"同生肖每格 %s" % ScriptableEffect.format_gain(amount, percent))
