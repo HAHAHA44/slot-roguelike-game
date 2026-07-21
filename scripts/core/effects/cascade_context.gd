@@ -79,6 +79,17 @@ func neighbors(radius: int = 1) -> Array:
 		return []
 	return _board.neighbors(slot, radius)
 
+# 联动的统一计分口径：定额 amount ＋ 目标当前分的 percent%。
+# 比例部分是 fun-axes P2 的落点——纯加法的联动，总分与排布无关（满盘时每个 token 的
+# 邻居数恒定，加法又可交换），于是每年结算结果一模一样。乘上目标当前分之后，
+# 「谁挨着谁」和「谁先结算」才开始改变结果，min-score-first 也才有意义。
+# 用 roundi 而不是截断，避免小分数时比例部分总是被抹成 0。
+func scaled_delta(target_slot: int, amount: int, percent: int) -> int:
+	if percent == 0:
+		return amount
+	var current := score_at(target_slot)
+	return amount + roundi(float(current) * float(percent) / 100.0)
+
 # 加到自己身上。不产生 link，不记 chain。
 func add_self(delta: int) -> void:
 	if slot < 0 or slot >= _scores.size():

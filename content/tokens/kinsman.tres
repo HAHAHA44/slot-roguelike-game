@@ -6,7 +6,7 @@
 
 [sub_resource type="Resource" id="Resource_upflq"]
 script = ExtResource("2_pfhmb")
-amount = 5
+percent = 110
 
 [resource]
 script = ExtResource("3_g68vu")
@@ -19,6 +19,6 @@ tags = PackedStringArray("bond", "zodiac")
 spawn_rules = {
 "weight": 1.0
 }
-base_score = 2
+base_score = 3
 effects = Array[ExtResource("1_ox0v4")]([SubResource("Resource_upflq")])
 zodiac_affinity = "rat"

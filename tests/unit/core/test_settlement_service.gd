@@ -178,6 +178,76 @@ func test_zodiac_chain_skips_tokens_without_affinity() -> void:
 	assert_eq(report.total_score, 3, "空 affinity 不应互相联动（否则无属性 token 会全场共鸣）")
 	assert_eq(report.chain_count, 0, "空 affinity 不记 chain")
 
+# -- 比例联动（P2 的倍增） ---------------------------------------------------
+
+func test_percent_scales_by_target_current_score() -> void:
+	var effect = ModifyNeighborScript.new()
+	effect.percent = 50
+	effect.radius = 1
+	var defs := _registry([
+		_make_token("amp", 1, [effect]),
+		_make_token("fat", 20),
+	])
+	var service = SettlementServiceScript.new(defs)
+	var report = service.settle(_board({0: "amp", 1: "fat"}))
+	assert_eq(report.total_score, 1 + 30, "20 的 50% = +10，比例按目标当前分算")
+
+func test_percent_and_amount_stack_amount_first() -> void:
+	var effect = ModifyNeighborScript.new()
+	effect.amount = 10
+	effect.percent = 100
+	effect.radius = 1
+	var defs := _registry([
+		_make_token("amp", 1, [effect]),
+		_make_token("seed", 4),
+	])
+	var service = SettlementServiceScript.new(defs)
+	var report = service.settle(_board({0: "amp", 1: "seed"}))
+	# delta = amount 10 + 当前分 4 的 100% = 14 → 4 + 14 = 18
+	assert_eq(report.total_score, 1 + 18, "定额与比例在同一次 link 里结算，比例吃的是加定额之前的分")
+
+func test_percent_compounds_across_multiple_amplifiers() -> void:
+	var effect = ModifyNeighborScript.new()
+	effect.percent = 100
+	effect.radius = 1
+	var defs := _registry([
+		_make_token("amp", 1, [effect]),
+		_make_token("seed", 4),
+	])
+	var service = SettlementServiceScript.new(defs)
+	# 两个放大器夹住一个 seed：4 → 8 → 16，复利而不是 4 + 4 + 4。
+	var report = service.settle(_board({0: "amp", 1: "seed", 2: "amp"}))
+	assert_eq(report.total_score, 1 + 16 + 1, "两次 ×2 应复利成 16，而不是平加成 12")
+
+func test_layout_changes_total_score_with_percent_effects() -> void:
+	# 这是 M1 的关键回归：纯加法时总分与排布无关，每年结算一模一样。
+	# 引入比例后，同一批 token 换个位置必须给出不同的总分。
+	var effect = ModifyNeighborScript.new()
+	effect.percent = 100
+	effect.radius = 1
+	var defs := _registry([
+		_make_token("amp", 1, [effect]),
+		_make_token("seed", 8),
+	])
+	var service = SettlementServiceScript.new(defs)
+	# 排布 A：两个 amp 夹住 seed → seed 被翻倍两次。
+	var clustered = service.settle(_board({0: "amp", 1: "seed", 2: "amp"}))
+	# 排布 B：两个 amp 分散，各自翻倍不同的目标（其中一个目标是另一个 amp）。
+	var spread = service.settle(_board({0: "amp", 1: "seed", 6: "amp", 7: "amp"}))
+	assert_ne(clustered.total_score, spread.total_score,
+		"比例联动下，排布必须影响总分——否则洗牌投盘毫无意义")
+
+func test_zodiac_chain_percent_scales_targets() -> void:
+	var effect = TriggerZodiacChainScript.new()
+	effect.percent = 50
+	var defs := _registry([
+		_make_token("hub", 1, [effect], "rat"),
+		_make_token("kin", 40, [], "rat"),
+	])
+	var service = SettlementServiceScript.new(defs)
+	var report = service.settle(_board({0: "hub", 6: "kin"}))
+	assert_eq(report.total_score, 1 + 60, "同生肖联动的比例同样按目标当前分算")
+
 # -- 单步多种联动 ------------------------------------------------------------
 
 func test_step_records_every_link_kind_separately() -> void:

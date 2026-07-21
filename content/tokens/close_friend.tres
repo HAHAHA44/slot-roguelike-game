@@ -6,7 +6,8 @@
 
 [sub_resource type="Resource" id="Resource_3kvxv"]
 script = ExtResource("2_rq07s")
-amount = 4
+amount = 2
+percent = 70
 
 [resource]
 script = ExtResource("3_3sied")
@@ -18,5 +19,5 @@ tags = PackedStringArray("bond")
 spawn_rules = {
 "weight": 1.0
 }
-base_score = 3
+base_score = 4
 effects = Array[ExtResource("1_452sb")]([SubResource("Resource_3kvxv")])

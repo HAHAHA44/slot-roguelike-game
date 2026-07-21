@@ -7,11 +7,12 @@
 
 [sub_resource type="Resource" id="Resource_bsgah"]
 script = ExtResource("2_1e0cy")
-amount = 2
+amount = 3
 
 [sub_resource type="Resource" id="Resource_4sk4l"]
 script = ExtResource("3_2vp01")
-amount = 6
+amount = 3
+percent = 80
 radius = 2
 
 [resource]
@@ -25,6 +26,6 @@ tags = PackedStringArray("fortune")
 spawn_rules = {
 "weight": 1.0
 }
-base_score = 4
+base_score = 5
 effects = Array[ExtResource("1_p8vb7")]([SubResource("Resource_bsgah"), SubResource("Resource_4sk4l")])
 zodiac_affinity = "dragon"
