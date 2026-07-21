@@ -58,7 +58,7 @@ func _ready() -> void:
 	_settlement_service = SettlementServiceScript.new(_content_registry.tokens)
 	run_session = RunSessionScript.new()
 
-	_zodiac_ring.bind_zodiac_service(_zodiac_service)
+	_zodiac_ring.bind_content(_zodiac_service, _content_registry.tokens)
 	_step_button.pressed.connect(_on_step_pressed)
 
 	begin_run(DEFAULT_BIRTH_ZODIAC, DEFAULT_LIFESPAN)
