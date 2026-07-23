@@ -42,6 +42,12 @@ var _buff_pool_ids: Array[String] = []
 var _debuff_pool_ids: Array[String] = []
 # 最近一次年度属性漂移结果 {"key","delta"}，供 UI 闪一下（空 = 本年无漂移）。
 var _last_stat_drift: Dictionary = {}
+# 播放老虎机 / cascade 光效中：挡住重复点按，且 autoplay/测试路径永不进这里。
+var _animating: bool = false
+# 光效浮层（_ready 里代码建，盖在盘面上）：分数弹跳 / 连击 banner / 屏闪。
+var _score_pop: Label
+var _chain_banner: Label
+var _flash_rect: ColorRect
 # 池子不足 12 张时的补位 token id，出生时从起始池定义读进来（内容，不是常量）。
 var _filler_token_id: String = ""
 var _yearly_log: Array[String] = []
@@ -87,6 +93,7 @@ func _ready() -> void:
 	_zodiac_ring.bind_content(_zodiac_service, _content_registry.tokens)
 	if _status_panel != null:
 		_status_panel.bind_content(_content_registry.buffs)
+	_build_fx_overlays()
 	_step_button.pressed.connect(_on_step_pressed)
 	_backpack_button.pressed.connect(_on_backpack_pressed)
 	_backpack_panel.delete_requested.connect(_on_backpack_delete_requested)
@@ -294,10 +301,121 @@ func _on_backpack_delete_requested(pool_index: int) -> void:
 	_refresh_all()
 
 func _on_step_pressed() -> void:
+	if _animating:
+		return
 	if _alive:
-		step_year()
+		_advance_year_animated()
 	else:
 		_start_next_life()
+
+# 交互路径推进一年：逻辑同步跑完（step_year 已刷新 HUD/状态/盘面），
+# 再叠加老虎机预滚 + cascade 逐格点亮 + 分数弹跳。协程；autoplay/测试不经此路。
+func _advance_year_animated() -> void:
+	_animating = true
+	_step_button.disabled = true
+	_backpack_button.disabled = true
+	step_year()
+	var report = _last_cascade_report
+	await _zodiac_ring.play_spin(0.7)
+	await _play_cascade_fx(report)
+	_animating = false
+	_step_button.disabled = false
+	_backpack_button.disabled = false
+	_refresh_button()
+
+# -- 光效浮层 ----------------------------------------------------------------
+
+# 代码建三个盖在盘面上的浮层：分数弹跳、连击 banner、屏闪。都不吃鼠标。
+func _build_fx_overlays() -> void:
+	_flash_rect = ColorRect.new()
+	_flash_rect.color = Color(1, 0.95, 0.75, 0.0)
+	_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_flash_rect)
+
+	_score_pop = Label.new()
+	_score_pop.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_pop.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_score_pop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_score_pop.add_theme_font_size_override("font_size", 46)
+	_score_pop.add_theme_color_override("font_color", UiThemeScript.GOLD)
+	_score_pop.visible = false
+	add_child(_score_pop)
+
+	_chain_banner = Label.new()
+	_chain_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_chain_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_chain_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chain_banner.add_theme_font_size_override("font_size", 28)
+	_chain_banner.add_theme_color_override("font_color", UiThemeScript.TEAL)
+	_chain_banner.visible = false
+	add_child(_chain_banner)
+
+# cascade 逐格点亮 + 分数从 0 滚到当年总收益 + 连击 banner（阈值 3/5/7/12）+ 屏闪。
+func _play_cascade_fx(report) -> void:
+	var steps: Array = report.steps if report != null else []
+	var total: int = int(report.total_score) if report != null else 0
+	if steps.is_empty():
+		return
+	_position_fx_over_ring()
+	_score_pop.visible = true
+	_score_pop.modulate = Color(1, 1, 1, 1)
+	var thresholds := [3, 5, 7, 12]
+	var thr_idx := 0
+	var count := steps.size()
+	for i in count:
+		var step = steps[i]
+		_zodiac_ring.highlight_step(step)
+		_set_score_pop(int(round(float(total) * float(i + 1) / float(count))))
+		var chain_after := int(step.chain_count_after)
+		while thr_idx < thresholds.size() and chain_after >= int(thresholds[thr_idx]):
+			_show_chain_banner(int(thresholds[thr_idx]))
+			if int(thresholds[thr_idx]) >= 5:
+				_flash()
+			thr_idx += 1
+		await get_tree().create_timer(0.3).timeout
+	_set_score_pop(total)
+	_zodiac_ring.clear_highlight()
+	await get_tree().create_timer(0.7).timeout
+	await _fade_out(_score_pop, 0.4)
+	_chain_banner.visible = false
+
+func _position_fx_over_ring() -> void:
+	var ring_rect: Rect2 = _zodiac_ring.get_global_rect()
+	var c: Vector2 = ring_rect.get_center()
+	_score_pop.size = Vector2(320, 72)
+	_score_pop.pivot_offset = _score_pop.size * 0.5
+	_score_pop.position = c - _score_pop.size * 0.5
+	_chain_banner.size = Vector2(320, 44)
+	_chain_banner.pivot_offset = _chain_banner.size * 0.5
+	_chain_banner.position = c - _chain_banner.size * 0.5 + Vector2(0, ring_rect.size.y * 0.32)
+
+func _set_score_pop(value: int) -> void:
+	_score_pop.text = str(value)
+	_score_pop.scale = Vector2(1.18, 1.18)
+	var tw := create_tween()
+	tw.tween_property(_score_pop, "scale", Vector2.ONE, 0.15)
+
+func _show_chain_banner(count: int) -> void:
+	_chain_banner.text = L10n.format_text("ui.run.fx.combo", {"count": count}, "%d 连击！" % count)
+	_chain_banner.visible = true
+	_chain_banner.modulate = Color(1, 1, 1, 1)
+	_chain_banner.scale = Vector2(1.4, 1.4)
+	var tw := create_tween()
+	tw.tween_property(_chain_banner, "scale", Vector2.ONE, 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _flash() -> void:
+	var tw := create_tween()
+	tw.tween_property(_flash_rect, "color:a", 0.22, 0.06)
+	tw.tween_property(_flash_rect, "color:a", 0.0, 0.28)
+
+func _fade_out(node: CanvasItem, duration: float) -> void:
+	var tw := create_tween()
+	tw.tween_property(node, "modulate:a", 0.0, duration)
+	await tw.finished
+	node.visible = false
+	node.modulate = Color(1, 1, 1, 1)
 
 func _start_next_life() -> void:
 	# 重新开始：随机生肖 + 随机寿命（60-110），让每条人生有差异。

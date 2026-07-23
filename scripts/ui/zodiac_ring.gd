@@ -21,7 +21,8 @@ const ARC_STEPS := 12
 # 半径按控件最短边的比例取，保证缩放时版式不变。
 # 内环比外环厚：内环放 token 名（两个字），外环放生肖（一个字），
 # 而内环半径更小、同样 30° 对应的弧长更短——需要更多空间的那圈反而更窄，得补回来。
-const RATIO_OUTER := 0.48
+# 外环收到 0.45（原 0.48），在外缘留出跑马灯灯泡的空间。
+const RATIO_OUTER := 0.45
 const RATIO_MID := 0.355
 const RATIO_INNER := 0.15
 
@@ -36,6 +37,15 @@ const COLOR_BIRTH_BORDER := Color(1.0, 0.82, 0.20, 1.0)
 const COLOR_CURRENT_BORDER := Color(0.30, 0.85, 0.55, 1.0)
 const COLOR_BIRTH_TINT := Color(0.32, 0.22, 0.08, 1.0)
 
+# -- 老虎机光效（T5：spin / cascade 逐格点亮 / 跑马灯灯泡） --------------------
+const BULB_COUNT := 24
+const COLOR_BULB_DIM := Color(0.45, 0.38, 0.16, 0.5)
+const COLOR_BULB_LIT := Color(1.0, 0.9, 0.55, 1.0)
+const COLOR_HIGHLIGHT := Color(1.0, 0.95, 0.72, 1.0)
+const COLOR_LINK_ZODIAC := Color(1.0, 0.82, 0.30, 0.9)
+const COLOR_LINK_ADJACENT := Color(0.35, 0.85, 0.95, 0.9)
+const COLOR_LINK_DEFAULT := Color(0.8, 0.8, 0.85, 0.7)
+
 var _zodiac_labels: Array[Label] = []
 var _token_labels: Array[Label] = []
 var _zodiac_service = null
@@ -45,12 +55,27 @@ var _slot_token_ids: PackedStringArray = PackedStringArray()
 var _current_slot: int = -1
 var _birth_slot: int = -1
 
+# 光效状态：_elapsed 驱动跑马灯 + 脉冲相位；_spinning 转盘预滚中；
+# _highlight_slot / _highlight_pulse 是 cascade 当前点亮的格；_active_links 是本步连线。
+var _elapsed: float = 0.0
+var _spinning: bool = false
+var _highlight_slot: int = -1
+var _highlight_pulse: float = 0.0
+var _active_links: Array = []
+
 func _ready() -> void:
 	custom_minimum_size = Vector2(420, 420)
 	_slot_token_ids.resize(RING_SIZE)
 	_build_labels()
 	resized.connect(_on_resized)
 	_layout_labels()
+
+# 跑马灯 + 脉冲要逐帧动，所以持续重绘（控件小，开销可忽略）。
+func _process(delta: float) -> void:
+	_elapsed += delta
+	if _highlight_pulse > 0.0:
+		_highlight_pulse = maxf(0.0, _highlight_pulse - delta * 2.5)
+	queue_redraw()
 
 # 由 RunScreen 在创建 ZodiacService 之后调用一次。
 # tokens 是 ContentRegistry.tokens（id -> TokenDefinition），用来把 token id 显示成名字。
@@ -73,6 +98,67 @@ func refresh(ring_board, current_slot: int, birth_slot: int) -> void:
 		_slot_token_ids[slot] = token_id
 		_apply_token_label(slot, token_id)
 	queue_redraw()
+
+# -- 老虎机光效 API（RunScreen 交互路径调用；autoplay/测试不走这里） -------------
+
+# 转盘预滚：内环 token 快速乱跳，再从 slot 0 到 11 依次「停轮」定格到本年真实盘面。
+# 协程：await 完再返回。盘面真实数据已在 refresh() 存进 _slot_token_ids，这里只做视觉。
+func play_spin(duration: float = 0.7) -> void:
+	if _token_labels.is_empty() or _tokens.is_empty():
+		return
+	_spinning = true
+	var scramble_time: float = duration * 0.5
+	var t: float = 0.0
+	while t < scramble_time:
+		_scramble_labels(0)
+		await get_tree().create_timer(0.045).timeout
+		t += 0.045
+	var per: float = maxf(0.02, (duration - scramble_time) / float(RING_SIZE))
+	for slot in RING_SIZE:
+		_apply_token_label(slot, _slot_token_ids[slot])  # 这一格定格
+		_scramble_labels(slot + 1)                        # 后面的继续乱跳
+		await get_tree().create_timer(per).timeout
+	_spinning = false
+	_restore_labels()
+	queue_redraw()
+
+# cascade 单步点亮：高亮该格 + 起脉冲 + 记下本步连线（按 kind 配色）。瞬时，不 await。
+func highlight_step(step) -> void:
+	if step == null:
+		return
+	_highlight_slot = int(step.slot)
+	_highlight_pulse = 1.0
+	_active_links = []
+	for link in step.chain_links:
+		_active_links.append({
+			"to": int(link.get("slot", -1)),
+			"color": _link_color(String(link.get("kind", ""))),
+		})
+	queue_redraw()
+
+func clear_highlight() -> void:
+	_highlight_slot = -1
+	_active_links = []
+	_highlight_pulse = 0.0
+	queue_redraw()
+
+func _scramble_labels(from_slot: int) -> void:
+	var ids: Array = _tokens.keys()
+	if ids.is_empty():
+		return
+	for slot in range(from_slot, RING_SIZE):
+		_apply_token_label(slot, String(ids[randi() % ids.size()]))
+
+func _restore_labels() -> void:
+	for slot in RING_SIZE:
+		_apply_token_label(slot, _slot_token_ids[slot])
+
+func _link_color(kind: String) -> Color:
+	if kind == "zodiac":
+		return COLOR_LINK_ZODIAC
+	if kind == "adjacent":
+		return COLOR_LINK_ADJACENT
+	return COLOR_LINK_DEFAULT
 
 # -- 绘制 --------------------------------------------------------------------
 
@@ -114,6 +200,68 @@ func _draw() -> void:
 
 	# 内外环之间的分隔线，强调这是两条独立的环带。
 	draw_arc(center, r_mid, 0.0, TAU, ARC_STEPS * RING_SIZE, Color(0, 0, 0, 0.45), 1.5, true)
+
+	# 光效层（画在环带之上）：跑马灯灯泡 → 当前格高亮 → 本步连线。
+	_draw_marquee(center, unit, r_outer)
+	if _highlight_slot >= 0 and _highlight_slot < RING_SIZE:
+		_draw_highlight(center, r_inner, r_outer)
+	_draw_links(center, unit)
+
+# 外缘一圈灯泡顺时针追光；spin 时更快更亮（老虎机跑马灯）。
+func _draw_marquee(center: Vector2, unit: float, r_outer: float) -> void:
+	var bulb_ring_r: float = r_outer + unit * 0.028
+	var bulb_radius: float = unit * 0.011
+	var speed: float = 3.2 if _spinning else 0.9
+	var head: float = fmod(_elapsed * speed, 1.0) * float(BULB_COUNT)
+	for i in BULB_COUNT:
+		var a: float = TAU * float(i) / float(BULB_COUNT) - PI * 0.5
+		var pos: Vector2 = center + Vector2(cos(a), sin(a)) * bulb_ring_r
+		var lit: float = clampf(1.0 - absf(_cyclic_delta(float(i), head, float(BULB_COUNT))) / 3.0, 0.0, 1.0)
+		if _spinning:
+			lit = maxf(lit, 0.35)
+		draw_circle(pos, bulb_radius * (0.8 + 0.5 * lit), COLOR_BULB_DIM.lerp(COLOR_BULB_LIT, lit))
+
+# 环形距离（考虑绕回），用来算灯泡离追光头有多远。
+func _cyclic_delta(a: float, b: float, n: float) -> float:
+	var d: float = fmod(a - b + n, n)
+	if d > n * 0.5:
+		d -= n
+	return d
+
+# 当前 cascade 格：整楔形叠一层亮膜 + 随脉冲收缩的亮边。
+func _draw_highlight(center: Vector2, r_inner: float, r_outer: float) -> void:
+	var a_start: float = _sector_start(_highlight_slot)
+	var a_end: float = _sector_end(_highlight_slot)
+	var wedge := _annular_sector(center, r_inner, r_outer, a_start, a_end)
+	var glow := COLOR_HIGHLIGHT
+	glow.a = 0.22 + 0.45 * _highlight_pulse
+	draw_colored_polygon(wedge, glow)
+	if _highlight_pulse > 0.01:
+		var outline := wedge.duplicate()
+		outline.append(outline[0])
+		var edge := COLOR_HIGHLIGHT
+		edge.a = _highlight_pulse * 0.85
+		draw_polyline(outline, edge, 2.0 + 3.0 * _highlight_pulse, true)
+
+# 本步联动连线：从当前格中心连到每个被影响的格，颜色按 kind。
+func _draw_links(center: Vector2, unit: float) -> void:
+	if _active_links.is_empty() or _highlight_slot < 0:
+		return
+	var r: float = unit * (RATIO_INNER + RATIO_MID) * 0.5
+	var from_pos: Vector2 = _slot_mid_center(_highlight_slot, r)
+	for link in _active_links:
+		var to_slot: int = int(link["to"])
+		if to_slot < 0 or to_slot >= RING_SIZE:
+			continue
+		var to_pos: Vector2 = _slot_mid_center(to_slot, r)
+		var col: Color = link["color"]
+		col.a = 0.35 + 0.55 * _highlight_pulse
+		draw_line(from_pos, to_pos, col, 2.5, true)
+		draw_circle(to_pos, unit * 0.012, col)
+
+func _slot_mid_center(slot: int, r: float) -> Vector2:
+	var angle: float = -PI * 0.5 + SECTOR_SPAN * float(slot)
+	return size * 0.5 + Vector2(cos(angle), sin(angle)) * r
 
 func _sector_start(slot: int) -> float:
 	return -PI * 0.5 + SECTOR_SPAN * float(slot) - SECTOR_SPAN * 0.5 + SECTOR_GAP
