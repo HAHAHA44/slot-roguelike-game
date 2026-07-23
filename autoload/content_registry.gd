@@ -17,6 +17,7 @@ const ITEM_PATH := "res://content/items"
 const ZODIAC_PATH := "res://content/zodiac"
 const LIFE_STAGE_PATH := "res://content/life_stages"
 const RUN_START_PATH := "res://content/run_start"
+const BUFF_PATH := "res://content/buffs"
 
 var tokens: Dictionary = {}
 var events: Dictionary = {}
@@ -28,6 +29,7 @@ var items: Dictionary = {}
 var zodiacs: Dictionary = {}
 var life_stages: Dictionary = {}
 var starting_pools: Dictionary = {}
+var buffs: Dictionary = {}
 var validator := ContentDefinitionValidator.new()
 
 func load_all() -> void:
@@ -41,6 +43,7 @@ func load_all() -> void:
 	zodiacs.clear()
 	life_stages.clear()
 	starting_pools.clear()
+	buffs.clear()
 	_load_resources_from_dir(TOKEN_PATH, tokens)
 	_load_resources_from_dir(EVENT_PATH, events)
 	_load_resources_from_dir(HERO_PATH, heroes)
@@ -51,6 +54,7 @@ func load_all() -> void:
 	_load_resources_from_dir(ZODIAC_PATH, zodiacs)
 	_load_resources_from_dir(LIFE_STAGE_PATH, life_stages)
 	_load_resources_from_dir(RUN_START_PATH, starting_pools)
+	_load_resources_from_dir(BUFF_PATH, buffs)
 
 func _load_resources_from_dir(dir_path: String, target_index: Dictionary) -> void:
 	var directory := DirAccess.open(dir_path)

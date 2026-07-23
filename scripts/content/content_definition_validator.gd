@@ -9,6 +9,7 @@ extends RefCounted
 const ZodiacDefinitionScript := preload("res://scripts/content/zodiac_definition.gd")
 const LifeStageDefScript := preload("res://scripts/content/life_stage_definition.gd")
 const StartingPoolDefScript := preload("res://scripts/content/starting_pool_definition.gd")
+const BuffDefinitionScript := preload("res://scripts/content/buff_definition.gd")
 
 func validate_definition(definition: Resource, existing_ids: Dictionary) -> Array[String]:
 	var errors: Array[String] = []
@@ -39,6 +40,8 @@ func validate_definition(definition: Resource, existing_ids: Dictionary) -> Arra
 		_validate_life_stage_definition(definition, errors)
 	elif definition is StartingPoolDefScript:
 		_validate_starting_pool_definition(definition, errors)
+	elif definition is BuffDefinitionScript:
+		_validate_buff_definition(definition, errors)
 
 	return errors
 
@@ -150,3 +153,9 @@ func _validate_starting_pool_definition(definition, errors: Array[String]) -> vo
 		if String(token_id).strip_edges().is_empty():
 			errors.append("token_ids must not contain empty entries")
 			break
+
+func _validate_buff_definition(definition, errors: Array[String]) -> void:
+	if definition.display_name.strip_edges().is_empty():
+		errors.append("display_name must not be empty")
+	if definition.polarity not in definition.ALLOWED_POLARITIES:
+		errors.append("polarity must be one of %s" % ", ".join(definition.ALLOWED_POLARITIES))

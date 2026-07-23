@@ -29,6 +29,10 @@ var token_delete_charges: int = 0
 # NPC 关系表：{npc_id: String -> {"kind": String, "score": int}}。
 # kind ∈ {"family", "friend", "lover"}；M4 RelationshipService 维护。
 var relationships: Dictionary = {}
+# 开局携带的增益 / 减益（buff/debuff 的 id 列表，各 0–2 个）。
+# BuffService.roll() 在出生时按运气补正抽取写入；实际效果留到后续设计。
+var active_buffs: Array[String] = []
+var active_debuffs: Array[String] = []
 
 # -- 5x5 遗留字段（legacy，等 M1+ 替换 settlement/reward/event 时清理） -------
 var schema_version: int = SCHEMA_VERSION
@@ -115,6 +119,8 @@ func to_dict() -> Dictionary:
 		"karma_in_run": karma_in_run,
 		"token_delete_charges": token_delete_charges,
 		"relationships": relationships.duplicate(true),
+		"active_buffs": active_buffs.duplicate(),
+		"active_debuffs": active_debuffs.duplicate(),
 		# 5×5 遗留字段
 		"current_turn": current_turn,
 		"phase_index": phase_index,
@@ -147,6 +153,12 @@ static func from_dict(data: Dictionary) -> RunSession:
 		session.relationships = (incoming_relationships as Dictionary).duplicate(true)
 	else:
 		session.relationships = {}
+	session.active_buffs = []
+	for buff_id in data.get("active_buffs", []):
+		session.active_buffs.append(String(buff_id))
+	session.active_debuffs = []
+	for debuff_id in data.get("active_debuffs", []):
+		session.active_debuffs.append(String(debuff_id))
 	# 5×5 遗留字段
 	session.current_turn = int(data.get("current_turn", 1))
 	session.phase_index = int(data.get("phase_index", 0))

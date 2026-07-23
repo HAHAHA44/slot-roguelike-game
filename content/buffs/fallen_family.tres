@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BuffDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fallen_family"
+display_name = "content.buff.fallen_family.name"
+description = "content.buff.fallen_family.desc"
+polarity = "debuff"
+magnitude = 1
