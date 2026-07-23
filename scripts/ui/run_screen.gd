@@ -15,6 +15,8 @@ const ZodiacServiceScript := preload("res://scripts/core/services/zodiac_service
 const LifeStageServiceScript := preload("res://scripts/core/services/life_stage_service.gd")
 const SettlementServiceScript := preload("res://scripts/core/services/settlement_service.gd")
 const TokenInventoryServiceScript := preload("res://scripts/core/services/token_inventory_service.gd")
+const AttributeServiceScript := preload("res://scripts/core/services/attribute_service.gd")
+const BuffServiceScript := preload("res://scripts/core/services/buff_service.gd")
 
 # 起始 token 池的 id。池子构成在 content/run_start/default_pool.tres 里调，不在这里。
 const DEFAULT_POOL_ID := "default_pool"
@@ -32,6 +34,13 @@ var _zodiac_service
 var _life_stage_service
 var _settlement_service
 var _token_inventory_service
+var _attribute_service
+var _buff_service
+# 按 polarity 分好的开局 Buff/Debuff 候选 id 池，出生抽取用（_ready 里从 registry 分）。
+var _buff_pool_ids: Array[String] = []
+var _debuff_pool_ids: Array[String] = []
+# 最近一次年度属性漂移结果 {"key","delta"}，供 UI 闪一下（空 = 本年无漂移）。
+var _last_stat_drift: Dictionary = {}
 # 池子不足 12 张时的补位 token id，出生时从起始池定义读进来（内容，不是常量）。
 var _filler_token_id: String = ""
 var _yearly_log: Array[String] = []
@@ -63,6 +72,9 @@ func _ready() -> void:
 	_life_stage_service = LifeStageServiceScript.new(_content_registry.life_stages.values())
 	_settlement_service = SettlementServiceScript.new(_content_registry.tokens)
 	_token_inventory_service = TokenInventoryServiceScript.new()
+	_attribute_service = AttributeServiceScript.new()
+	_buff_service = BuffServiceScript.new()
+	_split_buff_pools()
 	run_session = RunSessionScript.new()
 
 	_zodiac_ring.bind_content(_zodiac_service, _content_registry.tokens)
@@ -83,8 +95,13 @@ func begin_run(zodiac_birth: String, lifespan: int) -> void:
 	run_session.zodiac_birth = zodiac_birth
 	run_session.sanity = 50
 	run_session.stage_idx = 0
-	run_session.stats = {}
 	run_session.karma_in_run = 0
+	# 婴儿出生：把 10 点随机撒到六维（力/智/敏/耐/精神力/运气）。
+	_attribute_service.roll_initial(run_session)
+	_last_stat_drift = {}
+	# 开局按运气补正随机携带 0–2 个 Buff / 0–2 个 Debuff。
+	var luck: int = _attribute_service.get_value(run_session, AttributeServiceScript.LUCK_KEY)
+	_buff_service.roll(run_session, luck, _buff_pool_ids, _debuff_pool_ids)
 	run_session.token_pool = _draw_starting_pool()
 	_alive = true
 	if _backpack_panel != null:
@@ -112,6 +129,9 @@ func step_year() -> void:
 	_stub_event_skip()
 	_log("年 %d：当年生肖 %s，本命年命中: %s，cascade=%d，连击 %d" %
 		[year, current_id, str(birth_hit), report.total_score, report.chain_count])
+	# 年末属性漂移：40 岁前随机 +1 前 4 维，40 岁起随机 -1。用 ++ 前的年龄判断。
+	# 注意：不写年度日志（会破坏 smoke test 的行数断言），只留给 UI 闪一下。
+	_last_stat_drift = _attribute_service.apply_yearly_drift(run_session, run_session.age)
 	run_session.age += 1
 	if run_session.lifespan > 0 and run_session.age >= run_session.lifespan:
 		_alive = false
@@ -279,6 +299,19 @@ func _start_next_life() -> void:
 	begin_run(next_zodiac, next_lifespan)
 
 # -- 投盘 --------------------------------------------------------------------
+
+# 把 registry 里的 Buff 定义按 polarity 分成增益 / 减益两个候选 id 池。
+# 出生时 BuffService 从这两池按运气补正抽取。
+func _split_buff_pools() -> void:
+	_buff_pool_ids = []
+	_debuff_pool_ids = []
+	for buff in _content_registry.buffs.values():
+		if buff == null:
+			continue
+		if buff.is_buff():
+			_buff_pool_ids.append(String(buff.id))
+		else:
+			_debuff_pool_ids.append(String(buff.id))
 
 # 出生时发牌：把起始池的 token_ids 拷进 RunSession.token_pool。
 # 池子构成是内容（content/run_start/），不是代码；这里只负责取。

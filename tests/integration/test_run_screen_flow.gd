@@ -159,3 +159,59 @@ func test_filler_token_settles_without_warnings() -> void:
 	var report = scene.get_last_cascade_report()
 	assert_eq(report.warnings.size(), 0, "补位 token 应能被 SettlementService 正常结算")
 	assert_eq(report.steps.size(), 12, "补位后 12 格仍应各结算一次")
+
+# -- C3 六维属性 + 开局 Buff（接线进 RunScreen） -------------------------------
+
+const _PHYSICAL_KEYS := ["str", "int", "agi", "end"]
+const _ALL_STAT_KEYS := ["str", "int", "agi", "end", "spr", "luck"]
+
+func _physical_sum(scene) -> int:
+	var total := 0
+	for key in _PHYSICAL_KEYS:
+		total += int(scene.run_session.stats.get(key, 0))
+	return total
+
+# 出生把 10 点分配到六维（婴儿起点）。
+func test_begin_run_allocates_ten_attribute_points() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	var total := 0
+	for key in _ALL_STAT_KEYS:
+		total += int(scene.run_session.stats.get(key, 0))
+	assert_eq(total, 10, "出生应把 10 点分配到六维")
+
+# 40 岁前每年前 4 维 +1：跑 N 年前 4 维总和恰好 +N（漂移 <40 必命中，确定性）。
+func test_physical_attributes_climb_one_per_year_before_forty() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 120)
+	var base := _physical_sum(scene)
+	for i in 20:
+		scene.step_year()
+	assert_eq(_physical_sum(scene), base + 20, "40 岁前每年前 4 维 +1")
+
+# 40 岁起每年前 4 维 -1：先累到 40 岁的峰值，再跑 15 年应恰好 -15。
+func test_physical_attributes_decline_after_forty() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 120)
+	for i in 40:
+		scene.step_year()
+	var peak := _physical_sum(scene)
+	for i in 15:
+		scene.step_year()
+	assert_eq(_physical_sum(scene), peak - 15, "40 岁起每年前 4 维 -1")
+
+# 运气整局恒定：出生分配后，跨过 40 岁漂移也不动运气。
+func test_luck_is_constant_across_the_run() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 120)
+	var luck0: int = int(scene.run_session.stats.get("luck", 0))
+	for i in 50:
+		scene.step_year()
+	assert_eq(int(scene.run_session.stats.get("luck", 0)), luck0, "运气整局不变")
+
+# 开局各携带至多 2 个 Buff / Debuff。
+func test_begin_run_carries_at_most_two_of_each() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	assert_lte(scene.run_session.active_buffs.size(), 2, "buff ≤ 2")
+	assert_lte(scene.run_session.active_debuffs.size(), 2, "debuff ≤ 2")
