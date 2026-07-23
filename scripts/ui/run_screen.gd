@@ -17,6 +17,7 @@ const SettlementServiceScript := preload("res://scripts/core/services/settlement
 const TokenInventoryServiceScript := preload("res://scripts/core/services/token_inventory_service.gd")
 const AttributeServiceScript := preload("res://scripts/core/services/attribute_service.gd")
 const BuffServiceScript := preload("res://scripts/core/services/buff_service.gd")
+const UiThemeScript := preload("res://scripts/ui/ui_theme.gd")
 
 # 起始 token 池的 id。池子构成在 content/run_start/default_pool.tres 里调，不在这里。
 const DEFAULT_POOL_ID := "default_pool"
@@ -51,13 +52,14 @@ var _last_cascade_report = null
 # 测试通过 _spawn() 显式置 true 跑 autoplay；玩家从主菜单进入时保持 false，等点按钮推进。
 var autoplay_on_ready: bool = false
 
+@onready var _bg_gradient: TextureRect = %BgGradient
 @onready var _birth_label: Label = %BirthLabel
 @onready var _year_label: Label = %YearLabel
 @onready var _age_label: Label = %AgeLabel
-@onready var _sanity_label: Label = %SanityLabel
 @onready var _stage_label: Label = %StageLabel
 @onready var _birth_year_tag: Label = %BirthYearTag
 @onready var _zodiac_ring = %ZodiacRing
+@onready var _status_panel = %StatusPanel
 @onready var _log_list: ItemList = %YearlyLogList
 @onready var _step_button: Button = %StepButton
 @onready var _death_label: Label = %DeathLabel
@@ -77,7 +79,14 @@ func _ready() -> void:
 	_split_buff_pools()
 	run_session = RunSessionScript.new()
 
+	# 统一皮肤 + 渐变背景（子控件自动继承 theme）。
+	theme = UiThemeScript.build()
+	if _bg_gradient != null:
+		_bg_gradient.texture = UiThemeScript.background_gradient()
+
 	_zodiac_ring.bind_content(_zodiac_service, _content_registry.tokens)
+	if _status_panel != null:
+		_status_panel.bind_content(_content_registry.buffs)
 	_step_button.pressed.connect(_on_step_pressed)
 	_backpack_button.pressed.connect(_on_backpack_pressed)
 	_backpack_panel.delete_requested.connect(_on_backpack_delete_requested)
@@ -185,6 +194,7 @@ func _refresh_all() -> void:
 		return
 	_refresh_hud()
 	_refresh_ring()
+	_refresh_status_panel()
 	_refresh_log()
 	_refresh_button()
 	_refresh_backpack()
@@ -209,10 +219,6 @@ func _refresh_hud() -> void:
 		{"age": run_session.age, "lifespan": run_session.lifespan},
 		"年龄 %d / 寿 %d" % [run_session.age, run_session.lifespan])
 
-	_sanity_label.text = L10n.format_text("ui.run.hud.sanity",
-		{"sanity": run_session.sanity},
-		"精神 %d/100" % run_session.sanity)
-
 	var stage = _life_stage_service.stage_for_age(run_session.age) if _life_stage_service != null else null
 	var stage_name: String = stage.get_display_name() if stage != null else "—"
 	_stage_label.text = L10n.format_text("ui.run.hud.stage", {"stage": stage_name},
@@ -230,6 +236,11 @@ func _refresh_ring() -> void:
 	var birth_z = _zodiac_service.get_by_id(run_session.zodiac_birth)
 	var birth_slot: int = int(birth_z.order) if birth_z != null else -1
 	_zodiac_ring.refresh(_ring_board, current_slot, birth_slot)
+
+func _refresh_status_panel() -> void:
+	if _status_panel == null:
+		return
+	_status_panel.refresh(run_session)
 
 func _refresh_log() -> void:
 	_log_list.clear()
