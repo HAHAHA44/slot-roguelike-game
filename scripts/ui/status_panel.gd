@@ -1,6 +1,8 @@
-# 状态面板：展示六维属性 + 开局携带的 Buff/Debuff（M1 换肤新增）。
+# 状态面板：展示六维属性 + 攒下的购买力 + 开局携带的 Buff/Debuff。
 # - 纯展示：数据由 RunScreen 每次 refresh() 推入，本面板不持有 session。
 # - 六维用彩色圆点 + 名 + 值列出；Buff 绿 chip、Debuff 红 chip，都没有则显示「无」。
+# - 购买力每年都在涨，但商店 12 年才开一次门——不摆在常驻面板上，玩家有十一年
+#   看不见自己攒了多少，也就无从判断这一年的收益值不值。它没有第二个显示位置。
 # - 属性加成 / Buff 实际效果都还没设计，这里只如实列出当前值（预留）。
 # - 布局在 _build() 里用代码搭：属性行 / chip 数量都是动态的，代码构比手写 .tscn 稳。
 class_name StatusPanel
@@ -22,9 +24,11 @@ const BUFF_BORDER := Color("4cd98c")
 const DEBUFF_BG := Color("3a1f22")
 const DEBUFF_BORDER := Color("e8776a")
 const TEXT_DIM := Color("9a9ab0")
+const GOLD := Color("edc95c")
 
 var _buffs: Dictionary = {}          # id -> BuffDefinition
 var _value_labels: Dictionary = {}   # stat key -> Label
+var _power_label: Label
 var _buff_flow: HFlowContainer
 var _attr_service := AttributeServiceScript.new()
 
@@ -44,6 +48,10 @@ func refresh(session) -> void:
 	for key in _value_labels:
 		var value: int = _attr_service.get_value(session, key)
 		_value_labels[key].text = str(value)
+	if _power_label != null:
+		var power: float = float(session.purchasing_power) if session != null else 0.0
+		_power_label.text = L10n.format_text("ui.status.power_value",
+			{"power": "%.2f" % power}, "%.2f 基准" % power)
 	_rebuild_chips(session)
 
 # -- 构建 --------------------------------------------------------------------
@@ -61,11 +69,34 @@ func _build() -> void:
 	_body.add_child(grid)
 
 	_body.add_child(HSeparator.new())
+	_body.add_child(_power_row())
+
+	_body.add_child(HSeparator.new())
 	_body.add_child(_section_title(L10n.text("ui.status.buffs", "机缘")))
 	_buff_flow = HFlowContainer.new()
 	_buff_flow.add_theme_constant_override("h_separation", 6)
 	_buff_flow.add_theme_constant_override("v_separation", 6)
 	_body.add_child(_buff_flow)
+
+# 攒下的购买力。单位是「阶段门槛的倍数」而不是绝对数字（见 EconomyService 的
+# 相对计价）——绝对数字随年份指数膨胀，读不出贵贱，写「2.50 基准」才知道能买几件。
+func _power_row() -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var name_label := Label.new()
+	name_label.text = L10n.text("ui.status.power", "购买力")
+	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_label)
+
+	_power_label = Label.new()
+	_power_label.text = "0.00 基准"
+	_power_label.add_theme_font_size_override("font_size", 16)
+	_power_label.add_theme_color_override("font_color", GOLD)
+	_power_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(_power_label)
+	return row
 
 func _section_title(text: String) -> Label:
 	var label := Label.new()

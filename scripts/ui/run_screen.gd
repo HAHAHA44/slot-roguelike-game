@@ -345,14 +345,17 @@ func _year_cascade() -> void:
 		push_warning("cascade（年 %d）：%s" % [year, warning])
 
 	run_session.stage_income.append(int(report.total_score))
-	run_session.purchasing_power += _economy_service.purchasing_power(
+	# 年收益按当前阶段门槛折成购买力攒起来（相对计价，见 EconomyService）。
+	# 攒 12 年，商店年一次花掉。这一步此前只改字段不留痕，玩家看不到自己攒了多少。
+	var gained: float = _economy_service.purchasing_power(
 		int(report.total_score), get_stage_threshold())
+	run_session.purchasing_power += gained
 
 	var zodiac_id: String = String(current_zodiac.id) if current_zodiac != null else ""
 	var rule_name: String = String(current_zodiac.get_rule_name()) if current_zodiac != null else ""
-	_log("年 %d：%s%s，cascade=%d，连击 %d" % [year, zodiac_id,
+	_log("年 %d：%s%s，cascade=%d，连击 %d，购买力 +%.2f（共 %.2f）" % [year, zodiac_id,
 		("（%s）" % rule_name) if not rule_name.is_empty() else "",
-		report.total_score, report.chain_count])
+		report.total_score, report.chain_count, gained, run_session.purchasing_power])
 	if birth_hit:
 		_log("★ 本命年：同生肖联动翻倍，年收益 ×1.5")
 
