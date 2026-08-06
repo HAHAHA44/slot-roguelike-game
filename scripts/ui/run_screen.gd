@@ -3,7 +3,7 @@
 # 一年的顺序（两条路径共用同一批 _year_* 私有方法，只是模态开不开）：
 #   1 三选一抽碎片（可跳过）→ 自动合成升星
 #   2 洗牌投 12 格 → cascade 结算 → 记年收益、算购买力
-#   3 道具商店（买乘区）
+#   3 道具商店（每 12 年一次，见 is_shop_year）
 #   4 年末事件：流水年滚一行金句 / 转折年弹窗做选择
 #   5 属性漂移 → age++ → 阶段边界（考核 + 传承）→ 死亡判定
 #
@@ -11,6 +11,10 @@
 #   step_year()               同步全自动，autoplay 与测试走这条，决策用 _auto_* 策略
 #   _advance_year_interactive() 协程，玩家路径，同样的顺序但每步开模态
 # 保持两条路径共用 _year_* 是刻意的——让「测试跑的」和「玩家玩的」永远是同一段逻辑。
+#
+# 玩家路径上三选一**不在这条协程里**：它在上一年收尾后（或出生后）就自己弹出来，
+# 玩家选完，「下一年」按下去直接开转。让抽牌先于按钮，是因为它是**决策**，
+# 而按钮是**确认**——把决策塞进确认之后，玩家会觉得自己只是在点下一步。
 #
 # 本文件是 orchestrator：所有规则都在 services 里，这里只负责按顺序调用与呈现。
 extends Control
@@ -55,6 +59,19 @@ const STAGE_PASS_SPIRIT_REWARD := 1
 # 防止寿命设置错误时 autoplay 死循环；远高于最大寿命 110。
 const AUTOPLAY_SAFETY_YEARS := 200
 
+# -- 自动轮的节奏（秒） -------------------------------------------------------
+# 这几个数是整条播放的总闸，想整体快/慢只改这里，别散到各处 create_timer 里去。
+const SPIN_SECONDS := 0.7
+const CASCADE_STEP_SECONDS := 0.3
+const CASCADE_HOLD_SECONDS := 0.7
+const SCORE_FADE_SECONDS := 0.4
+
+# 模态当前在演谁。三选一是**常驻连接 + 看这个开关**，事件走 _first_of 临时连接；
+# 两者共用一个面板，不靠这个标记就会互相截胡对方的信号。
+const MODAL_NONE := ""
+const MODAL_DRAFT := "draft"
+const MODAL_EVENT := "event"
+
 var run_session
 var _content_registry
 var _ring_board
@@ -87,7 +104,12 @@ var _last_stat_drift: Dictionary = {}
 # 本年的三选一候选 / 商店货架 / 待处理事件，交互路径与测试都读它们。
 var _current_offer: Array = []
 var _current_stock: Array = []
+# 与 _current_stock 平行的「这格已经买走了」标记。买掉的货**留在架上置灰**，
+# 不是抽走——架子塌下来玩家会以为自己看错了，也就再想不起这轮到底放弃了什么。
+var _stock_sold: Array[bool] = []
 var _pending_event = null
+# 见 MODAL_* 常量。
+var _modal_mode: String = MODAL_NONE
 var _yearly_log: Array[String] = []
 var _alive: bool = false
 # 播放动画中：挡住重复点按；autoplay/测试路径永不进这里。
@@ -156,6 +178,9 @@ func _ready() -> void:
 	begin_run(DEFAULT_BIRTH_ZODIAC, DEFAULT_LIFESPAN)
 	if autoplay_on_ready:
 		autoplay_until_death(AUTOPLAY_SAFETY_YEARS)
+	else:
+		# 玩家路径：出生完第一件事就是抽牌，不用先点一下按钮才等到选择。
+		open_year_draft()
 	_refresh_all()
 
 # -- public API --------------------------------------------------------------
@@ -179,6 +204,7 @@ func begin_run(zodiac_birth: String, lifespan: int) -> void:
 	_last_cascade_report = null
 	_current_offer = []
 	_current_stock = []
+	_stock_sold = []
 	_pending_event = null
 	_yearly_log.clear()
 	_ring_board.clear_all()
@@ -240,6 +266,10 @@ func get_current_offer() -> Array:
 
 func get_current_stock() -> Array:
 	return _current_stock.duplicate()
+
+# 与 get_current_stock() 平行的「已购入」标记。
+func get_stock_sold() -> Array[bool]:
+	return _stock_sold.duplicate()
 
 func get_pending_event():
 	return _pending_event
@@ -315,9 +345,17 @@ func _year_cascade() -> void:
 	if birth_hit:
 		_log("★ 本命年：同生肖联动翻倍，年收益 ×1.5")
 
-# 3 商店。auto=true 时自动买到买不动为止。
+# 3 商店。每 12 年才开一次（见 is_shop_year），auto=true 时自动买到买不动为止。
 func _year_shop(auto: bool) -> void:
+	_current_stock = []
+	_stock_sold = []
+	if not is_shop_year():
+		return
 	_current_stock = _shop_service.roll_stock(run_session, _content_registry.items, get_stage_order())
+	# 一件都上不了架（全买满上限了）就当今年没开门：没得挑，就不该没收攒下的购买力。
+	if _current_stock.is_empty():
+		return
+	_stock_sold.resize(_current_stock.size())
 	if not auto:
 		return
 	var guard := 0
@@ -327,16 +365,29 @@ func _year_shop(auto: bool) -> void:
 			break
 		_buy_from_stock(index)
 		guard += 1
+	_end_shopping()
+
+# 商店年 = 一个人生阶段的最后一年。购买力这十二年一直在攒，开在末尾才买得动；
+# 而且这一年买下的道具，接下来整个阶段都在生效。
+func is_shop_year() -> bool:
+	return run_session.age % STAGE_LENGTH == STAGE_LENGTH - 1
 
 func _buy_from_stock(index: int) -> bool:
 	if index < 0 or index >= _current_stock.size():
+		return false
+	if bool(_stock_sold[index]):
 		return false
 	var def = _current_stock[index]
 	if not _shop_service.buy(run_session, def):
 		return false
 	_log("购入道具：%s（%s）" % [def.get_display_name(), def.describe_effect()])
-	_current_stock.remove_at(index)
+	_stock_sold[index] = true
 	return true
+
+# 逛完就走：剩余购买力作废。攒钱在这个游戏里没有叙事意义（你攒的是「这些年过得
+# 好不好」，攒不到下辈子），作废逼玩家在这一次里把取舍做完。
+func _end_shopping() -> void:
+	run_session.purchasing_power = 0.0
 
 # 4 年末事件。流水年只滚金句；转折年抽事件，auto=true 时自动选一个非致死选项。
 func _year_event(auto: bool) -> void:
@@ -443,6 +494,8 @@ func _auto_pick_purchase() -> int:
 	var best_index := -1
 	var best_price := -1.0
 	for i in _current_stock.size():
+		if bool(_stock_sold[i]):
+			continue
 		var def = _current_stock[i]
 		if not _shop_service.can_afford(run_session, def):
 			continue
@@ -468,17 +521,18 @@ func _on_step_pressed() -> void:
 	else:
 		_start_next_life()
 
+# 「下一年」按下去 = 直接开转。三选一在这之前就选完了（出生后 / 上一年收尾时弹的），
+# 所以这条协程从投盘开始，一路演到年末。
 func _advance_year_interactive() -> void:
 	_animating = true
 	_set_controls_enabled(false)
-
-	_year_draft(false)
-	if not _current_offer.is_empty():
-		await _await_draft_choice()
+	# 玩家没理会三选一就按了下一年 —— 当作「都不要」，别把选择窗留到下一年。
+	if _modal_mode == MODAL_DRAFT:
+		_close_draft()
 
 	_year_cascade()
 	_refresh_all()
-	await _zodiac_ring.play_spin(0.7)
+	await _zodiac_ring.play_spin(SPIN_SECONDS)
 	await _play_cascade_fx(_last_cascade_report)
 
 	_year_shop(false)
@@ -493,49 +547,82 @@ func _advance_year_interactive() -> void:
 	_animating = false
 	_set_controls_enabled(true)
 	_refresh_all()
+	# 下一年的三选一立刻摆上来，玩家一抬头就在做下一个决定。
+	if _alive:
+		open_year_draft()
 
-func _await_draft_choice() -> void:
+# -- 三选一（不走协程：它不是年循环里的一步，是年与年之间的那个决定） ----------
+#
+# 用「常驻信号连接 + _modal_mode 开关」而不是 await：await 会在 begin_run 打断时
+# 留下一条永远停在等信号处的协程，下次玩家一点选项，新旧两条一起醒过来。
+# 三选一恰恰是最容易被打断的那个（重开一局就打断了），所以它必须是无状态的回调。
+func open_year_draft() -> void:
+	if not _alive or _modal_panel == null:
+		return
+	_year_draft(false)
+	if _current_offer.is_empty():
+		return
+	var has_room: bool = _deck_service.has_room(run_session)
 	var options: Array = []
 	for definition_id in _current_offer:
-		var def = _content_registry.tokens.get(String(definition_id), null)
-		if def == null:
-			options.append({"text": String(definition_id), "subtext": ""})
-			continue
-		var progress: Dictionary = _merge_service.progress_for(run_session, String(definition_id))
-		var merge_hint: String = ""
-		if not progress.is_empty():
-			merge_hint = L10n.format_text("ui.draft.merge_hint",
-				{"have": progress["have"], "need": progress["need"]},
-				"（已有 %d/%d）" % [progress["have"], progress["need"]])
-		options.append({
-			"text": "%s%s" % [def.get_display_name(), merge_hint],
-			"subtext": "%s · 基础分 %d · %s" % [def.get_display_domain(), def.base_score,
-				_effects_summary(def)],
-			"disabled": not _deck_service.has_room(run_session),
-		})
+		options.append(_draft_option(String(definition_id), has_room))
 	var skip_text: String = L10n.text("ui.draft.skip", "都不要")
-	if not _deck_service.has_room(run_session):
+	if not has_room:
 		skip_text = L10n.text("ui.draft.full", "命盘与行囊都满了——只能跳过")
+	_modal_mode = MODAL_DRAFT
 	_modal_panel.open_with(L10n.text("ui.draft.title", "三选一"),
 		L10n.text("ui.draft.body", "拿一张，或者什么都不要。"), options, skip_text)
-	var index: int = await _await_modal()
-	if index >= 0:
-		_take_draft(index)
-	_modal_panel.close()
+
+func _draft_option(definition_id: String, has_room: bool) -> Dictionary:
+	var def = _content_registry.tokens.get(definition_id, null)
+	if def == null:
+		return {"text": definition_id, "subtext": ""}
+	var progress: Dictionary = _merge_service.progress_for(run_session, definition_id)
+	var merge_hint: String = ""
+	if not progress.is_empty():
+		merge_hint = L10n.format_text("ui.draft.merge_hint",
+			{"have": progress["have"], "need": progress["need"]},
+			"（已有 %d/%d）" % [progress["have"], progress["need"]])
+	return {
+		"text": "%s%s" % [def.get_display_name(), merge_hint],
+		"subtext": "%s · 基础分 %d · %s" % [def.get_display_domain(), def.base_score,
+			_effects_summary(def)],
+		"disabled": not has_room,
+		"icon": def.icon,
+	}
+
+func _close_draft() -> void:
+	_modal_mode = MODAL_NONE
+	_current_offer = []
+	if _modal_panel != null:
+		_modal_panel.close()
+
+# 面板的两个信号是常驻连接的，事件模态也走同一个面板——所以这里必须先认模式，
+# 不是三选一就交给 _first_of 那边处理。
+func _on_modal_chosen(index: int) -> void:
+	if _modal_mode != MODAL_DRAFT:
+		return
+	_take_draft(index)
+	_close_draft()
+	_refresh_all()
+
+func _on_modal_skipped() -> void:
+	if _modal_mode != MODAL_DRAFT:
+		return
+	_close_draft()
 	_refresh_all()
 
 func _await_shop() -> void:
-	_shop_panel.open(_current_stock, run_session.purchasing_power)
+	_shop_panel.open(_current_stock, run_session.purchasing_power, _stock_sold)
 	while true:
 		var index: int = await _await_shop_action()
 		if index < 0:
 			break
 		_buy_from_stock(index)
-		_shop_panel.refresh(_current_stock, run_session.purchasing_power)
+		_shop_panel.refresh(_current_stock, run_session.purchasing_power, _stock_sold)
 		_refresh_all()
 	_shop_panel.close()
-	# 剩余购买力作废：攒钱在这个游戏里没有叙事意义，作废逼玩家每年都做决定。
-	run_session.purchasing_power = 0.0
+	_end_shopping()
 	_refresh_all()
 
 func _await_event_choice() -> void:
@@ -544,9 +631,11 @@ func _await_event_choice() -> void:
 	for choice in event.choices:
 		options.append({"text": choice.get_display_text(), "subtext": ""})
 	var skip_text := "" if not event.choices.is_empty() else L10n.text("ui.event.ack", "知道了")
+	_modal_mode = MODAL_EVENT
 	_modal_panel.open_with(event.get_display_name(), event.get_display_description(),
 		options, skip_text)
 	var index: int = await _await_modal()
+	_modal_mode = MODAL_NONE
 	_modal_panel.close()
 	_resolve_event(index)
 	_refresh_all()
@@ -602,6 +691,7 @@ func _start_next_life() -> void:
 	var next_zodiac: String = zodiac_ids[randi() % zodiac_ids.size()] \
 		if not zodiac_ids.is_empty() else DEFAULT_BIRTH_ZODIAC
 	begin_run(next_zodiac, randi_range(LIFESPAN_MIN, LIFESPAN_MAX))
+	open_year_draft()
 
 func _on_deck_pressed() -> void:
 	if _deck_panel == null:
@@ -736,7 +826,7 @@ func _refresh_deck_button() -> void:
 func _build_modals() -> void:
 	_deck_panel = DeckPanelScript.new()
 	add_child(_deck_panel)
-	_deck_panel.bind_content(_content_registry.tokens, _merge_service)
+	_deck_panel.bind_content(_content_registry.tokens, _merge_service, _content_registry.items)
 	_deck_panel.swap_requested.connect(_on_swap_requested)
 	_deck_panel.promote_requested.connect(_on_promote_requested)
 	_deck_panel.demote_requested.connect(_on_demote_requested)
@@ -746,8 +836,12 @@ func _build_modals() -> void:
 
 	_modal_panel = ModalChoicePanelScript.new()
 	add_child(_modal_panel)
+	# 三选一常驻接这两个信号；事件模态期间靠 _modal_mode 让它们让路。
+	_modal_panel.chosen.connect(_on_modal_chosen)
+	_modal_panel.skipped.connect(_on_modal_skipped)
 
 func _close_all_modals() -> void:
+	_modal_mode = MODAL_NONE
 	if _deck_panel != null:
 		_deck_panel.close()
 	if _shop_panel != null:
@@ -828,13 +922,13 @@ func _play_cascade_fx(report) -> void:
 				if flash_amt > 0.0:
 					_flash(flash_amt)
 				shown_tier = tier
-		await get_tree().create_timer(0.3).timeout
+		await get_tree().create_timer(CASCADE_STEP_SECONDS).timeout
 	_set_score_pop(total)
 	_zodiac_ring.clear_highlight()
-	await get_tree().create_timer(0.7).timeout
-	await _fade_out(_score_pop, 0.4)
+	await get_tree().create_timer(CASCADE_HOLD_SECONDS).timeout
+	await _fade_out(_score_pop, SCORE_FADE_SECONDS)
 	if _chain_banner.visible:
-		await _fade_out(_chain_banner, 0.4)
+		await _fade_out(_chain_banner, SCORE_FADE_SECONDS)
 
 func _combo_tier_index(count: int) -> int:
 	var idx := 0

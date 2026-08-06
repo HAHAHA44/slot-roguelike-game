@@ -201,6 +201,52 @@ func test_shop_stock_is_offered_and_purchases_stick() -> void:
 	assert_gt(scene.run_session.owned_items.size(), 0,
 		"三十年下来自动策略应该买到过道具——买不到说明经济曲线错配")
 
+func test_shop_only_opens_once_per_twelve_years() -> void:
+	# 道具不是每年都能买：一个人生阶段（12 年）只开一次门。
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 110)
+	var shop_years: Array = []
+	for year in 24:
+		scene.run_session.age = year
+		if scene.is_shop_year():
+			shop_years.append(year)
+	assert_eq(shop_years, [11, 23], "商店只开在每个阶段的最后一年")
+
+func test_non_shop_year_has_no_stock() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 110)
+	scene.run_session.purchasing_power = 5.0
+	scene.run_session.age = 3
+	scene._year_shop(false)
+	assert_eq(scene.get_current_stock().size(), 0, "非商店年不该摆货架")
+
+func test_bought_item_stays_on_the_shelf_greyed_out() -> void:
+	# 买掉的那件留在架上置灰，不是抽走——四选几的取舍要在架子上看得见。
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 110)
+	scene.run_session.age = 11
+	scene.run_session.purchasing_power = 6.0
+	scene._year_shop(false)
+	var before: int = scene.get_current_stock().size()
+	assert_gt(before, 0, "商店年该摆出货架")
+	assert_true(scene._buy_from_stock(0), "第一件应该买得起")
+	assert_eq(scene.get_current_stock().size(), before, "买完货架格数不变")
+	assert_true(bool(scene.get_stock_sold()[0]), "买掉的那格标成已购入")
+	assert_false(scene._buy_from_stock(0), "同一格不能买第二次")
+
+func test_shop_panel_greys_out_sold_rows() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 110)
+	scene.run_session.age = 11
+	scene.run_session.purchasing_power = 6.0
+	scene._year_shop(false)
+	scene._buy_from_stock(0)
+	var panel = scene.get_shop_panel()
+	panel.open(scene.get_current_stock(), scene.run_session.purchasing_power,
+		scene.get_stock_sold())
+	assert_false(panel.press_buy(0), "已购入那行点不动")
+	panel.close()
+
 # -- 阶段边界 ----------------------------------------------------------------
 
 func test_stage_advances_every_twelve_years() -> void:
@@ -304,46 +350,91 @@ func test_deck_panel_swap_moves_cards() -> void:
 	assert_eq(String(scene.run_session.board_cards[0].definition_id), "piggy_bank",
 		"行囊那张应该换上了命盘")
 
+func test_deck_panel_lists_owned_items() -> void:
+	# 道具是跨阶段唯一攒得住的东西，玩家必须能翻出来看自己攒了什么。
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	var item_id := String(scene._content_registry.items.keys()[0])
+	scene.run_session.owned_items[item_id] = 2
+	var panel = scene.get_deck_panel()
+	panel.open(scene.run_session)
+	assert_eq(panel._item_list.item_count, 1, "持有的道具该在面板上列出来")
+	assert_true(panel._item_list.get_item_text(0).contains("×2"), "同名道具带份数")
+	assert_true(panel.describe_item(item_id).length() > 0, "选中能看到乘区说明")
+	panel.close()
+
 # -- 玩家交互路径 ------------------------------------------------------------
-#
-# 下面两条走的是**协程 + 模态信号**那条路，autoplay 和其它测试都不经过它。
-# 它曾经因为「lambda 按值捕获局部变量」而死循环——同步路径全绿也照样漏掉，
-# 所以这条路必须有自己的回归测试。
+
+# 三选一是**年与年之间的决定**，所以它在出生后 / 上一年收尾后就自己摆出来，
+# 不用玩家先点一下「下一年」才等到选择。
+func test_draft_pops_open_as_soon_as_the_run_begins() -> void:
+	var scene = await _spawn(false)
+	assert_true(scene.get_modal_panel().is_open(), "出生完三选一就该在屏幕上")
+	assert_eq(scene.get_current_offer().size(), 3)
 
 func test_draft_modal_choice_is_applied() -> void:
 	var scene = await _spawn(false)
 	scene.begin_run("dragon", 80)
-	scene._year_draft(false)
+	scene.open_year_draft()
 	var before: int = scene.run_session.total_card_count()
-	scene._await_draft_choice()          # 协程：停在等信号处
-	await get_tree().process_frame
 	assert_true(scene.get_modal_panel().is_open(), "该弹出三选一")
 	scene.get_modal_panel().chosen.emit(0)
-	await get_tree().process_frame
-	await get_tree().process_frame
 	assert_eq(scene.run_session.total_card_count(), before + 1, "选了就该拿到那张牌")
 	assert_false(scene.get_modal_panel().is_open(), "选完模态该关掉")
 
 func test_draft_modal_skip_takes_nothing() -> void:
 	var scene = await _spawn(false)
 	scene.begin_run("dragon", 80)
-	scene._year_draft(false)
+	scene.open_year_draft()
 	var before: int = scene.run_session.total_card_count()
-	scene._await_draft_choice()
-	await get_tree().process_frame
 	scene.get_modal_panel().skipped.emit()
-	await get_tree().process_frame
-	await get_tree().process_frame
 	assert_eq(scene.run_session.total_card_count(), before, "「都不要」是免费的")
 	assert_false(scene.get_modal_panel().is_open())
+
+# 重开一局会打断还开着的三选一。三选一改成回调而不是 await 就是为了这个：
+# await 会留下一条停在等信号处的协程，下次点选项时新旧两条一起醒。
+func test_restarting_mid_draft_does_not_double_apply() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	scene.open_year_draft()
+	scene.begin_run("rat", 80)           # 打断：模态关掉，候选清空
+	assert_false(scene.get_modal_panel().is_open())
+	var before: int = scene.run_session.total_card_count()
+	scene.get_modal_panel().chosen.emit(0)
+	assert_eq(scene.run_session.total_card_count(), before, "打断后的选项不该还能兑现")
+
+# 下面这条走的是**协程 + 模态信号**那条路（事件与商店），autoplay 不经过它。
+# 它曾经因为「lambda 按值捕获局部变量」而死循环——同步路径全绿也照样漏掉，
+# 所以 _first_of 必须有自己的回归测试。
+func test_event_modal_resolves_through_the_coroutine() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 110)
+	scene.run_session.set_stat("spr", 0)
+	# 抽到转折年为止：致死事件也只在低精神档，这里只要确认协程能收到信号并往下走。
+	for _try in 40:
+		scene._year_event(false)
+		if scene.get_pending_event() != null:
+			break
+	assert_not_null(scene.get_pending_event(), "低精神档 40 次里该抽到一次转折年")
+	var before: int = scene.get_yearly_log().size()
+	scene._await_event_choice()          # 协程：停在等信号处
+	await get_tree().process_frame
+	assert_true(scene.get_modal_panel().is_open(), "转折年该弹窗")
+	scene.get_modal_panel().chosen.emit(0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_false(scene.get_modal_panel().is_open(), "选完模态该关掉")
+	assert_gt(scene.get_yearly_log().size(), before, "事件结果该写进年度日志")
 
 func test_shop_panel_opens_with_stock() -> void:
 	var scene = await _spawn(false)
 	scene.begin_run("dragon", 80)
+	scene.run_session.age = 11            # 商店年才摆货架
 	scene.run_session.purchasing_power = 5.0
 	scene._year_shop(false)
 	var panel = scene.get_shop_panel()
-	panel.open(scene.get_current_stock(), scene.run_session.purchasing_power)
+	panel.open(scene.get_current_stock(), scene.run_session.purchasing_power,
+		scene.get_stock_sold())
 	assert_true(panel.is_open())
 	assert_gt(panel.stock_size(), 0, "货架不该是空的")
 	panel.close()
