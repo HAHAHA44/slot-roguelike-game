@@ -1,5 +1,8 @@
-# 命盘 / 行囊面板：
-# - 左栏命盘（12 格，参与结算），右栏行囊（6 格，不参与结算）。选中两边各一张可对换。
+# 命盘 / 行囊 / 道具面板：
+# - 左栏命盘（12 格，参与结算），中栏行囊（6 格，不参与结算）。选中两边各一张可对换。
+# - 右栏是**已购道具**：它们不上盘、不参与 cascade，但每年都在给全盘上乘区。
+#   道具不显示出来，玩家就只能凭记忆知道自己这辈子攒下了什么乘法——
+#   而那恰恰是跨阶段唯一留得住的东西（碎片每 12 年清空一次）。
 # - 对换免费、不限次，但只在投盘前可用——投盘后还能改，等于让玩家看到 cascade 结果再反悔。
 #   RunScreen 负责在动画期间禁用入口，本面板不管这件事。
 # - 每张牌显示「名字 ★星级 · 分数」，选中后在下方看完整属性 + 合成进度（2/3 这种）。
@@ -21,12 +24,23 @@ const COLOR_DETAIL_DIM := Color(0.62, 0.63, 0.70)
 const COLOR_DETAIL_TEXT := Color(0.90, 0.91, 0.95)
 const STAR_MARK := "★"
 
+# 详情栏当前在讲哪一栏选中的东西。三个列表共用一块详情，不记来源就只能按
+# 固定优先级猜，玩家点了道具却看到命盘那张的属性。
+const SOURCE_BOARD := "board"
+const SOURCE_BENCH := "bench"
+const SOURCE_ITEMS := "items"
+
 var _tokens: Dictionary = {}
+var _items: Dictionary = {}
 var _merge_service = null
 var _session = null
 
 var _board_list: ItemList
 var _bench_list: ItemList
+var _item_list: ItemList
+# 与 _item_list 各行平行的道具 id，选中后靠它查定义。
+var _item_ids: Array[String] = []
+var _detail_source: String = SOURCE_BOARD
 var _detail_label: Label
 var _swap_button: Button
 var _move_button: Button
@@ -39,9 +53,10 @@ func _ready() -> void:
 	_build()
 
 # 由 RunScreen 在 ContentRegistry 加载后调用一次。
-func bind_content(tokens: Dictionary, merge_service) -> void:
+func bind_content(tokens: Dictionary, merge_service, items: Dictionary = {}) -> void:
 	_tokens = tokens
 	_merge_service = merge_service
+	_items = items
 
 func open(session) -> void:
 	refresh(session)
@@ -61,13 +76,18 @@ func refresh(session) -> void:
 	_session = session
 	var board_selected := _selected(_board_list)
 	var bench_selected := _selected(_bench_list)
+	var item_selected := _selected(_item_list)
 	_fill(_board_list, session.board_cards if session != null else [])
 	_fill(_bench_list, session.bench_cards if session != null else [])
+	_fill_items(session)
 	_reselect(_board_list, board_selected)
 	_reselect(_bench_list, bench_selected)
+	_reselect(_item_list, item_selected)
 	_title_label.text = L10n.format_text("ui.deck.title",
-		{"board": _board_list.item_count, "bench": _bench_list.item_count},
-		"命盘 %d/12 · 行囊 %d/6" % [_board_list.item_count, _bench_list.item_count])
+		{"board": _board_list.item_count, "bench": _bench_list.item_count,
+			"items": _total_item_count()},
+		"命盘 %d/12 · 行囊 %d/6 · 道具 %d" %
+			[_board_list.item_count, _bench_list.item_count, _total_item_count()])
 	_refresh_detail()
 	_refresh_buttons()
 
@@ -86,7 +106,7 @@ func _build() -> void:
 	add_child(center)
 
 	var frame := PanelContainer.new()
-	frame.custom_minimum_size = Vector2(720, 520)
+	frame.custom_minimum_size = Vector2(1000, 540)
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_PANEL_BG
 	style.set_corner_radius_all(10)
@@ -111,13 +131,15 @@ func _build() -> void:
 
 	_board_list = _titled_list(lists, L10n.text("ui.deck.board", "命盘（参与结算）"))
 	_bench_list = _titled_list(lists, L10n.text("ui.deck.bench", "行囊（材料 / 备选）"))
-	_board_list.item_selected.connect(func(_i): _on_selection_changed())
-	_bench_list.item_selected.connect(func(_i): _on_selection_changed())
+	_item_list = _titled_list(lists, L10n.text("ui.deck.items", "道具（场外乘区）"))
+	_board_list.item_selected.connect(func(_i): _on_selection_changed(SOURCE_BOARD))
+	_bench_list.item_selected.connect(func(_i): _on_selection_changed(SOURCE_BENCH))
+	_item_list.item_selected.connect(func(_i): _on_selection_changed(SOURCE_ITEMS))
 
 	_detail_label = Label.new()
 	_detail_label.add_theme_font_size_override("font_size", 14)
 	_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail_label.custom_minimum_size = Vector2(660, 96)
+	_detail_label.custom_minimum_size = Vector2(940, 96)
 	body.add_child(_detail_label)
 
 	var buttons := HBoxContainer.new()
@@ -159,7 +181,7 @@ func _titled_list(parent: Control, title: String) -> ItemList:
 	column.add_child(label)
 
 	var list := ItemList.new()
-	list.custom_minimum_size = Vector2(320, 260)
+	list.custom_minimum_size = Vector2(290, 260)
 	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(list)
 	return list
@@ -176,6 +198,32 @@ func _fill(list: ItemList, cards: Array) -> void:
 		var score: int = roundi(float(def.base_score) * card.multiplier()) if def != null else 0
 		list.add_item("%s %s · %d" % [display, _stars(int(card.star)), score])
 
+# 已购道具：一行一种，带份数。按 id 排序，让同一局里的位置稳定
+# ——道具是跨阶段攒的，玩家会记住「我那件东西在第几行」。
+func _fill_items(session) -> void:
+	_item_list.clear()
+	_item_ids.clear()
+	if session == null:
+		return
+	var ids: Array = session.owned_items.keys()
+	ids.sort()
+	for item_id in ids:
+		var count: int = int(session.owned_items[item_id])
+		if count <= 0:
+			continue
+		var def = _items.get(String(item_id), null)
+		var display: String = def.get_display_name() if def != null else String(item_id)
+		_item_list.add_item("%s ×%d" % [display, count] if count > 1 else display)
+		_item_ids.append(String(item_id))
+
+func _total_item_count() -> int:
+	if _session == null:
+		return 0
+	var total := 0
+	for item_id in _session.owned_items:
+		total += int(_session.owned_items[item_id])
+	return total
+
 func _stars(star: int) -> String:
 	return STAR_MARK.repeat(maxi(star, 1))
 
@@ -190,10 +238,16 @@ func _reselect(list: ItemList, index: int) -> void:
 		list.select(index)
 
 func _refresh_detail() -> void:
+	if _detail_source == SOURCE_ITEMS:
+		var index := _selected(_item_list)
+		if index >= 0 and index < _item_ids.size():
+			_detail_label.add_theme_color_override("font_color", COLOR_DETAIL_TEXT)
+			_detail_label.text = describe_item(_item_ids[index])
+			return
 	var card = _selected_card()
 	if card == null:
 		_detail_label.add_theme_color_override("font_color", COLOR_DETAIL_DIM)
-		_detail_label.text = L10n.text("ui.deck.select_hint", "选一张碎片查看它的属性。")
+		_detail_label.text = L10n.text("ui.deck.select_hint", "选一张碎片或道具查看它的属性。")
 		return
 	_detail_label.add_theme_color_override("font_color", COLOR_DETAIL_TEXT)
 	_detail_label.text = describe_card(card)
@@ -257,9 +311,36 @@ func describe_card(card) -> String:
 		lines.append(L10n.text("ui.deck.detail.ascend", "满星后可传承到下一阶段"))
 	return "\n".join(lines)
 
+# 一件道具的属性卡。乘区说明由 describe_effect() 现算，和商店里读到的是同一句话。
+func describe_item(item_id: String) -> String:
+	var def = _items.get(item_id, null)
+	if def == null:
+		return item_id
+	var count: int = int(_session.owned_items.get(item_id, 0)) if _session != null else 0
+	var lines: Array[String] = []
+	var head := "%s（%s）" % [def.get_display_name(), def.get_display_rarity()]
+	if count > 1:
+		head += " ×%d" % count
+	lines.append(head)
+	lines.append("· " + def.describe_effect())
+	lines.append(L10n.text("ui.deck.detail.item_scope", "道具不上盘，每年整局生效，跨阶段不清空。"))
+	var flavor: String = def.get_display_description()
+	if not flavor.is_empty():
+		lines.append("")
+		lines.append(flavor)
+	return "\n".join(lines)
+
 # -- 输入 --------------------------------------------------------------------
 
-func _on_selection_changed() -> void:
+# 三个列表共用一块详情栏。选了道具就清掉两边的牌选中（反之只清道具），
+# 因为「命盘 + 行囊各选一张」是对换的前提，不能被点道具打断。
+func _on_selection_changed(source: String) -> void:
+	_detail_source = source
+	if source == SOURCE_ITEMS:
+		_board_list.deselect_all()
+		_bench_list.deselect_all()
+	else:
+		_item_list.deselect_all()
 	_refresh_detail()
 	_refresh_buttons()
 
