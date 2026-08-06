@@ -1,7 +1,7 @@
 # DeckService 契约：命盘（12）/ 行囊（6）的增删换，以及阶段边界的清空与传承。
 #
-# 阶段边界是整个游戏最重的一次状态变更，规则只有一条：
-# 当期碎片全清，唯有满星者按 legacy_into 进化成传承物带走（ADR-0003）。
+# 阶段边界是整个游戏最重的一次状态变更：一星散牌全清，满星者按 legacy_into 进化成
+# 传承物，升过星的（star > 1）原样留下（ADR-0003 及其 2026-08 修订）。
 extends GutTest
 
 const DeckServiceScript := preload("res://scripts/core/services/deck_service.gd")
@@ -101,14 +101,54 @@ func test_demote_fails_when_bench_is_full() -> void:
 
 # -- 阶段边界 ----------------------------------------------------------------
 
-func test_end_stage_clears_unfinished_cards() -> void:
+func test_end_stage_clears_one_star_cards_only() -> void:
 	_token("crayon", "childhood", "art", "legacy_art_1")
 	_token("legacy_art_1", "", "art", "legacy_art_2", true)
 	_session.board_cards.append(CardInstanceScript.new("crayon", 1))
 	_session.board_cards.append(CardInstanceScript.new("crayon", 2))
 	var ascensions: Array = _service.end_stage(_session, _tokens)
 	assert_eq(ascensions.size(), 0, "没练满就没有传承")
-	assert_eq(_session.total_card_count(), 0, "童年的东西一样也带不走")
+	assert_eq(_ids_on_board(), ["crayon"], "一星散牌带不走，升过星的留下")
+	assert_eq(int(_session.board_cards[0].star), 2, "留下的是那张二星，不是被清掉的一星")
+
+func test_upgraded_cards_survive_the_stage_wipe() -> void:
+	# 二星是三张牌换来的。让它在阶段边界上蒸发，等于逼玩家在阶段末停手不合。
+	_token("crayon", "childhood", "art", "legacy_art_1")
+	_token("playmate", "childhood", "social", "legacy_social_1")
+	_session.board_cards.append(CardInstanceScript.new("crayon", 2))
+	_session.board_cards.append(CardInstanceScript.new("playmate", 1))
+	_service.end_stage(_session, _tokens)
+	assert_eq(_ids_on_board(), ["crayon"])
+
+func test_max_star_that_cannot_ascend_is_kept_not_dropped() -> void:
+	# 满星但同领域已封顶：升不了格，但它仍然是升过星的，不该被顺手丢掉。
+	_token("solo_show", "midlife", "art", "legacy_art_1")
+	_token("legacy_art_3", "", "art", "", true)
+	_session.legacy_domains["art"] = 3
+	_session.board_cards.append(CardInstanceScript.new("legacy_art_3", 1))
+	_session.board_cards.append(CardInstanceScript.new("solo_show", 3))
+	var ascensions: Array = _service.end_stage(_session, _tokens)
+	assert_eq(ascensions.size(), 0, "封顶后不再产出")
+	assert_eq(_ids_on_board(), ["legacy_art_3", "solo_show"], "升不了格也留得下")
+
+func test_carried_cards_yield_to_legacies_when_capacity_runs_out() -> void:
+	# 命盘 12 + 行囊 6 装不下时，先挤掉的必须是最弱的当期二星，不是传承物。
+	_token("legacy_art_1", "", "art", "", true)
+	_token("weak", "childhood", "art", "")
+	_token("strong", "childhood", "art", "")
+	_tokens["weak"].base_score = 2
+	_tokens["strong"].base_score = 30
+	_session.board_cards.append(CardInstanceScript.new("legacy_art_1", 1))
+	for _i in 20:
+		_session.board_cards.append(CardInstanceScript.new("weak", 2))
+	_session.board_cards.append(CardInstanceScript.new("strong", 2))
+	_service.end_stage(_session, _tokens)
+	var all_ids: Array = []
+	for card in _session.all_cards():
+		all_ids.append(String(card.definition_id))
+	assert_eq(_session.total_card_count(), 18, "命盘 12 + 行囊 6 就是上限")
+	assert_true(all_ids.has("legacy_art_1"), "传承物是骨干，最后才被挤")
+	assert_true(all_ids.has("strong"), "同为二星，进盘分高的先留")
 
 func test_end_stage_ascends_max_star_card() -> void:
 	_token("crayon", "childhood", "art", "legacy_art_1")
@@ -150,7 +190,7 @@ func test_chain_stops_at_the_capped_ring() -> void:
 	_session.board_cards.append(CardInstanceScript.new("solo_show", 3))
 	var ascensions: Array = _service.end_stage(_session, _tokens)
 	assert_eq(ascensions.size(), 0, "封顶后不再产出")
-	assert_eq(_ids_on_board(), ["legacy_art_3"], "也不该多出一件一环传承物")
+	assert_false(_ids_on_board().has("legacy_art_1"), "不该多出一件一环传承物")
 
 func test_one_stage_advances_a_domain_by_at_most_one_ring() -> void:
 	# 同一阶段两张同领域满星，也只前进一环——不然一个阶段就能走完整条链。
@@ -162,6 +202,8 @@ func test_one_stage_advances_a_domain_by_at_most_one_ring() -> void:
 	var ascensions: Array = _service.end_stage(_session, _tokens)
 	assert_eq(ascensions.size(), 1)
 	assert_eq(int(_session.legacy_domains["art"]), 1)
+	assert_eq(_ids_on_board(), ["legacy_art_1", "nursery_song"],
+		"没轮到升格的那张满星留在手上，等下个阶段再建树")
 
 func test_different_domains_ascend_independently() -> void:
 	_token("crayon", "childhood", "art", "legacy_art_1")
