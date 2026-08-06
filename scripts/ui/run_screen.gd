@@ -67,6 +67,9 @@ const SPIN_SECONDS := 1.2
 const CASCADE_STEP_SECONDS := 0.5
 const CASCADE_HOLD_SECONDS := 1.0
 const SCORE_FADE_SECONDS := 0.5
+# 按下「跳过动画」后收尾用的淡出。不设成 0：总收益要留一眼看得见，
+# 否则跳过等于把结果一并跳掉了。
+const SKIP_FADE_SECONDS := 0.12
 
 # 模态当前在演谁。三选一是**常驻连接 + 看这个开关**，事件走 _first_of 临时连接；
 # 两者共用一个面板，不靠这个标记就会互相截胡对方的信号。
@@ -116,6 +119,9 @@ var _yearly_log: Array[String] = []
 var _alive: bool = false
 # 播放动画中：挡住重复点按；autoplay/测试路径永不进这里。
 var _animating: bool = false
+# 本年玩家按过「跳过动画」。只跳视听，不跳决策——商店与转折年弹窗照常开，
+# 否则「跳过动画」就成了替玩家做选择。每年年初重置。
+var _skip_requested: bool = false
 
 # 光效浮层（_ready 里代码建，盖在盘面上）。
 var _score_pop: Label
@@ -139,6 +145,7 @@ var autoplay_on_ready: bool = false
 @onready var _status_panel = %StatusPanel
 @onready var _log_list: ItemList = %YearlyLogList
 @onready var _step_button: Button = %StepButton
+@onready var _skip_button: Button = %SkipButton
 @onready var _death_label: Label = %DeathLabel
 @onready var _deck_button: Button = %BackpackButton
 
@@ -175,6 +182,8 @@ func _ready() -> void:
 	_build_fx_overlays()
 	_build_modals()
 	_step_button.pressed.connect(_on_step_pressed)
+	_skip_button.pressed.connect(_on_skip_pressed)
+	_skip_button.text = L10n.text("ui.run.button.skip", "跳过动画")
 	_deck_button.pressed.connect(_on_deck_pressed)
 
 	begin_run(DEFAULT_BIRTH_ZODIAC, DEFAULT_LIFESPAN)
@@ -527,6 +536,7 @@ func _on_step_pressed() -> void:
 # 所以这条协程从投盘开始，一路演到年末。
 func _advance_year_interactive() -> void:
 	_animating = true
+	_skip_requested = false
 	_set_controls_enabled(false)
 	# 玩家没理会三选一就按了下一年 —— 当作「都不要」，别把选择窗留到下一年。
 	if _modal_mode == MODAL_DRAFT:
@@ -706,6 +716,18 @@ func _on_deck_pressed() -> void:
 func _set_controls_enabled(enabled: bool) -> void:
 	_step_button.disabled = not enabled
 	_deck_button.disabled = not enabled
+	# 跳过按钮的可用性和其它两个正好相反：只有在演的时候才有东西可跳。
+	if _skip_button != null:
+		_skip_button.disabled = enabled
+
+# 跳过本年的预滚与 cascade 回放，直接看结算结果。
+# 跳的只是视听：商店与转折年弹窗照常开，它们是决策，不是动画。
+func _on_skip_pressed() -> void:
+	if not _animating or _skip_requested:
+		return
+	_skip_requested = true
+	if _zodiac_ring != null:
+		_zodiac_ring.cancel_spin()
 
 # -- 出生 --------------------------------------------------------------------
 
@@ -911,6 +933,9 @@ func _play_cascade_fx(report) -> void:
 	var shown_combo := 0
 	var shown_tier := -1
 	for i in count:
+		# 玩家按了跳过：剩下的逐格点亮不演了，直接跳到总收益那一格。
+		if _skip_requested:
+			break
 		var step = steps[i]
 		_zodiac_ring.highlight_step(step)
 		_set_score_pop(int(round(float(total) * float(i + 1) / float(count))))
@@ -927,10 +952,12 @@ func _play_cascade_fx(report) -> void:
 		await get_tree().create_timer(CASCADE_STEP_SECONDS).timeout
 	_set_score_pop(total)
 	_zodiac_ring.clear_highlight()
-	await get_tree().create_timer(CASCADE_HOLD_SECONDS).timeout
-	await _fade_out(_score_pop, SCORE_FADE_SECONDS)
+	if not _skip_requested:
+		await get_tree().create_timer(CASCADE_HOLD_SECONDS).timeout
+	var fade: float = SKIP_FADE_SECONDS if _skip_requested else SCORE_FADE_SECONDS
+	await _fade_out(_score_pop, fade)
 	if _chain_banner.visible:
-		await _fade_out(_chain_banner, SCORE_FADE_SECONDS)
+		await _fade_out(_chain_banner, fade)
 
 func _combo_tier_index(count: int) -> int:
 	var idx := 0

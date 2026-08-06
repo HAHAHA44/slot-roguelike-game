@@ -59,6 +59,8 @@ var _birth_slot: int = -1
 # _highlight_slot / _highlight_pulse 是 cascade 当前点亮的格；_active_links 是本步连线。
 var _elapsed: float = 0.0
 var _spinning: bool = false
+# cancel_spin() 置起，play_spin 的两个循环看到就立刻定格收尾。
+var _spin_cancelled: bool = false
 var _highlight_slot: int = -1
 var _highlight_pulse: float = 0.0
 var _active_links: Array = []
@@ -107,20 +109,30 @@ func play_spin(duration: float = 0.7) -> void:
 	if _token_labels.is_empty() or _tokens.is_empty():
 		return
 	_spinning = true
+	_spin_cancelled = false
 	var scramble_time: float = duration * 0.5
 	var t: float = 0.0
-	while t < scramble_time:
+	while t < scramble_time and not _spin_cancelled:
 		_scramble_labels(0)
 		await get_tree().create_timer(0.045).timeout
 		t += 0.045
 	var per: float = maxf(0.02, (duration - scramble_time) / float(RING_SIZE))
 	for slot in RING_SIZE:
+		if _spin_cancelled:
+			break
 		_apply_token_label(slot, _slot_token_ids[slot])  # 这一格定格
 		_scramble_labels(slot + 1)                        # 后面的继续乱跳
 		await get_tree().create_timer(per).timeout
 	_spinning = false
+	_spin_cancelled = false
+	# 无论是转完还是被叫停，都以真实盘面收场——中断留下的乱跳标签必须擦掉。
 	_restore_labels()
 	queue_redraw()
+
+# 叫停预滚：正在跑的 play_spin 会在下一个 tick 定格到真实盘面。没在转就是空操作。
+func cancel_spin() -> void:
+	if _spinning:
+		_spin_cancelled = true
 
 # cascade 单步点亮：高亮该格 + 起脉冲 + 记下本步连线（按 kind 配色）。瞬时，不 await。
 func highlight_step(step) -> void:

@@ -426,6 +426,44 @@ func test_event_modal_resolves_through_the_coroutine() -> void:
 	assert_false(scene.get_modal_panel().is_open(), "选完模态该关掉")
 	assert_gt(scene.get_yearly_log().size(), before, "事件结果该写进年度日志")
 
+# -- 跳过动画 ----------------------------------------------------------------
+#
+# 跳过只砍视听，不砍决策：商店与转折年弹窗照常开，否则「跳过动画」就成了
+# 替玩家做选择。下面三条分别盯住按钮时机、预滚叫停、回放截断。
+
+func test_skip_button_is_only_live_while_animating() -> void:
+	var scene = await _spawn(false)
+	assert_true(scene._skip_button.disabled, "没在演的时候没东西可跳")
+	scene._set_controls_enabled(false)
+	assert_false(scene._skip_button.disabled, "开演时跳过按钮才亮")
+	assert_true(scene._step_button.disabled, "反过来「下一年」这时候是灰的")
+
+func test_cancel_spin_stops_the_reel_early() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	scene.step_year()
+	var ring = scene._zodiac_ring
+	ring.play_spin(5.0)                  # 故意给一个长得离谱的预滚
+	await get_tree().process_frame
+	assert_true(ring._spinning, "应该正在转")
+	ring.cancel_spin()
+	await get_tree().create_timer(0.25).timeout
+	assert_false(ring._spinning, "叫停后应立刻收场，而不是转满 5 秒")
+
+func test_skip_cuts_the_cascade_playback_short() -> void:
+	var scene = await _spawn(false)
+	scene.begin_run("dragon", 80)
+	scene.step_year()
+	var report = scene.get_last_cascade_report()
+	assert_gt(report.steps.size(), 1, "得有多步才谈得上跳过")
+	scene._animating = true
+	scene._on_skip_pressed()
+	var started: int = Time.get_ticks_msec()
+	await scene._play_cascade_fx(report)
+	var elapsed: int = Time.get_ticks_msec() - started
+	# 演完是 12 格 × 0.5s + 停顿 1.0s + 淡出 0.5s ≈ 7.5 秒。
+	assert_lt(elapsed, 600, "跳过后回放该立刻收尾，而不是逐格演完")
+
 func test_shop_panel_opens_with_stock() -> void:
 	var scene = await _spawn(false)
 	scene.begin_run("dragon", 80)
