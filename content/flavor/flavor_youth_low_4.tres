@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_vgy2s"]
+
+[resource]
+script = ExtResource("1_vgy2s")
+id = "flavor_youth_low_4"
+text = "生病了自己去的医院。"
+stage_id = "youth"
+spirit_bucket = "low"

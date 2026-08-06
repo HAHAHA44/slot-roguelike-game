@@ -1,11 +1,14 @@
-[gd_resource type="Resource" script_class="BuffDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BuffDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1_kngm7"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_kngm7")
 id = "fallen_family"
-display_name = "content.buff.fallen_family.name"
-description = "content.buff.fallen_family.desc"
+display_name = "家道中落"
+description = "听说以前不是这样。"
 polarity = "debuff"
-magnitude = 1
+tags = PackedStringArray()
+stat_deltas = {
+"spr": -2
+}

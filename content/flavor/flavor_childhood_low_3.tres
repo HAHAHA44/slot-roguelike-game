@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_3vcq0"]
+
+[resource]
+script = ExtResource("1_3vcq0")
+id = "flavor_childhood_low_3"
+text = "半夜醒来家里在吵架。"
+stage_id = "childhood"
+spirit_bucket = "low"

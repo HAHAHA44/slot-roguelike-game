@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_3noxi"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_yydyo"]
+
+[sub_resource type="Resource" id="Resource_sc3ag"]
+script = ExtResource("1_3noxi")
+text = "认了。"
+spirit_delta = -2
+discard_cards = 1
+
+[resource]
+script = ExtResource("2_yydyo")
+id = "ev_loss_money"
+name = "破财"
+description = "一笔钱说没就没了。"
+kind = "malign"
+spirit_weights = {
+"high": 0.1,
+"low": 5.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_3noxi")]([SubResource("Resource_sc3ag")])

@@ -1,11 +1,18 @@
-# 主运行界面 / 人生模拟流程编排器（M1）：
-# - 持有 ContentRegistry / RunSession / RingBoardService / ZodiacService /
-#   LifeStageService / SettlementService。
-# - 跑 yearly loop：出生（发起始 token 池）→ 洗牌投 12 格 → 真实 cascade 结算
-#   → stub event（跳过，M2 实装）→ age++ → 寿命到顶自然死。
-# - UI 层：HUD（出生/当年/年龄+寿命/精神/阶段/本命年标志）+ 12 格 ZodiacRing +
-#   年度日志 ItemList + 「下一年 / 重新开始」按钮。
-# - autoplay 路径保留（smoke test 用），默认关闭；玩家走主菜单进来时点按钮逐年推进。
+# 主运行界面 / 人生模拟流程编排器。
+#
+# 一年的顺序（两条路径共用同一批 _year_* 私有方法，只是模态开不开）：
+#   1 三选一抽碎片（可跳过）→ 自动合成升星
+#   2 洗牌投 12 格 → cascade 结算 → 记年收益、算购买力
+#   3 道具商店（买乘区）
+#   4 年末事件：流水年滚一行金句 / 转折年弹窗做选择
+#   5 属性漂移 → age++ → 阶段边界（考核 + 传承）→ 死亡判定
+#
+# 两条路径：
+#   step_year()               同步全自动，autoplay 与测试走这条，决策用 _auto_* 策略
+#   _advance_year_interactive() 协程，玩家路径，同样的顺序但每步开模态
+# 保持两条路径共用 _year_* 是刻意的——让「测试跑的」和「玩家玩的」永远是同一段逻辑。
+#
+# 本文件是 orchestrator：所有规则都在 services 里，这里只负责按顺序调用与呈现。
 extends Control
 
 const RunSessionScript := preload("res://autoload/run_session.gd")
@@ -14,18 +21,38 @@ const RingBoardServiceScript := preload("res://scripts/core/services/ring_board_
 const ZodiacServiceScript := preload("res://scripts/core/services/zodiac_service.gd")
 const LifeStageServiceScript := preload("res://scripts/core/services/life_stage_service.gd")
 const SettlementServiceScript := preload("res://scripts/core/services/settlement_service.gd")
-const TokenInventoryServiceScript := preload("res://scripts/core/services/token_inventory_service.gd")
 const AttributeServiceScript := preload("res://scripts/core/services/attribute_service.gd")
 const BuffServiceScript := preload("res://scripts/core/services/buff_service.gd")
+const DeckServiceScript := preload("res://scripts/core/services/deck_service.gd")
+const DraftServiceScript := preload("res://scripts/core/services/draft_service.gd")
+const MergeServiceScript := preload("res://scripts/core/services/merge_service.gd")
+const EconomyServiceScript := preload("res://scripts/core/services/economy_service.gd")
+const ShopServiceScript := preload("res://scripts/core/services/shop_service.gd")
+const YearModifierServiceScript := preload("res://scripts/core/services/year_modifier_service.gd")
+const SpiritServiceScript := preload("res://scripts/core/services/spirit_service.gd")
+const EventDraftServiceScript := preload("res://scripts/core/services/event_draft_service.gd")
+const EventResolverServiceScript := preload("res://scripts/core/services/event_resolver_service.gd")
+const AgeServiceScript := preload("res://scripts/core/services/age_service.gd")
+const DeathServiceScript := preload("res://scripts/core/services/death_service.gd")
+const DeckPanelScript := preload("res://scripts/ui/deck_panel.gd")
+const ShopPanelScript := preload("res://scripts/ui/shop_panel.gd")
+const ModalChoicePanelScript := preload("res://scripts/ui/modal_choice_panel.gd")
 const UiThemeScript := preload("res://scripts/ui/ui_theme.gd")
 
-# 起始 token 池的 id。池子构成在 content/run_start/default_pool.tres 里调，不在这里。
+# 起始命盘的构成在 content/run_start/default_pool.tres 里调，不在这里。
 const DEFAULT_POOL_ID := "default_pool"
 const DEFAULT_BIRTH_ZODIAC := "tiger"
 const DEFAULT_LIFESPAN := 80
 const LIFESPAN_MIN := 60
 const LIFESPAN_MAX := 110
-# 防止寿命设置错误时 autoplay 死循环；远高于人生模拟器最大寿命 110。
+# 一个人生阶段多少年。12 = 一次生肖轮回 = 一副命盘的抽取次数（ADR-0003 的四个 12 对齐）。
+const STAGE_LENGTH := 12
+const LAST_STAGE_ORDER := 6
+# 阶段考核没过扣多少精神力。这是「业绩不达标」唯一的后果——
+# 它不直接杀人，只是把死亡轮盘拧开一格（见 growth-loop-design 第 Q8 条）。
+const STAGE_FAIL_SPIRIT_PENALTY := -4
+const STAGE_PASS_SPIRIT_REWARD := 1
+# 防止寿命设置错误时 autoplay 死循环；远高于最大寿命 110。
 const AUTOPLAY_SAFETY_YEARS := 200
 
 var run_session
@@ -34,28 +61,48 @@ var _ring_board
 var _zodiac_service
 var _life_stage_service
 var _settlement_service
-var _token_inventory_service
 var _attribute_service
 var _buff_service
-# 按 polarity 分好的开局 Buff/Debuff 候选 id 池，出生抽取用（_ready 里从 registry 分）。
+var _deck_service
+var _draft_service
+var _merge_service
+var _economy_service
+var _shop_service
+var _year_modifier_service
+var _spirit_service
+var _event_draft_service
+var _event_resolver
+var _age_service
+var _death_service
+
+# 按 polarity 分好的开局 Buff/Debuff 候选 id 池（_ready 里从 registry 分）。
 var _buff_pool_ids: Array[String] = []
 var _debuff_pool_ids: Array[String] = []
-# 最近一次年度属性漂移结果 {"key","delta"}，供 UI 闪一下（空 = 本年无漂移）。
+# 命盘不满 12 张时的补位碎片 id，出生时从起始池定义读进来（内容，不是常量）。
+var _filler_token_id: String = ""
+# 最近一年的 CascadeReport，UI 逐条回放它的 steps。
+var _last_cascade_report = null
+# 最近一次年度属性漂移结果 {"key","delta"}，供 UI 闪一下。
 var _last_stat_drift: Dictionary = {}
-# 播放老虎机 / cascade 光效中：挡住重复点按，且 autoplay/测试路径永不进这里。
+# 本年的三选一候选 / 商店货架 / 待处理事件，交互路径与测试都读它们。
+var _current_offer: Array = []
+var _current_stock: Array = []
+var _pending_event = null
+var _yearly_log: Array[String] = []
+var _alive: bool = false
+# 播放动画中：挡住重复点按；autoplay/测试路径永不进这里。
 var _animating: bool = false
-# 光效浮层（_ready 里代码建，盖在盘面上）：分数弹跳 / 连击 banner / 屏闪。
+
+# 光效浮层（_ready 里代码建，盖在盘面上）。
 var _score_pop: Label
 var _chain_banner: Label
 var _flash_rect: ColorRect
-# 池子不足 12 张时的补位 token id，出生时从起始池定义读进来（内容，不是常量）。
-var _filler_token_id: String = ""
-var _yearly_log: Array[String] = []
-var _alive: bool = false
-# 最近一年的 CascadeReport。T1.6 的顺序点亮 / 数字弹跳会逐条回放它的 steps。
-var _last_cascade_report = null
+# 模态面板（代码建，盖在最上层）。
+var _deck_panel
+var _shop_panel
+var _modal_panel
 
-# 测试通过 _spawn() 显式置 true 跑 autoplay；玩家从主菜单进入时保持 false，等点按钮推进。
+# 测试通过 _spawn() 显式置 true 跑 autoplay；玩家从主菜单进入时保持 false。
 var autoplay_on_ready: bool = false
 
 @onready var _bg_gradient: TextureRect = %BgGradient
@@ -69,8 +116,7 @@ var autoplay_on_ready: bool = false
 @onready var _log_list: ItemList = %YearlyLogList
 @onready var _step_button: Button = %StepButton
 @onready var _death_label: Label = %DeathLabel
-@onready var _backpack_button: Button = %BackpackButton
-@onready var _backpack_panel = %BackpackPanel
+@onready var _deck_button: Button = %BackpackButton
 
 func _ready() -> void:
 	_content_registry = ContentRegistryScript.new()
@@ -79,13 +125,22 @@ func _ready() -> void:
 	_zodiac_service = ZodiacServiceScript.new(_content_registry.zodiacs.values())
 	_life_stage_service = LifeStageServiceScript.new(_content_registry.life_stages.values())
 	_settlement_service = SettlementServiceScript.new(_content_registry.tokens)
-	_token_inventory_service = TokenInventoryServiceScript.new()
 	_attribute_service = AttributeServiceScript.new()
 	_buff_service = BuffServiceScript.new()
+	_deck_service = DeckServiceScript.new()
+	_draft_service = DraftServiceScript.new()
+	_merge_service = MergeServiceScript.new()
+	_economy_service = EconomyServiceScript.new()
+	_shop_service = ShopServiceScript.new()
+	_year_modifier_service = YearModifierServiceScript.new()
+	_spirit_service = SpiritServiceScript.new()
+	_event_draft_service = EventDraftServiceScript.new()
+	_event_resolver = EventResolverServiceScript.new(_deck_service)
+	_age_service = AgeServiceScript.new()
+	_death_service = DeathServiceScript.new()
 	_split_buff_pools()
 	run_session = RunSessionScript.new()
 
-	# 统一皮肤 + 渐变背景（子控件自动继承 theme）。
 	theme = UiThemeScript.build()
 	if _bg_gradient != null:
 		_bg_gradient.texture = UiThemeScript.background_gradient()
@@ -94,64 +149,55 @@ func _ready() -> void:
 	if _status_panel != null:
 		_status_panel.bind_content(_content_registry.buffs)
 	_build_fx_overlays()
+	_build_modals()
 	_step_button.pressed.connect(_on_step_pressed)
-	_backpack_button.pressed.connect(_on_backpack_pressed)
-	_backpack_panel.delete_requested.connect(_on_backpack_delete_requested)
+	_deck_button.pressed.connect(_on_deck_pressed)
 
 	begin_run(DEFAULT_BIRTH_ZODIAC, DEFAULT_LIFESPAN)
 	if autoplay_on_ready:
 		autoplay_until_death(AUTOPLAY_SAFETY_YEARS)
 	_refresh_all()
 
-# -- public API（smoke test 依赖，签名不动） ---------------------------------
+# -- public API --------------------------------------------------------------
 
 func begin_run(zodiac_birth: String, lifespan: int) -> void:
-	run_session.age = 0
+	run_session = RunSessionScript.new()
 	run_session.lifespan = lifespan
 	run_session.zodiac_birth = zodiac_birth
-	run_session.sanity = 50
-	run_session.stage_idx = 0
-	run_session.karma_in_run = 0
-	# 婴儿出生：把 10 点随机撒到六维（力/智/敏/耐/精神力/运气）。
+	# 婴儿出生：10 点随机撒到六维，精神力另加出生基线。
 	_attribute_service.roll_initial(run_session)
 	_last_stat_drift = {}
-	# 开局按运气补正随机携带 0–2 个 Buff / 0–2 个 Debuff。
-	var luck: int = _attribute_service.get_value(run_session, AttributeServiceScript.LUCK_KEY)
+	# 起始命盘：内容在 content/run_start/，这里只负责取。
+	_draw_starting_pool()
+	# 开局按运气抽 Buff/Debuff，然后**当场结算**（它们是出生条件，不是常驻被动）。
+	var luck: int = run_session.stat(AttributeServiceScript.LUCK_KEY)
 	_buff_service.roll(run_session, luck, _buff_pool_ids, _debuff_pool_ids)
-	run_session.token_pool = _draw_starting_pool()
+	var buff_notes: Array = _buff_service.apply(run_session, _content_registry.buffs, _deck_service)
+	_merge_service.auto_merge(run_session)
+
 	_alive = true
-	if _backpack_panel != null:
-		_backpack_panel.bind_content(_content_registry.tokens, _filler_token_id)
-		_backpack_panel.close()
 	_last_cascade_report = null
+	_current_offer = []
+	_current_stock = []
+	_pending_event = null
 	_yearly_log.clear()
 	_ring_board.clear_all()
-	_log("出生：生肖 %s，寿命 %d 年，人生碎片 %d 张" %
-		[zodiac_birth, lifespan, run_session.token_pool.size()])
+	_log("出生：生肖 %s，寿命 %d 年，命盘 %d 张" %
+		[zodiac_birth, run_session.lifespan, run_session.board_cards.size()])
+	if not buff_notes.is_empty():
+		_log("投胎携带：%s" % "、".join(buff_notes))
+	_close_all_modals()
 	_refresh_all()
 
+# 同步跑完一整年。autoplay 与测试走这条，所有决策用 _auto_* 策略。
 func step_year() -> void:
 	if not _alive:
 		return
-	var year: int = run_session.age
-	var current_zodiac = _zodiac_service.current_year_zodiac(year)
-	var current_id: String = String(current_zodiac.id) if current_zodiac != null else ""
-	var birth_hit: bool = _zodiac_service.is_birth_year(year, run_session.zodiac_birth)
-	_populate_board()
-	var report = _settlement_service.settle(_ring_board)
-	_last_cascade_report = report
-	for warning in report.warnings:
-		push_warning("cascade（年 %d）：%s" % [year, warning])
-	_stub_event_skip()
-	_log("年 %d：当年生肖 %s，本命年命中: %s，cascade=%d，连击 %d" %
-		[year, current_id, str(birth_hit), report.total_score, report.chain_count])
-	# 年末属性漂移：40 岁前随机 +1 前 4 维，40 岁起随机 -1。用 ++ 前的年龄判断。
-	# 注意：不写年度日志（会破坏 smoke test 的行数断言），只留给 UI 闪一下。
-	_last_stat_drift = _attribute_service.apply_yearly_drift(run_session, run_session.age)
-	run_session.age += 1
-	if run_session.lifespan > 0 and run_session.age >= run_session.lifespan:
-		_alive = false
-		_log("自然死，享年 %d" % run_session.age)
+	_year_draft(true)
+	_year_cascade()
+	_year_shop(true)
+	_year_event(true)
+	_year_close()
 	_refresh_all()
 
 func autoplay_until_death(max_years: int) -> void:
@@ -177,26 +223,425 @@ func get_ring_board():
 func get_zodiac_service():
 	return _zodiac_service
 
-# 最近一年的 CascadeReport（未结算过则为 null）。T1.6 的顺序点亮回放从这里取 steps。
 func get_last_cascade_report():
 	return _last_cascade_report
 
-func get_backpack_panel():
-	return _backpack_panel
+func get_deck_panel():
+	return _deck_panel
 
-func get_delete_charges() -> int:
-	return _token_inventory_service.charges(run_session)
+func get_shop_panel():
+	return _shop_panel
 
-# 池子不足 12 张时补上盘面的 token id（""=留空槽）。
+func get_modal_panel():
+	return _modal_panel
+
+func get_current_offer() -> Array:
+	return _current_offer.duplicate()
+
+func get_current_stock() -> Array:
+	return _current_stock.duplicate()
+
+func get_pending_event():
+	return _pending_event
+
 func get_filler_token_id() -> String:
 	return _filler_token_id
+
+func get_stage_order() -> int:
+	@warning_ignore("integer_division")
+	var order: int = int(run_session.age) / STAGE_LENGTH
+	return mini(order, LAST_STAGE_ORDER)
+
+func get_stage_id() -> String:
+	var stage = _life_stage_service.get_by_order(get_stage_order())
+	return String(stage.id) if stage != null else ""
+
+func get_stage_threshold() -> int:
+	return _economy_service.threshold_for_stage(get_stage_order())
+
+func get_spirit_bucket() -> String:
+	return _spirit_service.bucket(run_session)
+
+# -- 年循环各步（两条路径共用） ----------------------------------------------
+
+# 1 三选一。auto=true 时按策略自动取舍；否则只准备候选，等模态回调。
+func _year_draft(auto: bool) -> void:
+	_current_offer = _draft_service.roll_offer(run_session, _content_registry.tokens, get_stage_id())
+	if auto:
+		var index := _auto_pick_draft()
+		if index >= 0:
+			_take_draft(index)
+
+# 真正拿一张。命盘和行囊都满时拿不了——调用方应先让玩家弃牌。
+func _take_draft(index: int) -> bool:
+	if index < 0 or index >= _current_offer.size():
+		return false
+	var definition_id := String(_current_offer[index])
+	if not _deck_service.acquire(run_session, definition_id):
+		return false
+	var merges: Array = _merge_service.auto_merge(run_session)
+	var def = _content_registry.tokens.get(definition_id, null)
+	var display: String = def.get_display_name() if def != null else definition_id
+	if merges.is_empty():
+		_log("获得碎片：%s" % display)
+	else:
+		var last: Dictionary = merges[merges.size() - 1]
+		_log("获得碎片：%s → 合成 %d 星！" % [display, int(last["to_star"])])
+	_current_offer = []
+	return true
+
+# 2 投盘 + 结算。
+func _year_cascade() -> void:
+	var year: int = run_session.age
+	var current_zodiac = _zodiac_service.current_year_zodiac(year)
+	var birth_hit: bool = _zodiac_service.is_birth_year(year, run_session.zodiac_birth)
+	_ring_board.fill_from_board_cards(run_session.board_cards, _filler_token_id)
+	var mods = _year_modifier_service.build(run_session, current_zodiac, birth_hit,
+		_content_registry.items)
+	var report = _settlement_service.settle(_ring_board, mods)
+	_last_cascade_report = report
+	for warning in report.warnings:
+		push_warning("cascade（年 %d）：%s" % [year, warning])
+
+	run_session.stage_income.append(int(report.total_score))
+	run_session.purchasing_power += _economy_service.purchasing_power(
+		int(report.total_score), get_stage_threshold())
+
+	var zodiac_id: String = String(current_zodiac.id) if current_zodiac != null else ""
+	var rule_name: String = String(current_zodiac.get_rule_name()) if current_zodiac != null else ""
+	_log("年 %d：%s%s，cascade=%d，连击 %d" % [year, zodiac_id,
+		("（%s）" % rule_name) if not rule_name.is_empty() else "",
+		report.total_score, report.chain_count])
+	if birth_hit:
+		_log("★ 本命年：同生肖联动翻倍，年收益 ×1.5")
+
+# 3 商店。auto=true 时自动买到买不动为止。
+func _year_shop(auto: bool) -> void:
+	_current_stock = _shop_service.roll_stock(run_session, _content_registry.items, get_stage_order())
+	if not auto:
+		return
+	var guard := 0
+	while guard < ShopServiceScript.OFFER_SIZE:
+		var index := _auto_pick_purchase()
+		if index < 0:
+			break
+		_buy_from_stock(index)
+		guard += 1
+
+func _buy_from_stock(index: int) -> bool:
+	if index < 0 or index >= _current_stock.size():
+		return false
+	var def = _current_stock[index]
+	if not _shop_service.buy(run_session, def):
+		return false
+	_log("购入道具：%s（%s）" % [def.get_display_name(), def.describe_effect()])
+	_current_stock.remove_at(index)
+	return true
+
+# 4 年末事件。流水年只滚金句；转折年抽事件，auto=true 时自动选一个非致死选项。
+func _year_event(auto: bool) -> void:
+	_pending_event = null
+	var bucket := get_spirit_bucket()
+	var stage_id := get_stage_id()
+	var flavor = _event_draft_service.pick_flavor(_content_registry.flavor_lines, stage_id, bucket)
+	if flavor != null:
+		_log(flavor.get_display_text())
+
+	var birth_hit: bool = _zodiac_service.is_birth_year(run_session.age, run_session.zodiac_birth)
+	if not _event_draft_service.should_trigger(bucket, birth_hit):
+		return
+	var current_zodiac = _zodiac_service.current_year_zodiac(run_session.age)
+	var zodiac_id: String = String(current_zodiac.id) if current_zodiac != null else ""
+	_pending_event = _event_draft_service.draft_event(_content_registry.events, stage_id,
+		bucket, zodiac_id, birth_hit)
+	if _pending_event != null and auto:
+		_resolve_event(_auto_pick_choice(_pending_event))
+
+func _resolve_event(choice_index: int) -> void:
+	if _pending_event == null:
+		return
+	var event = _pending_event
+	_pending_event = null
+	var outcome: Dictionary = _event_resolver.resolve(run_session, event, choice_index)
+	var notes: Array = outcome["notes"]
+	var suffix: String = ("（%s）" % "，".join(notes)) if not notes.is_empty() else ""
+	_log("· %s%s" % [event.get_display_name(), suffix])
+	if bool(outcome["lethal"]):
+		_die(_death_service.cause_name(DeathServiceScript.Cause.LETHAL_EVENT),
+			"死于：%s" % event.get_display_name())
+
+# 5 收尾：属性漂移 → age++ → 阶段边界 → 寿命判定。
+func _year_close() -> void:
+	if not _alive:
+		return
+	_last_stat_drift = _attribute_service.apply_yearly_drift(run_session, run_session.age)
+	_age_service.advance(run_session)
+	if run_session.age % STAGE_LENGTH == 0:
+		_close_stage()
+	if _alive and _age_service.is_natural_death(run_session):
+		_die(_death_service.cause_name(DeathServiceScript.Cause.NATURAL),
+			"自然死，享年 %d" % run_session.age)
+
+# 阶段边界：先考核（没过扣精神力），再传承（满星者进化），最后清空当期碎片。
+func _close_stage() -> void:
+	@warning_ignore("integer_division")
+	var elapsed_stages: int = int(run_session.age) / STAGE_LENGTH
+	var finished_order: int = mini(elapsed_stages - 1, LAST_STAGE_ORDER)
+	var review: Dictionary = _economy_service.stage_review(run_session, finished_order)
+	if bool(review["passed"]):
+		_spirit_service.add(run_session, STAGE_PASS_SPIRIT_REWARD)
+		_log("阶段考核通过：%d / %d" % [int(review["income"]), int(review["threshold"])])
+	else:
+		_spirit_service.add(run_session, STAGE_FAIL_SPIRIT_PENALTY)
+		_log("阶段考核未过：%d / %d，精神力 %d" %
+			[int(review["income"]), int(review["threshold"]), STAGE_FAIL_SPIRIT_PENALTY])
+
+	var ascensions: Array = _deck_service.end_stage(run_session, _content_registry.tokens)
+	for ascension in ascensions:
+		var into_def = _content_registry.tokens.get(String(ascension["into"]), null)
+		var into_name: String = into_def.get_display_name() if into_def != null else String(ascension["into"])
+		_log("传承：在%s上有所建树 → %s（第 %d 环）" %
+			[L10n.text("ui.domain.%s" % ascension["domain"], String(ascension["domain"])),
+			into_name, int(ascension["ring"])])
+	run_session.stage_income.clear()
+	run_session.stage_idx = get_stage_order()
+
+func _die(cause: String, message: String) -> void:
+	_alive = false
+	run_session.death_cause = cause
+	_log(message)
+
+# -- 自动决策策略（autoplay / 测试；玩家路径不经过这里） -----------------------
+
+# 优先补齐能凑星的同名碎片，其次挑进盘分最高的。装不下就跳过。
+func _auto_pick_draft() -> int:
+	if _current_offer.is_empty() or not _deck_service.has_room(run_session):
+		return -1
+	var best_index := -1
+	var best_score := -1.0
+	for i in _current_offer.size():
+		var def = _content_registry.tokens.get(String(_current_offer[i]), null)
+		if def == null:
+			continue
+		var score := float(def.base_score)
+		if _owned_count(String(_current_offer[i])) > 0:
+			score += 100.0  # 凑星的价值远高于单张分数
+		if score > best_score:
+			best_score = score
+			best_index = i
+	return best_index
+
+func _owned_count(definition_id: String) -> int:
+	var count := 0
+	for card in run_session.all_cards():
+		if card != null and String(card.definition_id) == definition_id:
+			count += 1
+	return count
+
+# 买得起的里面挑最贵的：贵的乘区大，而购买力离开时作废，留着没有意义。
+func _auto_pick_purchase() -> int:
+	var best_index := -1
+	var best_price := -1.0
+	for i in _current_stock.size():
+		var def = _current_stock[i]
+		if not _shop_service.can_afford(run_session, def):
+			continue
+		if float(def.price) > best_price:
+			best_price = float(def.price)
+			best_index = i
+	return best_index
+
+# 挑第一个非致死选项；全是致死（真正的绝境事件）才选 0。
+func _auto_pick_choice(event) -> int:
+	for i in event.choices.size():
+		if not bool(event.choices[i].lethal):
+			return i
+	return 0
+
+# -- 玩家交互路径（协程） ----------------------------------------------------
+
+func _on_step_pressed() -> void:
+	if _animating:
+		return
+	if _alive:
+		_advance_year_interactive()
+	else:
+		_start_next_life()
+
+func _advance_year_interactive() -> void:
+	_animating = true
+	_set_controls_enabled(false)
+
+	_year_draft(false)
+	if not _current_offer.is_empty():
+		await _await_draft_choice()
+
+	_year_cascade()
+	_refresh_all()
+	await _zodiac_ring.play_spin(0.7)
+	await _play_cascade_fx(_last_cascade_report)
+
+	_year_shop(false)
+	if not _current_stock.is_empty():
+		await _await_shop()
+
+	_year_event(false)
+	if _pending_event != null:
+		await _await_event_choice()
+
+	_year_close()
+	_animating = false
+	_set_controls_enabled(true)
+	_refresh_all()
+
+func _await_draft_choice() -> void:
+	var options: Array = []
+	for definition_id in _current_offer:
+		var def = _content_registry.tokens.get(String(definition_id), null)
+		if def == null:
+			options.append({"text": String(definition_id), "subtext": ""})
+			continue
+		var progress: Dictionary = _merge_service.progress_for(run_session, String(definition_id))
+		var merge_hint: String = ""
+		if not progress.is_empty():
+			merge_hint = L10n.format_text("ui.draft.merge_hint",
+				{"have": progress["have"], "need": progress["need"]},
+				"（已有 %d/%d）" % [progress["have"], progress["need"]])
+		options.append({
+			"text": "%s%s" % [def.get_display_name(), merge_hint],
+			"subtext": "%s · 基础分 %d · %s" % [def.get_display_domain(), def.base_score,
+				_effects_summary(def)],
+			"disabled": not _deck_service.has_room(run_session),
+		})
+	var skip_text: String = L10n.text("ui.draft.skip", "都不要")
+	if not _deck_service.has_room(run_session):
+		skip_text = L10n.text("ui.draft.full", "命盘与行囊都满了——只能跳过")
+	_modal_panel.open_with(L10n.text("ui.draft.title", "三选一"),
+		L10n.text("ui.draft.body", "拿一张，或者什么都不要。"), options, skip_text)
+	var index: int = await _await_modal()
+	if index >= 0:
+		_take_draft(index)
+	_modal_panel.close()
+	_refresh_all()
+
+func _await_shop() -> void:
+	_shop_panel.open(_current_stock, run_session.purchasing_power)
+	while true:
+		var index: int = await _await_shop_action()
+		if index < 0:
+			break
+		_buy_from_stock(index)
+		_shop_panel.refresh(_current_stock, run_session.purchasing_power)
+		_refresh_all()
+	_shop_panel.close()
+	# 剩余购买力作废：攒钱在这个游戏里没有叙事意义，作废逼玩家每年都做决定。
+	run_session.purchasing_power = 0.0
+	_refresh_all()
+
+func _await_event_choice() -> void:
+	var event = _pending_event
+	var options: Array = []
+	for choice in event.choices:
+		options.append({"text": choice.get_display_text(), "subtext": ""})
+	var skip_text := "" if not event.choices.is_empty() else L10n.text("ui.event.ack", "知道了")
+	_modal_panel.open_with(event.get_display_name(), event.get_display_description(),
+		options, skip_text)
+	var index: int = await _await_modal()
+	_modal_panel.close()
+	_resolve_event(index)
+	_refresh_all()
+
+# 等模态回一个下标；跳过回 -1。两个信号只会有一个先到。
+func _await_modal() -> int:
+	var chosen_index: int = await _first_of(_modal_panel.chosen, _modal_panel.skipped)
+	return chosen_index
+
+func _await_shop_action() -> int:
+	return await _first_of(_shop_panel.buy_requested, _shop_panel.closed)
+
+# 等两个信号中先到的那个：带参数的返回其参数，不带参数的返回 -1。
+#
+# 状态放在一个数组里而不是两个局部变量，是**必须**的：GDScript 的 lambda
+# 按值捕获局部变量，在 lambda 里写 `done = true` 改不动外层那个 done，
+# 下面的 while 会永远转下去。数组是引用类型，改它才穿得透。
+func _first_of(with_arg: Signal, without_arg: Signal) -> int:
+	var state: Array = [false, -1]   # [是否已收到, 返回值]
+	var on_arg := func(value: int) -> void:
+		if not bool(state[0]):
+			state[0] = true
+			state[1] = value
+	var on_plain := func() -> void:
+		if not bool(state[0]):
+			state[0] = true
+			state[1] = -1
+	with_arg.connect(on_arg)
+	without_arg.connect(on_plain)
+	while not bool(state[0]):
+		await get_tree().process_frame
+	with_arg.disconnect(on_arg)
+	without_arg.disconnect(on_plain)
+	return int(state[1])
+
+func _effects_summary(def) -> String:
+	var parts: Array[String] = []
+	for effect in def.effects:
+		if effect == null:
+			continue
+		var line := String(effect.describe())
+		if not line.is_empty():
+			parts.append(line)
+	if parts.is_empty():
+		return L10n.text("ui.draft.no_effect", "无联动")
+	return "；".join(parts)
+
+func _start_next_life() -> void:
+	var zodiac_ids: Array = []
+	for z in _content_registry.zodiacs.values():
+		zodiac_ids.append(String(z.id))
+	zodiac_ids.sort()
+	var next_zodiac: String = zodiac_ids[randi() % zodiac_ids.size()] \
+		if not zodiac_ids.is_empty() else DEFAULT_BIRTH_ZODIAC
+	begin_run(next_zodiac, randi_range(LIFESPAN_MIN, LIFESPAN_MAX))
+
+func _on_deck_pressed() -> void:
+	if _deck_panel == null:
+		return
+	if _deck_panel.is_open():
+		_deck_panel.close()
+	else:
+		_deck_panel.open(run_session)
+
+func _set_controls_enabled(enabled: bool) -> void:
+	_step_button.disabled = not enabled
+	_deck_button.disabled = not enabled
+
+# -- 出生 --------------------------------------------------------------------
+
+func _split_buff_pools() -> void:
+	_buff_pool_ids = []
+	_debuff_pool_ids = []
+	for buff in _content_registry.buffs.values():
+		if buff == null:
+			continue
+		if buff.is_buff():
+			_buff_pool_ids.append(String(buff.id))
+		else:
+			_debuff_pool_ids.append(String(buff.id))
+
+# 出生发牌：把起始池的碎片放进命盘。池子构成是内容，不是代码。
+func _draw_starting_pool() -> void:
+	_filler_token_id = ""
+	var definition = _content_registry.starting_pools.get(DEFAULT_POOL_ID, null)
+	if definition == null:
+		push_error("找不到起始池「%s」，本局将从空命盘开始" % DEFAULT_POOL_ID)
+		return
+	_filler_token_id = String(definition.filler_token_id)
+	for token_id in definition.token_ids:
+		_deck_service.acquire(run_session, String(token_id))
 
 # -- UI refresh --------------------------------------------------------------
 
 func _refresh_all() -> void:
-	# @onready 变量在 _ready body 执行前已绑定，因此即便从 _ready 内的 begin_run() 进来也安全。
-	# 唯一不安全的路径是 begin_run 在 add_child 之前被调；那种情况下 _zodiac_service 也是 null，
-	# 不只是 UI 出问题，由 caller 负责保证调用顺序。
 	if _step_button == null:
 		return
 	_refresh_hud()
@@ -204,32 +649,39 @@ func _refresh_all() -> void:
 	_refresh_status_panel()
 	_refresh_log()
 	_refresh_button()
-	_refresh_backpack()
+	_refresh_deck_button()
 
 func _refresh_hud() -> void:
-	var birth_z = _zodiac_service.get_by_id(run_session.zodiac_birth) if not run_session.zodiac_birth.is_empty() else null
+	var birth_z = _zodiac_service.get_by_id(run_session.zodiac_birth) \
+		if not run_session.zodiac_birth.is_empty() else null
 	var birth_name: String = birth_z.get_display_name() if birth_z != null else "—"
 	_birth_label.text = L10n.format_text("ui.run.hud.birth", {"zodiac": birth_name},
 		"出生：%s" % birth_name)
 
 	var current_year_index: int = run_session.age
-	# 死亡后 age 已 ++，再渲染会越过寿命；clamp 在 lifespan-1 用作"最后一年"显示。
+	# 死亡后 age 已 ++，再渲染会越过寿命；clamp 在最后一年。
 	if not _alive and current_year_index > 0:
 		current_year_index = max(0, current_year_index - 1)
 	var current_z = _zodiac_service.current_year_zodiac(current_year_index)
 	var current_name: String = current_z.get_display_name() if current_z != null else "—"
+	# 规则名形如「狗·守夜」，本身已含生肖字，所以有规则时不再重复写生肖名。
+	var rule_name: String = String(current_z.get_rule_name()) if current_z != null else ""
+	var year_tag: String = rule_name if not rule_name.is_empty() else current_name
 	_year_label.text = L10n.format_text("ui.run.hud.year",
-		{"age": current_year_index, "zodiac": current_name},
-		"第 %d 年 · %s" % [current_year_index, current_name])
+		{"age": current_year_index, "rule": year_tag},
+		"第 %d 年 · %s" % [current_year_index, year_tag])
 
 	_age_label.text = L10n.format_text("ui.run.hud.age",
 		{"age": run_session.age, "lifespan": run_session.lifespan},
 		"年龄 %d / 寿 %d" % [run_session.age, run_session.lifespan])
 
-	var stage = _life_stage_service.stage_for_age(run_session.age) if _life_stage_service != null else null
+	var stage = _life_stage_service.stage_for_age(run_session.age)
 	var stage_name: String = stage.get_display_name() if stage != null else "—"
-	_stage_label.text = L10n.format_text("ui.run.hud.stage", {"stage": stage_name},
-		"阶段：%s" % stage_name)
+	var last_income: int = int(run_session.stage_income[run_session.stage_income.size() - 1]) \
+		if not run_session.stage_income.is_empty() else 0
+	_stage_label.text = L10n.format_text("ui.run.hud.stage",
+		{"stage": stage_name, "income": last_income, "threshold": get_stage_threshold()},
+		"%s · 考核 %d/%d" % [stage_name, last_income, get_stage_threshold()])
 
 	var birth_hit: bool = _zodiac_service.is_birth_year(current_year_index, run_session.zodiac_birth)
 	_birth_year_tag.text = L10n.text("ui.run.hud.birth_year", "★ 本命年 ★") if birth_hit else ""
@@ -265,67 +717,66 @@ func _refresh_button() -> void:
 		_death_label.text = ""
 	else:
 		_step_button.text = L10n.text("ui.run.button.restart", "重新开始")
-		_death_label.text = L10n.format_text("ui.run.death.natural",
+		_death_label.text = L10n.format_text("ui.run.death.summary",
 			{"age": run_session.age},
-			"自然死，享年 %d。重新开始？" % run_session.age)
+			"享年 %d。重新开始？" % run_session.age)
 		_death_label.visible = true
 
-func _refresh_backpack() -> void:
-	if _backpack_button == null:
+func _refresh_deck_button() -> void:
+	if _deck_button == null:
 		return
-	_backpack_button.text = L10n.format_text("ui.run.button.backpack",
-		{"count": run_session.token_pool.size()},
-		"背包（%d）" % run_session.token_pool.size())
-	if _backpack_panel != null and _backpack_panel.is_open():
-		_backpack_panel.refresh(run_session.token_pool,
-			_token_inventory_service.charges(run_session))
+	_deck_button.text = L10n.format_text("ui.run.button.deck",
+		{"board": run_session.board_cards.size(), "bench": run_session.bench_cards.size()},
+		"命盘 %d · 行囊 %d" % [run_session.board_cards.size(), run_session.bench_cards.size()])
+	if _deck_panel != null and _deck_panel.is_open():
+		_deck_panel.refresh(run_session)
 
-# -- input handlers ----------------------------------------------------------
+# -- 模态与光效浮层 ----------------------------------------------------------
 
-func _on_backpack_pressed() -> void:
-	if _backpack_panel == null:
-		return
-	if _backpack_panel.is_open():
-		_backpack_panel.close()
-	else:
-		_backpack_panel.open(run_session.token_pool,
-			_token_inventory_service.charges(run_session))
+func _build_modals() -> void:
+	_deck_panel = DeckPanelScript.new()
+	add_child(_deck_panel)
+	_deck_panel.bind_content(_content_registry.tokens, _merge_service)
+	_deck_panel.swap_requested.connect(_on_swap_requested)
+	_deck_panel.promote_requested.connect(_on_promote_requested)
+	_deck_panel.demote_requested.connect(_on_demote_requested)
 
-# 删牌只改池子，不改本年已经投好的盘面——本年的 cascade 已经结算过了，
-# 回头去动它等于让玩家看到的分数凭空变化。删掉的那张从下一年起消失。
-func _on_backpack_delete_requested(pool_index: int) -> void:
-	if not _token_inventory_service.delete_at(run_session, pool_index):
-		return
-	_log("删除人生碎片：剩余 %d 张，可删除次数 %d" %
-		[run_session.token_pool.size(), run_session.token_delete_charges])
-	_refresh_all()
+	_shop_panel = ShopPanelScript.new()
+	add_child(_shop_panel)
 
-func _on_step_pressed() -> void:
-	if _animating:
-		return
-	if _alive:
-		_advance_year_animated()
-	else:
-		_start_next_life()
+	_modal_panel = ModalChoicePanelScript.new()
+	add_child(_modal_panel)
 
-# 交互路径推进一年：逻辑同步跑完（step_year 已刷新 HUD/状态/盘面），
-# 再叠加老虎机预滚 + cascade 逐格点亮 + 分数弹跳。协程；autoplay/测试不经此路。
-func _advance_year_animated() -> void:
-	_animating = true
-	_step_button.disabled = true
-	_backpack_button.disabled = true
-	step_year()
-	var report = _last_cascade_report
-	await _zodiac_ring.play_spin(0.7)
-	await _play_cascade_fx(report)
-	_animating = false
-	_step_button.disabled = false
-	_backpack_button.disabled = false
-	_refresh_button()
+func _close_all_modals() -> void:
+	if _deck_panel != null:
+		_deck_panel.close()
+	if _shop_panel != null:
+		_shop_panel.close()
+	if _modal_panel != null:
+		_modal_panel.close()
 
-# -- 光效浮层 ----------------------------------------------------------------
+func _on_swap_requested(board_index: int, bench_index: int) -> void:
+	if _deck_service.swap(run_session, board_index, bench_index):
+		_refresh_all()
 
-# 代码建三个盖在盘面上的浮层：分数弹跳、连击 banner、屏闪。都不吃鼠标。
+func _on_promote_requested(bench_index: int) -> void:
+	if _deck_service.promote(run_session, bench_index):
+		_refresh_all()
+
+func _on_demote_requested(board_index: int) -> void:
+	if _deck_service.demote(run_session, board_index):
+		_refresh_all()
+
+# 连击 banner 从 3 连击起常驻显示，5 / 10 / 20 / 50 各跨一档。
+const COMBO_MIN := 3
+const COMBO_TIERS := [
+	{"min": 3, "color": Color("4cd98c"), "pop": 1.28, "font": 28, "flash": 0.0},
+	{"min": 5, "color": Color("6be5ff"), "pop": 1.42, "font": 33, "flash": 0.18},
+	{"min": 10, "color": Color("ffd23f"), "pop": 1.58, "font": 38, "flash": 0.26},
+	{"min": 20, "color": Color("ff8a3d"), "pop": 1.74, "font": 43, "flash": 0.34},
+	{"min": 50, "color": Color("ff3b3b"), "pop": 1.92, "font": 48, "flash": 0.5},
+]
+
 func _build_fx_overlays() -> void:
 	_flash_rect = ColorRect.new()
 	_flash_rect.color = Color(1, 0.95, 0.75, 0.0)
@@ -351,7 +802,6 @@ func _build_fx_overlays() -> void:
 	_chain_banner.visible = false
 	add_child(_chain_banner)
 
-# cascade 逐格点亮 + 分数从 0 滚到当年总收益 + 连击 banner（阈值 3/5/7/12）+ 屏闪。
 func _play_cascade_fx(report) -> void:
 	var steps: Array = report.steps if report != null else []
 	var total: int = int(report.total_score) if report != null else 0
@@ -360,25 +810,38 @@ func _play_cascade_fx(report) -> void:
 	_position_fx_over_ring()
 	_score_pop.visible = true
 	_score_pop.modulate = Color(1, 1, 1, 1)
-	var thresholds := [3, 5, 7, 12]
-	var thr_idx := 0
+	_chain_banner.visible = false
 	var count := steps.size()
+	var shown_combo := 0
+	var shown_tier := -1
 	for i in count:
 		var step = steps[i]
 		_zodiac_ring.highlight_step(step)
 		_set_score_pop(int(round(float(total) * float(i + 1) / float(count))))
 		var chain_after := int(step.chain_count_after)
-		while thr_idx < thresholds.size() and chain_after >= int(thresholds[thr_idx]):
-			_show_chain_banner(int(thresholds[thr_idx]))
-			if int(thresholds[thr_idx]) >= 5:
-				_flash()
-			thr_idx += 1
+		if chain_after >= COMBO_MIN and chain_after > shown_combo:
+			shown_combo = chain_after
+			var tier := _combo_tier_index(chain_after)
+			_show_chain_banner(chain_after, tier)
+			if tier > shown_tier:
+				var flash_amt: float = float(COMBO_TIERS[tier]["flash"])
+				if flash_amt > 0.0:
+					_flash(flash_amt)
+				shown_tier = tier
 		await get_tree().create_timer(0.3).timeout
 	_set_score_pop(total)
 	_zodiac_ring.clear_highlight()
 	await get_tree().create_timer(0.7).timeout
 	await _fade_out(_score_pop, 0.4)
-	_chain_banner.visible = false
+	if _chain_banner.visible:
+		await _fade_out(_chain_banner, 0.4)
+
+func _combo_tier_index(count: int) -> int:
+	var idx := 0
+	for i in COMBO_TIERS.size():
+		if count >= int(COMBO_TIERS[i]["min"]):
+			idx = i
+	return idx
 
 func _position_fx_over_ring() -> void:
 	var ring_rect: Rect2 = _zodiac_ring.get_global_rect()
@@ -386,7 +849,7 @@ func _position_fx_over_ring() -> void:
 	_score_pop.size = Vector2(320, 72)
 	_score_pop.pivot_offset = _score_pop.size * 0.5
 	_score_pop.position = c - _score_pop.size * 0.5
-	_chain_banner.size = Vector2(320, 44)
+	_chain_banner.size = Vector2(360, 64)
 	_chain_banner.pivot_offset = _chain_banner.size * 0.5
 	_chain_banner.position = c - _chain_banner.size * 0.5 + Vector2(0, ring_rect.size.y * 0.32)
 
@@ -396,18 +859,22 @@ func _set_score_pop(value: int) -> void:
 	var tw := create_tween()
 	tw.tween_property(_score_pop, "scale", Vector2.ONE, 0.15)
 
-func _show_chain_banner(count: int) -> void:
+func _show_chain_banner(count: int, tier: int) -> void:
+	var style: Dictionary = COMBO_TIERS[tier]
 	_chain_banner.text = L10n.format_text("ui.run.fx.combo", {"count": count}, "%d 连击！" % count)
+	_chain_banner.add_theme_font_size_override("font_size", int(style["font"]))
+	_chain_banner.add_theme_color_override("font_color", style["color"])
 	_chain_banner.visible = true
 	_chain_banner.modulate = Color(1, 1, 1, 1)
-	_chain_banner.scale = Vector2(1.4, 1.4)
+	var pop: float = float(style["pop"])
+	_chain_banner.scale = Vector2(pop, pop)
 	var tw := create_tween()
 	tw.tween_property(_chain_banner, "scale", Vector2.ONE, 0.22) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-func _flash() -> void:
+func _flash(intensity: float = 0.22) -> void:
 	var tw := create_tween()
-	tw.tween_property(_flash_rect, "color:a", 0.22, 0.06)
+	tw.tween_property(_flash_rect, "color:a", intensity, 0.06)
 	tw.tween_property(_flash_rect, "color:a", 0.0, 0.28)
 
 func _fade_out(node: CanvasItem, duration: float) -> void:
@@ -416,57 +883,6 @@ func _fade_out(node: CanvasItem, duration: float) -> void:
 	await tw.finished
 	node.visible = false
 	node.modulate = Color(1, 1, 1, 1)
-
-func _start_next_life() -> void:
-	# 重新开始：随机生肖 + 随机寿命（60-110），让每条人生有差异。
-	var zodiac_ids: Array = []
-	for z in _content_registry.zodiacs.values():
-		zodiac_ids.append(String(z.id))
-	zodiac_ids.sort()
-	var next_zodiac: String = zodiac_ids[randi() % zodiac_ids.size()] if not zodiac_ids.is_empty() else DEFAULT_BIRTH_ZODIAC
-	var next_lifespan: int = randi_range(LIFESPAN_MIN, LIFESPAN_MAX)
-	begin_run(next_zodiac, next_lifespan)
-
-# -- 投盘 --------------------------------------------------------------------
-
-# 把 registry 里的 Buff 定义按 polarity 分成增益 / 减益两个候选 id 池。
-# 出生时 BuffService 从这两池按运气补正抽取。
-func _split_buff_pools() -> void:
-	_buff_pool_ids = []
-	_debuff_pool_ids = []
-	for buff in _content_registry.buffs.values():
-		if buff == null:
-			continue
-		if buff.is_buff():
-			_buff_pool_ids.append(String(buff.id))
-		else:
-			_debuff_pool_ids.append(String(buff.id))
-
-# 出生时发牌：把起始池的 token_ids 拷进 RunSession.token_pool。
-# 池子构成是内容（content/run_start/），不是代码；这里只负责取。
-func _draw_starting_pool() -> Array[String]:
-	var pool: Array[String] = []
-	_filler_token_id = ""
-	run_session.token_delete_charges = 0
-	var definition = _content_registry.starting_pools.get(DEFAULT_POOL_ID, null)
-	if definition == null:
-		# 内容缺失不该静默变成空盘——那会让每年 cascade=0，看起来像结算坏了。
-		push_error("找不到起始 token 池「%s」，本局将没有任何人生碎片" % DEFAULT_POOL_ID)
-		return pool
-	for token_id in definition.token_ids:
-		pool.append(String(token_id))
-	_filler_token_id = String(definition.filler_token_id)
-	run_session.token_delete_charges = int(definition.delete_charges)
-	return pool
-
-# 每年把池子洗牌投上 12 格。池子少于 12 张（玩家删过牌）时用补位 token 填满剩余槽位。
-# 洗牌 + 补位的规则在 RingBoardService 里，这里只负责把「池子」和「补什么」递进去。
-func _populate_board() -> void:
-	_ring_board.fill_from_pool(run_session.token_pool, _filler_token_id)
-
-func _stub_event_skip() -> void:
-	# stub：M2 加 EventDraftService（sanity 加权）+ EventResolverService。
-	pass
 
 func _log(line: String) -> void:
 	_yearly_log.append(line)

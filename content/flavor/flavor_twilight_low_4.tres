@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_7vn8o"]
+
+[resource]
+script = ExtResource("1_7vn8o")
+id = "flavor_twilight_low_4"
+text = "怕闭上眼睛。"
+stage_id = "twilight"
+spirit_bucket = "low"

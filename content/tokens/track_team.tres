@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_yulh4"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_37la2"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_b4cjy"]
+
+[sub_resource type="Resource" id="Resource_312en"]
+script = ExtResource("2_37la2")
+amount = 4
+
+[resource]
+script = ExtResource("3_b4cjy")
+id = "track_team"
+name = "田径队"
+description = "跑道上的白线晒得发烫。"
+tags = PackedStringArray("sport")
+domain = "sport"
+stage_id = "adolescence"
+legacy_into = "legacy_sport_1"
+base_score = 4
+effects = Array[ExtResource("1_yulh4")]([SubResource("Resource_312en")])
+zodiac_affinity = "horse"

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_l25gp"]
+
+[resource]
+script = ExtResource("1_l25gp")
+id = "flavor_twilight_high_2"
+text = "有人握着你的手。"
+stage_id = "twilight"
+spirit_bucket = "high"

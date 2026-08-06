@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_eqfhp"]
+
+[resource]
+script = ExtResource("1_eqfhp")
+id = "flavor_senior_high_3"
+text = "老友来看你了。"
+stage_id = "senior"
+spirit_bucket = "high"

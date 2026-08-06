@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_66f22"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_dvu5i"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_huylf"]
+
+[sub_resource type="Resource" id="Resource_ofvwq"]
+script = ExtResource("2_dvu5i")
+amount = 22
+
+[resource]
+script = ExtResource("3_huylf")
+id = "memoir"
+name = "回忆录"
+description = "写到一半才发现忘了很多。"
+rarity = "Uncommon"
+tags = PackedStringArray("study")
+domain = "study"
+stage_id = "senior"
+legacy_into = "legacy_study_1"
+base_score = 19
+effects = Array[ExtResource("1_66f22")]([SubResource("Resource_ofvwq")])
+zodiac_affinity = "goat"

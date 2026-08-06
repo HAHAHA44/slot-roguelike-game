@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_b38q7"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_120fn"]
+
+[sub_resource type="Resource" id="Resource_fsnpi"]
+script = ExtResource("1_b38q7")
+text = "该扔的都扔了。"
+spirit_delta = 2
+discard_cards = 1
+
+[sub_resource type="Resource" id="Resource_c7cqj"]
+script = ExtResource("1_b38q7")
+text = "一样也没舍得。"
+spirit_delta = -1
+
+[resource]
+script = ExtResource("2_120fn")
+id = "ev_move_house"
+name = "搬家"
+description = "东西比想象中多。"
+spirit_weights = {
+"high": 1.0,
+"low": 1.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_b38q7")]([SubResource("Resource_fsnpi"), SubResource("Resource_c7cqj")])

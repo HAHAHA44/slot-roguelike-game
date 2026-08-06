@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_6728b"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_ue44t"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_gkyy0"]
+
+[sub_resource type="Resource" id="Resource_1jtyk"]
+script = ExtResource("2_ue44t")
+amount = 12
+
+[resource]
+script = ExtResource("3_gkyy0")
+id = "certification"
+name = "资格证"
+description = "一张纸换一个头衔。"
+rarity = "Uncommon"
+tags = PackedStringArray("study")
+domain = "study"
+stage_id = "prime"
+legacy_into = "legacy_study_1"
+base_score = 10
+effects = Array[ExtResource("1_6728b")]([SubResource("Resource_1jtyk")])
+zodiac_affinity = "goat"

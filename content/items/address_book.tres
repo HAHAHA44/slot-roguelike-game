@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_7jhur"]
+
+[resource]
+script = ExtResource("1_7jhur")
+id = "address_book"
+name = "通讯录"
+description = "有些名字划掉了。"
+domain = "social"
+max_stack = 2
+domain_percent = 15

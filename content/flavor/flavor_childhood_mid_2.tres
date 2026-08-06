@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_hnuag"]
+
+[resource]
+script = ExtResource("1_hnuag")
+id = "flavor_childhood_mid_2"
+text = "下雨了，被接走。"
+stage_id = "childhood"
+spirit_bucket = "mid"

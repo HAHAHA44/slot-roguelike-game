@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_olwof"]
+
+[resource]
+script = ExtResource("1_olwof")
+id = "flavor_adolescence_mid_4"
+text = "抄了半本歌词。"
+stage_id = "adolescence"
+spirit_bucket = "mid"

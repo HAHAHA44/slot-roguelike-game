@@ -1,15 +1,21 @@
-# 六维局内属性服务（预留）：
+# 六维局内属性服务：
 # - 六维：力量 str / 智力 int / 敏捷 agi / 耐力 end / 精神力 spr / 运气 luck。
 #   存在 RunSession.stats（Dictionary<String,int>）里，键见 ORDERED_KEYS。
-# - 出生（婴儿）时把 INITIAL_POINTS 点随机撒到六维；40 岁前每年随机 +1 到前 4 维，
+# - 出生把 INITIAL_POINTS 点随机撒到六维；40 岁前每年随机 +1 到前 4 维，
 #   40 岁起每年随机 -1（同前 4 维）。精神力 / 运气不随年龄漂移，运气整局恒定。
-# - 本批只做「数据 + 增减规则」：属性对 cascade / 死亡 / 事件的具体加成留到后续
-#   （对齐 dev-plan M4 的 StatService scaling），这里只搭骨架。
-# - 纯 RefCounted，数据进数据出；随机用全局 randi()，与 RunScreen 的 _start_next_life 一致。
+#
+# 前四维的总和因此是一条**帐篷曲线**：出生约 7 点 → 40 岁约 47 点峰值 → 晚年跌回近 0。
+# 而每一维各自强化一类 cascade 效果（力量→自增 / 智力→同生肖 / 敏捷→邻接 / 耐力→基础分，
+# 见 YearModifierService），所以这条曲线的游戏含义是：**壮年是全局强度巅峰，
+# 晚年 cascade 靠 build 硬撑而不是靠属性**。这个人生形状是免费的——曲线本来就在跑。
+#
+# 属性随机漂移、玩家不能选方向：build 方向有相当部分是「投胎 + 天意」，只能顺势而为。
+# 这是刻意的，不是没做完。
 class_name AttributeService
 extends RefCounted
 
 const StatServiceScript := preload("res://scripts/core/services/stat_service.gd")
+const SpiritServiceScript := preload("res://scripts/core/services/spirit_service.gd")
 
 # 六维固定顺序（UI 展示 / 出生分配都按这个序）。
 const ORDERED_KEYS := ["str", "int", "agi", "end", "spr", "luck"]
@@ -24,8 +30,12 @@ const DRIFT_TURNING_AGE := 40
 
 var _stats := StatServiceScript.new()
 
-# 出生：六维清零后把 INITIAL_POINTS 点逐点随机撒到六维（多项分布）。
-# 某一维可能分到 0，这是有意的——初始差异越大越有「投胎」味。
+# 出生：六维清零后把 INITIAL_POINTS 点逐点随机撒到六维（多项分布），
+# 再给精神力补上出生基线。某一维可能分到 0，这是有意的——初始差异越大越有「投胎」味。
+#
+# 精神力为什么要补基线：六维每维期望才 1.7 点，若不补，所有人一出生就落在「低精神」档，
+# 死亡轮盘从童年就开着。基线的含义是「一个人不会生下来就精神崩溃」。
+# 数值与阈值都在 SpiritService，这里只负责施加。
 func roll_initial(session) -> void:
 	if session == null:
 		push_error("AttributeService.roll_initial: session 为 null")
@@ -35,11 +45,11 @@ func roll_initial(session) -> void:
 	for _i in INITIAL_POINTS:
 		var key: String = ORDERED_KEYS[randi() % ORDERED_KEYS.size()]
 		_stats.add(session, key, 1)
+	_stats.add(session, SPIRIT_KEY, SpiritServiceScript.BIRTH_BASELINE)
 
 # 年度漂移：< 40 随机一个前 4 维 +1；>= 40 随机一个「当前 >0」的前 4 维 -1（钳到 ≥0）。
 # 精神力 / 运气不参与年龄漂移；运气整局恒定。
 # 返回 {"key","delta"} 供 UI 闪一下；前 4 维全 0 无处可减时返回空 {}。
-# 注意：本方法不写 RunScreen 的年度日志（会破坏 smoke test 的行数断言），只回结果。
 func apply_yearly_drift(session, age: int) -> Dictionary:
 	if session == null:
 		push_error("AttributeService.apply_yearly_drift: session 为 null")

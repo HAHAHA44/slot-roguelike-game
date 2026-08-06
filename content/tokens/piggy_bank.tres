@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_aiv81"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_qmtxb"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_v0bm6"]
+
+[sub_resource type="Resource" id="Resource_ahaid"]
+script = ExtResource("2_qmtxb")
+amount = 4
+
+[resource]
+script = ExtResource("3_v0bm6")
+id = "piggy_bank"
+name = "存钱罐"
+description = "摇一摇，听个响。"
+tags = PackedStringArray("wealth")
+domain = "wealth"
+stage_id = "childhood"
+legacy_into = "legacy_wealth_1"
+base_score = 3
+effects = Array[ExtResource("1_aiv81")]([SubResource("Resource_ahaid")])
+zodiac_affinity = "dragon"

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_jonp8"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_gnqga"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_nerpw"]
+
+[sub_resource type="Resource" id="Resource_30wts"]
+script = ExtResource("2_gnqga")
+amount = 12
+
+[resource]
+script = ExtResource("3_nerpw")
+id = "midlife_doubt"
+name = "中年之惑"
+description = "半夜醒来数天花板。"
+tags = PackedStringArray()
+stage_id = "midlife"
+base_score = 10
+effects = Array[ExtResource("1_jonp8")]([SubResource("Resource_30wts")])
+zodiac_affinity = "snake"

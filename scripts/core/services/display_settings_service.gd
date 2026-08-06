@@ -62,4 +62,6 @@ func apply(key: String) -> void:
 	var screen := DisplayServer.window_get_current_screen(window_id)
 	var screen_pos := DisplayServer.screen_get_position(screen)
 	var screen_size := DisplayServer.screen_get_size(screen)
-	DisplayServer.window_set_position(screen_pos + (screen_size - res) / 2, window_id)
+	@warning_ignore("integer_division")
+	var centered: Vector2i = screen_pos + (screen_size - res) / 2
+	DisplayServer.window_set_position(centered, window_id)

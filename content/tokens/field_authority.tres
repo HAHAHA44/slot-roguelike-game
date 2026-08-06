@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_0rf3m"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_oetxy"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_ej7o3"]
+
+[sub_resource type="Resource" id="Resource_68qqd"]
+script = ExtResource("2_oetxy")
+percent = 140
+
+[resource]
+script = ExtResource("3_ej7o3")
+id = "field_authority"
+name = "领域权威"
+description = "别人引用你了。"
+rarity = "Rare"
+tags = PackedStringArray("study")
+domain = "study"
+stage_id = "midlife"
+legacy_into = "legacy_study_1"
+base_score = 18
+effects = Array[ExtResource("1_0rf3m")]([SubResource("Resource_68qqd")])
+zodiac_affinity = "ox"

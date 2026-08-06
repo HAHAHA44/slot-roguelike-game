@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_sc0p4"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_bfssy"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="3_xjjgp"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="4_mi6s5"]
+
+[sub_resource type="Resource" id="Resource_d31qw"]
+script = ExtResource("2_bfssy")
+amount = 20
+
+[sub_resource type="Resource" id="Resource_o5qqg"]
+script = ExtResource("3_xjjgp")
+percent = 100
+
+[resource]
+script = ExtResource("4_mi6s5")
+id = "lifetime_savings"
+name = "一生积蓄"
+description = "数字后面很多零，花不动了。"
+rarity = "Rare"
+tags = PackedStringArray("wealth")
+domain = "wealth"
+stage_id = "twilight"
+legacy_into = "legacy_wealth_1"
+base_score = 29
+effects = Array[ExtResource("1_sc0p4")]([SubResource("Resource_d31qw"), SubResource("Resource_o5qqg")])
+zodiac_affinity = "dragon"

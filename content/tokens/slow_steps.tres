@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_7qr4o"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_gd5fu"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_iac0d"]
+
+[sub_resource type="Resource" id="Resource_w7vck"]
+script = ExtResource("2_gd5fu")
+amount = 23
+
+[resource]
+script = ExtResource("3_iac0d")
+id = "slow_steps"
+name = "缓步"
+description = "从门口走到院子要歇一次。"
+tags = PackedStringArray("sport")
+domain = "sport"
+stage_id = "twilight"
+legacy_into = "legacy_sport_1"
+base_score = 19
+effects = Array[ExtResource("1_7qr4o")]([SubResource("Resource_w7vck")])
+zodiac_affinity = "rat"

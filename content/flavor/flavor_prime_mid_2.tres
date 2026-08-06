@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_313tm"]
+
+[resource]
+script = ExtResource("1_313tm")
+id = "flavor_prime_mid_2"
+text = "同事换了一批。"
+stage_id = "prime"
+spirit_bucket = "mid"

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_i55yy"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_ghohr"]
+
+[sub_resource type="Resource" id="Resource_vswnb"]
+script = ExtResource("1_i55yy")
+text = "哭了。"
+spirit_delta = -2
+
+[sub_resource type="Resource" id="Resource_a0yic"]
+script = ExtResource("1_i55yy")
+text = "梗着脖子。"
+spirit_delta = -1
+card_reward = "stubborn"
+
+[resource]
+script = ExtResource("2_ghohr")
+id = "ev_child_scold"
+name = "挨了一顿骂"
+description = "你到现在也不觉得自己错了。"
+kind = "malign"
+stage_id = "childhood"
+spirit_weights = {
+"high": 0.1,
+"low": 5.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_i55yy")]([SubResource("Resource_vswnb"), SubResource("Resource_a0yic")])

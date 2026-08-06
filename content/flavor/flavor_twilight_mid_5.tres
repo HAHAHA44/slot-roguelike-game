@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_rmlbj"]
+
+[resource]
+script = ExtResource("1_rmlbj")
+id = "flavor_twilight_mid_5"
+text = "旧衣服都还留着。"
+stage_id = "twilight"
+spirit_bucket = "mid"

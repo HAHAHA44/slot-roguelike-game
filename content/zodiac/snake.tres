@@ -1,9 +1,12 @@
-[gd_resource type="Resource" script_class="ZodiacDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ZodiacDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1_mq58h"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_mq58h")
 id = "snake"
-display_name = "content.zodiac.snake.name"
+display_name = "蛇"
 order = 5
+rule_name = "蛇·蜕变"
+rule_description = "同乡今年格外抱团。"
+rule_zodiac_percent = 65

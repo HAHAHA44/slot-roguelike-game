@@ -1,11 +1,14 @@
-[gd_resource type="Resource" script_class="BuffDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BuffDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1_h3xn6"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_h3xn6")
 id = "sturdy_body"
-display_name = "content.buff.sturdy_body.name"
-description = "content.buff.sturdy_body.desc"
-polarity = "buff"
-magnitude = 1
+display_name = "体格强健"
+description = "很少生病。"
+tags = PackedStringArray()
+stat_deltas = {
+"end": 3
+}
+lifespan_delta = 5

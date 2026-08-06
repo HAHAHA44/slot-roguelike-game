@@ -1,9 +1,12 @@
-[gd_resource type="Resource" script_class="ZodiacDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ZodiacDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1_nichf"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_nichf")
 id = "dragon"
-display_name = "content.zodiac.dragon.name"
+display_name = "龙"
 order = 4
+rule_name = "龙·腾达"
+rule_description = "最出挑的那一格今年一飞冲天。"
+rule_highest_percent = 120

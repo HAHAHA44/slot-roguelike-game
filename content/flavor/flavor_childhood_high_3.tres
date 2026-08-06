@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_155f8"]
+
+[resource]
+script = ExtResource("1_155f8")
+id = "flavor_childhood_high_3"
+text = "在院子里追一只猫。"
+stage_id = "childhood"
+spirit_bucket = "high"

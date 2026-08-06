@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_lykjl"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_mqsm5"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="3_3hae1"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="4_duxn2"]
+
+[sub_resource type="Resource" id="Resource_npekn"]
+script = ExtResource("2_mqsm5")
+amount = 12
+
+[sub_resource type="Resource" id="Resource_82v2a"]
+script = ExtResource("3_3hae1")
+amount = 4
+percent = 45
+
+[resource]
+script = ExtResource("4_duxn2")
+id = "second_income"
+name = "第二收入"
+description = "睡着的时候也在进钱。"
+rarity = "Uncommon"
+tags = PackedStringArray("wealth")
+domain = "wealth"
+stage_id = "midlife"
+legacy_into = "legacy_wealth_1"
+base_score = 15
+effects = Array[ExtResource("1_lykjl")]([SubResource("Resource_npekn"), SubResource("Resource_82v2a")])
+zodiac_affinity = "dragon"

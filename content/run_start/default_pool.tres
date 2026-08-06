@@ -1,11 +1,10 @@
-[gd_resource type="Resource" script_class="StartingPoolDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="StartingPoolDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/starting_pool_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/starting_pool_definition.gd" id="1_7jalt"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_7jalt")
 id = "default_pool"
-display_name = "content.starting_pool.default_pool.name"
-token_ids = PackedStringArray("diligence", "diligence", "diligence", "diligence", "close_friend", "close_friend", "close_friend", "close_friend", "kinsman", "kinsman", "benefactor", "ancestral_blessing")
+display_name = "寻常人家"
+token_ids = PackedStringArray("piggy_bank", "playmate", "picture_book")
 filler_token_id = "mundane"
-delete_charges = 5

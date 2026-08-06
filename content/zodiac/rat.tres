@@ -1,9 +1,12 @@
-[gd_resource type="Resource" script_class="ZodiacDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ZodiacDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1_m3x7u"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_m3x7u")
 id = "rat"
-display_name = "content.zodiac.rat.name"
-order = 0
+display_name = "鼠"
+rule_name = "鼠·囤积"
+rule_description = "便宜的小碎片今年格外顶用。"
+rule_low_base_threshold = 4
+rule_low_base_bonus = 5

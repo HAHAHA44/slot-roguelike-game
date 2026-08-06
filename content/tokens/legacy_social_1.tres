@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_h27cd"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_imd5h"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_ag2cd"]
+
+[sub_resource type="Resource" id="Resource_dhcj8"]
+script = ExtResource("2_imd5h")
+amount = 6
+percent = 70
+radius = 2
+
+[resource]
+script = ExtResource("3_ag2cd")
+id = "legacy_social_1"
+name = "人脉广布"
+description = "哪儿都有说得上话的人。"
+rarity = "Legendary"
+tags = PackedStringArray("social", "legacy")
+domain = "social"
+legacy_into = "legacy_social_2"
+is_legacy = true
+draft_weight = 0.0
+base_score = 14
+effects = Array[ExtResource("1_h27cd")]([SubResource("Resource_dhcj8")])
+zodiac_affinity = "goat"

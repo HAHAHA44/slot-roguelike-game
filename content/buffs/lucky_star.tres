@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="BuffDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BuffDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1_fo6cg"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_fo6cg")
 id = "lucky_star"
-display_name = "content.buff.lucky_star.name"
-description = "content.buff.lucky_star.desc"
-polarity = "buff"
-magnitude = 2
+display_name = "福星高照"
+description = "总能赶上好时候。"
+tags = PackedStringArray()
+stat_deltas = {
+"luck": 3
+}

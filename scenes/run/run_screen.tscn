@@ -1,8 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/run_screen.gd" id="1_run_screen"]
 [ext_resource type="PackedScene" path="res://scenes/run/zodiac_ring.tscn" id="2_zodiac_ring"]
-[ext_resource type="PackedScene" path="res://scenes/run/backpack_panel.tscn" id="3_backpack"]
 [ext_resource type="PackedScene" path="res://scenes/run/status_panel.tscn" id="4_status"]
 
 [node name="RunScreen" type="Control"]
@@ -169,7 +168,7 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
-text = "背包（0）"
+text = "命盘 0 · 行囊 0"
 
 [node name="StepButton" type="Button" parent="MainMargin/MainLayout/ContentRow/Sidebar/ButtonRow"]
 unique_name_in_owner = true
@@ -179,6 +178,3 @@ size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
 theme_override_font_sizes/font_size = 20
 text = "下一年"
-
-[node name="BackpackPanel" parent="." instance=ExtResource("3_backpack")]
-unique_name_in_owner = true

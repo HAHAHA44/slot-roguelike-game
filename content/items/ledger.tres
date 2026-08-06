@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_28hvl"]
+
+[resource]
+script = ExtResource("1_28hvl")
+id = "ledger"
+name = "账本"
+description = "每一笔都记。"
+rarity = "Uncommon"
+domain = "wealth"
+price = 0.9
+min_stage_order = 2
+self_percent = 18

@@ -34,10 +34,10 @@ func test_build_report_default_reason_is_empty_string() -> void:
 func test_build_report_does_not_mutate_session() -> void:
 	var session = _make_session()
 	session.age = 50
-	session.sanity = 30
+	session.set_stat("spr", 3)
 	_make_service().build_report(session, DeathServiceScript.Cause.NATURAL, "natural")
 	assert_eq(session.age, 50)
-	assert_eq(session.sanity, 30)
+	assert_eq(session.stat("spr"), 3)
 
 func test_build_report_handles_null_session() -> void:
 	var report := _make_service().build_report(null, DeathServiceScript.Cause.NATURAL)

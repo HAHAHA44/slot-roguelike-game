@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_0x2fm"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_xfe44"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_gcjlw"]
+
+[sub_resource type="Resource" id="Resource_rxwo8"]
+script = ExtResource("2_xfe44")
+amount = 5
+percent = 75
+
+[resource]
+script = ExtResource("3_gcjlw")
+id = "legacy_art_1"
+name = "小有名气"
+description = "有人认出你的手笔。"
+rarity = "Legendary"
+tags = PackedStringArray("art", "legacy")
+domain = "art"
+legacy_into = "legacy_art_2"
+is_legacy = true
+draft_weight = 0.0
+base_score = 14
+effects = Array[ExtResource("1_0x2fm")]([SubResource("Resource_rxwo8")])
+zodiac_affinity = "rabbit"

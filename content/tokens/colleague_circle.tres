@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_vx63k"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_my4pc"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_jfecq"]
+
+[sub_resource type="Resource" id="Resource_ogwtl"]
+script = ExtResource("2_my4pc")
+amount = 5
+percent = 50
+
+[resource]
+script = ExtResource("3_jfecq")
+id = "colleague_circle"
+name = "同事圈"
+description = "饭桌上都是分寸。"
+tags = PackedStringArray("social")
+domain = "social"
+stage_id = "prime"
+legacy_into = "legacy_social_1"
+base_score = 9
+effects = Array[ExtResource("1_vx63k")]([SubResource("Resource_ogwtl")])
+zodiac_affinity = "rooster"

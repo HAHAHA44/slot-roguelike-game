@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_a0h8f"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_ta042"]
+
+[sub_resource type="Resource" id="Resource_tlvho"]
+script = ExtResource("1_a0h8f")
+text = "抓住它。"
+spirit_delta = 4
+item_reward = "jade_pendant"
+
+[resource]
+script = ExtResource("2_ta042")
+id = "ev_birth_turn"
+name = "本命年·转机"
+description = "最难的那天之后，事情忽然松动了。"
+kind = "benign"
+birth_year_only = true
+spirit_weights = {
+"high": 4.0,
+"low": 1.0,
+"mid": 2.0
+}
+choices = Array[ExtResource("1_a0h8f")]([SubResource("Resource_tlvho")])

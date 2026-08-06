@@ -1,11 +1,14 @@
-[gd_resource type="Resource" script_class="BuffDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BuffDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1_p615i"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_p615i")
 id = "ill_fortune"
-display_name = "content.buff.ill_fortune.name"
-description = "content.buff.ill_fortune.desc"
+display_name = "时运不济"
+description = "总是差那么一点。"
 polarity = "debuff"
-magnitude = 2
+tags = PackedStringArray()
+stat_deltas = {
+"luck": -2
+}

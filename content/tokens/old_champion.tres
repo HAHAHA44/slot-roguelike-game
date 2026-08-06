@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_xrojl"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_hwmfl"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_lm4sy"]
+
+[sub_resource type="Resource" id="Resource_e2jqh"]
+script = ExtResource("2_hwmfl")
+amount = 10
+percent = 80
+
+[resource]
+script = ExtResource("3_lm4sy")
+id = "old_champion"
+name = "昔日冠军"
+description = "照片上的人在笑。"
+rarity = "Uncommon"
+tags = PackedStringArray("sport")
+domain = "sport"
+stage_id = "twilight"
+legacy_into = "legacy_sport_1"
+base_score = 23
+effects = Array[ExtResource("1_xrojl")]([SubResource("Resource_e2jqh")])
+zodiac_affinity = "rat"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_8xujd"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_4mf65"]
+
+[sub_resource type="Resource" id="Resource_th06m"]
+script = ExtResource("1_8xujd")
+text = "松一口气。"
+spirit_delta = 1
+lifespan_delta = 2
+
+[resource]
+script = ExtResource("2_4mf65")
+id = "ev_health_check"
+name = "体检报告"
+description = "各项都还行，医生难得笑了。"
+kind = "benign"
+spirit_weights = {
+"high": 5.0,
+"low": 0.2,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_8xujd")]([SubResource("Resource_th06m")])

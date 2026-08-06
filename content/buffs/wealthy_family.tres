@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="BuffDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BuffDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1_fsh67"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_fsh67")
 id = "wealthy_family"
-display_name = "content.buff.wealthy_family.name"
-description = "content.buff.wealthy_family.desc"
-polarity = "buff"
-magnitude = 1
+display_name = "家境优渥"
+description = "从没为钱发过愁。"
+tags = PackedStringArray()
+extra_card = "new_year_money"
+extra_card_star = 2
+purchasing_power_bonus = 1.5

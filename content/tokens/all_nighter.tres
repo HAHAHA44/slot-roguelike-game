@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_0ftip"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_k1cwi"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_gjwt6"]
+
+[sub_resource type="Resource" id="Resource_d4i22"]
+script = ExtResource("2_k1cwi")
+amount = 5
+
+[resource]
+script = ExtResource("3_gjwt6")
+id = "all_nighter"
+name = "通宵"
+description = "天亮时眼睛发涩。"
+tags = PackedStringArray()
+stage_id = "youth"
+base_score = 8
+effects = Array[ExtResource("1_0ftip")]([SubResource("Resource_d4i22")])
+zodiac_affinity = "snake"

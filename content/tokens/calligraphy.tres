@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_q4gi5"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_rdaw0"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_h3j0l"]
+
+[sub_resource type="Resource" id="Resource_npfoi"]
+script = ExtResource("2_rdaw0")
+amount = 7
+percent = 60
+
+[resource]
+script = ExtResource("3_h3j0l")
+id = "calligraphy"
+name = "书法"
+description = "一笔下去不能改。"
+tags = PackedStringArray("art")
+domain = "art"
+stage_id = "senior"
+legacy_into = "legacy_art_1"
+base_score = 16
+effects = Array[ExtResource("1_q4gi5")]([SubResource("Resource_npfoi")])
+zodiac_affinity = "monkey"

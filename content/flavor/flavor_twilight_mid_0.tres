@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_k04e7"]
+
+[resource]
+script = ExtResource("1_k04e7")
+id = "flavor_twilight_mid_0"
+text = "从门口走到院子要歇一次。"
+stage_id = "twilight"
+spirit_bucket = "mid"

@@ -23,7 +23,7 @@ var chain_links: Array
 # 本步的主联动类型（第一条 link 的 kind）："" / "zodiac" / "adjacent"。
 # 只用于摘要展示（日志行、banner 配色）；画线一律走 chain_links。
 var chain_kind: String
-# 本步结束后的累计 chain 数，UI 靠它决定何时弹连击 banner（3 / 5 / 7 / 12）。
+# 本步结束后的累计 chain 数，UI 靠它驱动连击 banner（3 连起常驻计数，5/10/20/50 升档）。
 var chain_count_after: int
 
 func _init(

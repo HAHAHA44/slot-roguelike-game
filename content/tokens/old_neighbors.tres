@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_q0x0v"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_agy2m"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_j2qs4"]
+
+[sub_resource type="Resource" id="Resource_vtx3n"]
+script = ExtResource("2_agy2m")
+amount = 8
+percent = 55
+
+[resource]
+script = ExtResource("3_j2qs4")
+id = "old_neighbors"
+name = "老街坊"
+description = "谁家的事都知道。"
+tags = PackedStringArray("social")
+domain = "social"
+stage_id = "senior"
+legacy_into = "legacy_social_1"
+base_score = 15
+effects = Array[ExtResource("1_q0x0v")]([SubResource("Resource_vtx3n")])
+zodiac_affinity = "rooster"

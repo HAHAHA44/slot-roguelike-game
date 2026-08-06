@@ -1,9 +1,12 @@
-[gd_resource type="Resource" script_class="ZodiacDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ZodiacDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1_k7045"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_k7045")
 id = "dog"
-display_name = "content.zodiac.dog.name"
+display_name = "狗"
 order = 10
+rule_name = "狗·守夜"
+rule_description = "逢双的格子今年守得住。"
+rule_even_slot_percent = 45

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_nheru"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_s0aq2"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_l7kq2"]
+
+[sub_resource type="Resource" id="Resource_iw8lm"]
+script = ExtResource("2_s0aq2")
+amount = 18
+
+[resource]
+script = ExtResource("3_l7kq2")
+id = "serenity"
+name = "安详"
+description = "怕的东西越来越少。"
+tags = PackedStringArray()
+stage_id = "twilight"
+base_score = 16
+effects = Array[ExtResource("1_nheru")]([SubResource("Resource_iw8lm")])
+zodiac_affinity = "snake"

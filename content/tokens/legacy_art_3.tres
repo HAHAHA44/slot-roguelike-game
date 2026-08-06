@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_u1rgk"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_pl3pr"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_lsf81"]
+
+[sub_resource type="Resource" id="Resource_t7862"]
+script = ExtResource("2_pl3pr")
+amount = 28
+percent = 140
+radius = 3
+
+[resource]
+script = ExtResource("3_lsf81")
+id = "legacy_art_3"
+name = "传世之作"
+description = "它会比你活得久。"
+rarity = "Legendary"
+tags = PackedStringArray("art", "legacy")
+domain = "art"
+is_legacy = true
+draft_weight = 0.0
+base_score = 80
+effects = Array[ExtResource("1_u1rgk")]([SubResource("Resource_t7862")])
+zodiac_affinity = "rabbit"

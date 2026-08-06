@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_10p5y"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_pfi0n"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="3_n6b5i"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="4_8gsun"]
+
+[sub_resource type="Resource" id="Resource_rlpn0"]
+script = ExtResource("2_pfi0n")
+amount = 46
+
+[sub_resource type="Resource" id="Resource_y1evf"]
+script = ExtResource("3_n6b5i")
+amount = 8
+percent = 70
+
+[resource]
+script = ExtResource("4_8gsun")
+id = "legacy_study_2"
+name = "领域专家"
+description = "有人专程来问你。"
+rarity = "Legendary"
+tags = PackedStringArray("study", "legacy")
+domain = "study"
+legacy_into = "legacy_study_3"
+is_legacy = true
+draft_weight = 0.0
+base_score = 34
+effects = Array[ExtResource("1_10p5y")]([SubResource("Resource_rlpn0"), SubResource("Resource_y1evf")])
+zodiac_affinity = "dragon"

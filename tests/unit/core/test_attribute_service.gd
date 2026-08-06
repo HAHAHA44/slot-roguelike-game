@@ -1,10 +1,11 @@
 # AttributeService 契约：
-# - 出生把 10 点分配到六维；40 岁前后年度漂移 ±1 只落在前 4 维；
+# - 出生把 10 点分配到六维，精神力另加出生基线；40 岁前后年度漂移 ±1 只落在前 4 维；
 #   运气整局恒定、精神力不随年龄漂移、属性永不为负。
 # 断言不变量（总和 / 落点 / 非负）而非具体随机值，与 test_board_reshuffles_each_year 同风格。
 extends GutTest
 
 const AttributeServiceScript := preload("res://scripts/core/services/attribute_service.gd")
+const SpiritServiceScript := preload("res://scripts/core/services/spirit_service.gd")
 const RunSessionScript := preload("res://autoload/run_session.gd")
 
 var _service
@@ -24,7 +25,8 @@ func _sum(session) -> int:
 func test_roll_initial_distributes_ten_points_over_six_keys() -> void:
 	var session = _new_session()
 	_service.roll_initial(session)
-	assert_eq(_sum(session), AttributeServiceScript.INITIAL_POINTS, "六维总和应恰为 10")
+	assert_eq(_sum(session), AttributeServiceScript.INITIAL_POINTS + SpiritServiceScript.BIRTH_BASELINE,
+		"六维总和 = 随机分配的 10 点 + 精神力出生基线")
 	for key in AttributeServiceScript.ORDERED_KEYS:
 		assert_true(session.stats.has(key), "应有键 %s" % key)
 		assert_gte(_service.get_value(session, key), 0, "%s 不应为负" % key)

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_6b704"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_km4il"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_f5dpn"]
+
+[sub_resource type="Resource" id="Resource_tovo7"]
+script = ExtResource("2_km4il")
+amount = 1
+percent = 40
+
+[resource]
+script = ExtResource("3_f5dpn")
+id = "hide_seek"
+name = "捉迷藏"
+description = "数到十，全世界都藏起来了。"
+tags = PackedStringArray("sport")
+domain = "sport"
+stage_id = "childhood"
+legacy_into = "legacy_sport_1"
+base_score = 3
+effects = Array[ExtResource("1_6b704")]([SubResource("Resource_tovo7")])
+zodiac_affinity = "rat"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_ne0fp"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_m4ic2"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_iv1g4"]
+
+[sub_resource type="Resource" id="Resource_8j3a3"]
+script = ExtResource("2_m4ic2")
+amount = 27
+
+[resource]
+script = ExtResource("3_iv1g4")
+id = "last_lecture"
+name = "最后一课"
+description = "讲完把粉笔放下。"
+rarity = "Uncommon"
+tags = PackedStringArray("study")
+domain = "study"
+stage_id = "twilight"
+legacy_into = "legacy_study_1"
+base_score = 23
+effects = Array[ExtResource("1_ne0fp")]([SubResource("Resource_8j3a3")])
+zodiac_affinity = "ox"

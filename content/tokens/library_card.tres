@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_c8kyp"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_o3pj8"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_bcly8"]
+
+[sub_resource type="Resource" id="Resource_bswo4"]
+script = ExtResource("2_o3pj8")
+percent = 70
+
+[resource]
+script = ExtResource("3_bcly8")
+id = "library_card"
+name = "借书证"
+description = "一次只能借两本，太少了。"
+tags = PackedStringArray("study")
+domain = "study"
+stage_id = "adolescence"
+legacy_into = "legacy_study_1"
+base_score = 4
+effects = Array[ExtResource("1_c8kyp")]([SubResource("Resource_bswo4")])
+zodiac_affinity = "goat"

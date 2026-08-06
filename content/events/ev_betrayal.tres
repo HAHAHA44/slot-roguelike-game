@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_4swa6"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_4an4r"]
+
+[sub_resource type="Resource" id="Resource_cd8bj"]
+script = ExtResource("1_4swa6")
+text = "算了。"
+spirit_delta = -2
+
+[sub_resource type="Resource" id="Resource_snoum"]
+script = ExtResource("1_4swa6")
+text = "追到底。"
+spirit_delta = -3
+karma_delta = -1
+discard_cards = 1
+
+[resource]
+script = ExtResource("2_4an4r")
+id = "ev_betrayal"
+name = "被信任的人骗了"
+description = "最难受的不是损失。"
+kind = "malign"
+spirit_weights = {
+"high": 0.1,
+"low": 5.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_4swa6")]([SubResource("Resource_cd8bj"), SubResource("Resource_snoum")])

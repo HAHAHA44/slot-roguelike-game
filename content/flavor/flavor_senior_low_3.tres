@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_7kjy4"]
+
+[resource]
+script = ExtResource("1_7kjy4")
+id = "flavor_senior_low_3"
+text = "电话响的时候心一紧。"
+stage_id = "senior"
+spirit_bucket = "low"

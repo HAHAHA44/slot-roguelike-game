@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_03bqy"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_3yvv2"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_fvvcu"]
+
+[sub_resource type="Resource" id="Resource_l463a"]
+script = ExtResource("2_3yvv2")
+amount = 6
+percent = 70
+
+[resource]
+script = ExtResource("3_fvvcu")
+id = "coach"
+name = "教练"
+description = "喊别人跑比自己跑难。"
+rarity = "Uncommon"
+tags = PackedStringArray("sport")
+domain = "sport"
+stage_id = "midlife"
+legacy_into = "legacy_sport_1"
+base_score = 15
+effects = Array[ExtResource("1_03bqy")]([SubResource("Resource_l463a")])
+zodiac_affinity = "rat"

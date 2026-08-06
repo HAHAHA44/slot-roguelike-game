@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_4e2hh"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_c01uy"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_fc0qf"]
+
+[sub_resource type="Resource" id="Resource_1d1hj"]
+script = ExtResource("2_c01uy")
+amount = 3
+
+[resource]
+script = ExtResource("3_fc0qf")
+id = "running"
+name = "追跑"
+description = "不为什么，就是要跑。"
+tags = PackedStringArray("sport")
+domain = "sport"
+stage_id = "childhood"
+legacy_into = "legacy_sport_1"
+base_score = 3
+effects = Array[ExtResource("1_4e2hh")]([SubResource("Resource_1d1hj")])
+zodiac_affinity = "rat"

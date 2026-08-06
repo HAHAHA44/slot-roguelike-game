@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_3dm5k"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_c3gcy"]
+
+[sub_resource type="Resource" id="Resource_yyhnp"]
+script = ExtResource("1_3dm5k")
+text = "记下来。"
+spirit_delta = 1
+stat_deltas = {
+"int": 1
+}
+
+[sub_resource type="Resource" id="Resource_shvow"]
+script = ExtResource("1_3dm5k")
+text = "当时没懂。"
+spirit_delta = 2
+
+[resource]
+script = ExtResource("2_c3gcy")
+id = "ev_mentor_word"
+name = "一句点拨"
+description = "他说完就走了，你站在原地。"
+kind = "benign"
+spirit_weights = {
+"high": 5.0,
+"low": 0.2,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_3dm5k")]([SubResource("Resource_yyhnp"), SubResource("Resource_shvow")])

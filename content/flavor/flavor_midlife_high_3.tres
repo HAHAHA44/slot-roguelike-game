@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_4o22c"]
+
+[resource]
+script = ExtResource("1_4o22c")
+id = "flavor_midlife_high_3"
+text = "身体还跟得上。"
+stage_id = "midlife"
+spirit_bucket = "high"

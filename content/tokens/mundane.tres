@@ -1,17 +1,13 @@
-[gd_resource type="Resource" script_class="TokenDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_tdwxl"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="2_norc4"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("2_norc4")
 id = "mundane"
-name = "content.token.mundane.name"
-description = "content.token.mundane.description"
-rarity = "Common"
-type = "mundane"
+name = "凡庸"
+description = "无事发生的一格。"
 tags = PackedStringArray("mundane")
-spawn_rules = {
-"weight": 0.0
-}
+draft_weight = 0.0
 base_score = 1
-zodiac_affinity = ""

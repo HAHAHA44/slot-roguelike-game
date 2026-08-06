@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_tqi87"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_33df6"]
+
+[sub_resource type="Resource" id="Resource_4imtj"]
+script = ExtResource("1_tqi87")
+text = "坐了很久。"
+spirit_delta = -3
+karma_delta = 1
+
+[resource]
+script = ExtResource("2_33df6")
+id = "ev_senior_farewell"
+name = "送走一位老友"
+description = "名单又短了一个。"
+kind = "malign"
+stage_id = "senior"
+spirit_weights = {
+"high": 0.1,
+"low": 5.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_tqi87")]([SubResource("Resource_4imtj")])

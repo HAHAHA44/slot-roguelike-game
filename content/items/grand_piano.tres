@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_lu8lv"]
+
+[resource]
+script = ExtResource("1_lu8lv")
+id = "grand_piano"
+name = "三角钢琴"
+description = "搬进来时拆了窗。"
+rarity = "Rare"
+domain = "art"
+price = 1.6
+min_stage_order = 4
+domain_percent = 40

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_4as88"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_28ecr"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_0ute7"]
+
+[sub_resource type="Resource" id="Resource_arep8"]
+script = ExtResource("2_28ecr")
+amount = 6
+percent = 65
+radius = 2
+
+[resource]
+script = ExtResource("3_0ute7")
+id = "apprentice"
+name = "弟子"
+description = "他学得比你快。"
+rarity = "Uncommon"
+tags = PackedStringArray("art")
+domain = "art"
+stage_id = "midlife"
+legacy_into = "legacy_art_1"
+base_score = 14
+effects = Array[ExtResource("1_4as88")]([SubResource("Resource_arep8")])
+zodiac_affinity = "tiger"

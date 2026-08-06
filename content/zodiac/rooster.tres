@@ -1,9 +1,13 @@
-[gd_resource type="Resource" script_class="ZodiacDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ZodiacDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1_q6vjv"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_q6vjv")
 id = "rooster"
-display_name = "content.zodiac.rooster.name"
+display_name = "鸡"
 order = 9
+rule_name = "鸡·司晨"
+rule_description = "读书人的年份。"
+rule_domain = "study"
+rule_domain_percent = 60

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_x5etq"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_bxims"]
+
+[sub_resource type="Resource" id="Resource_3iuw6"]
+script = ExtResource("1_x5etq")
+text = "……"
+lethal = true
+
+[resource]
+script = ExtResource("2_bxims")
+id = "ev_lethal_road"
+name = "那个雨夜"
+description = "路灯坏了很久没人修。"
+kind = "lethal"
+spirit_weights = {
+"low": 2.0
+}
+choices = Array[ExtResource("1_x5etq")]([SubResource("Resource_3iuw6")])

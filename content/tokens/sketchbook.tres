@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_ckk20"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_bw2ww"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_vud8n"]
+
+[sub_resource type="Resource" id="Resource_s3cnk"]
+script = ExtResource("2_bw2ww")
+amount = 2
+percent = 45
+
+[resource]
+script = ExtResource("3_vud8n")
+id = "sketchbook"
+name = "速写本"
+description = "课本边角全是脸。"
+tags = PackedStringArray("art")
+domain = "art"
+stage_id = "adolescence"
+legacy_into = "legacy_art_1"
+base_score = 4
+effects = Array[ExtResource("1_ckk20")]([SubResource("Resource_s3cnk")])
+zodiac_affinity = "monkey"

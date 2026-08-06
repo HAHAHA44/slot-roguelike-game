@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_fcqwq"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_kvwhh"]
+
+[sub_resource type="Resource" id="Resource_6whv8"]
+script = ExtResource("1_fcqwq")
+text = "借。"
+spirit_delta = -1
+karma_delta = 2
+
+[sub_resource type="Resource" id="Resource_sqg7k"]
+script = ExtResource("1_fcqwq")
+text = "推了。"
+spirit_delta = 1
+karma_delta = -1
+
+[resource]
+script = ExtResource("2_kvwhh")
+id = "ev_borrow"
+name = "有人来借钱"
+description = "他说下个月一定还。"
+spirit_weights = {
+"high": 1.0,
+"low": 1.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_fcqwq")]([SubResource("Resource_6whv8"), SubResource("Resource_sqg7k")])

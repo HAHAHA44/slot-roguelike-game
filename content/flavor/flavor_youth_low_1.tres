@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_kdask"]
+
+[resource]
+script = ExtResource("1_kdask")
+id = "flavor_youth_low_1"
+text = "月底最后几天数着过。"
+stage_id = "youth"
+spirit_bucket = "low"

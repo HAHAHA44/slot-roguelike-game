@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_g25p7"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_a13fa"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_yyk0a"]
+
+[sub_resource type="Resource" id="Resource_vqnst"]
+script = ExtResource("2_a13fa")
+amount = 2
+percent = 110
+
+[resource]
+script = ExtResource("3_yyk0a")
+id = "lover"
+name = "恋人"
+description = "第一次觉得日子有形状。"
+rarity = "Rare"
+tags = PackedStringArray("social")
+domain = "social"
+stage_id = "youth"
+legacy_into = "legacy_social_1"
+base_score = 9
+effects = Array[ExtResource("1_g25p7")]([SubResource("Resource_vqnst")])
+zodiac_affinity = "rabbit"

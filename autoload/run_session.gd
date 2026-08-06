@@ -1,175 +1,151 @@
-# 本局运行状态：
-# - M0 起进入"人生模拟"语义：每年 = 一格生肖盘转一圈，整局以"死亡"收束。
-# - 新字段（人生模拟）：age / lifespan / sanity / zodiac_birth / stage_idx / stats / karma_in_run
-# - 旧字段（5×5 bag-roll，文件保留作历史）：current_turn / current_score / phase_index / phase_target /
-#   token_pool / token_cursor / operation_history / active_modifiers。
-#   这些字段仍被 reward_offer_service / event_draft_service / settlement_resolver 等遗留服务
-#   及其单元测试使用；它们会在 M1+ 被新服务取代后再彻底移除。
-# - `to_dict()` / `from_dict()` 同时序列化新旧字段；存档新版可读旧字段（缺失时按默认）。
+# 本局运行状态（一条人生）：
+# - 时间：age / lifespan / stage_idx。每年 age +1，到 lifespan 自然死。
+# - 牌：board_cards（命盘，≤12，参与结算）+ bench_cards（行囊，≤6，不参与结算）。
+#   两者都装 CardInstance，不是裸 id——升星让同名碎片有了不同强度，见 card_instance.gd。
+# - 人：stats（六维，精神力是其中一维 "spr"，不再有独立的 sanity 字段）、
+#   active_buffs / active_debuffs（出生时一次性结算，见 BuffService.apply）。
+# - 钱：stage_income（本阶段各年收益，阶段末考核用）、owned_items（已购道具 id）。
+# - 传承：legacy_domains 记录已经在哪些领域建过树，供投注池加权与传承链续接。
+#
+# 5×5 bag-roll 时代的字段（current_score / token_pool / token_cursor / phase_* /
+# operation_history）已随对应服务一并删除，考古去 git history（2026-07 之前）。
 class_name RunSession
 extends RefCounted
 
-const SCHEMA_VERSION := 1
-# 5×5 遗留：token_pool 的兜底值，保证它永不为空（旧的 remove/cursor 逻辑依赖这个不变量）。
-# 原本指向 fire_common，随 5×5 四元素 token 一起删除后改指 diligence。
-# 新流程不依赖它——begin_run 会用起始池整体覆盖 token_pool。
-const DEFAULT_TOKEN_ID := "diligence"
+const CardInstanceScript := preload("res://scripts/core/value_objects/card_instance.gd")
 
-# -- 人生模拟字段（M0+，新流程主用） -----------------------------------------
+const SCHEMA_VERSION := 2
+const BOARD_CAPACITY := 12
+const BENCH_CAPACITY := 6
+
+# -- 时间 --------------------------------------------------------------------
 var age: int = 0
 var lifespan: int = 0
-var sanity: int = 50
-var zodiac_birth: String = ""
 var stage_idx: int = 0
+var zodiac_birth: String = ""
+
+# -- 牌 ----------------------------------------------------------------------
+# 命盘：每年洗牌投上 12 格结算。容量恒为 BOARD_CAPACITY，不足部分投盘时由「凡庸」补位。
+var board_cards: Array = []
+# 行囊：材料区与备选区共用。不参与结算，可在投盘前与命盘互换。
+var bench_cards: Array = []
+
+# -- 人 ----------------------------------------------------------------------
+# 六维：str / int / agi / end / spr / luck。见 AttributeService.ORDERED_KEYS。
 var stats: Dictionary = {}
-var karma_in_run: int = 0
-# 剩余删牌次数。出生时由起始池的 delete_charges 填入，删一张扣一次，用完为止。
-# 是一次性资源而非每年刷新——「这辈子只能改五次」才有取舍。
-var token_delete_charges: int = 0
-# NPC 关系表：{npc_id: String -> {"kind": String, "score": int}}。
-# kind ∈ {"family", "friend", "lover"}；M4 RelationshipService 维护。
-var relationships: Dictionary = {}
-# 开局携带的增益 / 减益（buff/debuff 的 id 列表，各 0–2 个）。
-# BuffService.roll() 在出生时按运气补正抽取写入；实际效果留到后续设计。
 var active_buffs: Array[String] = []
 var active_debuffs: Array[String] = []
+# NPC 关系表：{npc_id -> {"kind": String, "score": int}}；kind ∈ {family, friend, lover}。
+var relationships: Dictionary = {}
 
-# -- 5x5 遗留字段（legacy，等 M1+ 替换 settlement/reward/event 时清理） -------
-var schema_version: int = SCHEMA_VERSION
-var current_turn: int = 1
-var phase_index: int = 0
-var phase_target: int = 10
-var current_score: int = 0
-var token_pool: Array[String] = [DEFAULT_TOKEN_ID]
-var token_cursor: int = 0
-var operation_history: Array = []
-var active_modifiers: Array = []
+# -- 经济 --------------------------------------------------------------------
+# 本阶段每一年的年收益，阶段切换时清空。阶段考核读它的最后一项。
+var stage_income: Array = []
+# 已购道具 id → 份数。道具跨阶段累积，不随阶段清空。
+var owned_items: Dictionary = {}
+# 当年可花的购买力（年收益 / 阶段门槛），每年年初重算。
+var purchasing_power: float = 0.0
 
-func get_active_token_id() -> String:
-	if token_pool.is_empty():
-		return DEFAULT_TOKEN_ID
-	token_cursor = clampi(token_cursor, 0, token_pool.size() - 1)
-	return token_pool[token_cursor]
+# -- 传承 --------------------------------------------------------------------
+# 已建树的领域 → 最高环数。投注池按它给同领域碎片加权，传承链按它续接。
+var legacy_domains: Dictionary = {}
 
-func focus_token(token_id: String) -> void:
-	var index := token_pool.find(token_id)
-	if index != -1:
-		token_cursor = index
+# -- 结局 --------------------------------------------------------------------
+var karma_in_run: int = 0
+# "" = 还活着；否则是死因 id（natural / lethal_event / ...）。
+var death_cause: String = ""
 
-func add_token_to_pool(token_id: String) -> bool:
-	if token_id.is_empty():
-		return false
-	var existing_index := token_pool.find(token_id)
-	if existing_index != -1:
-		token_cursor = existing_index
-		return false
-	token_pool.append(token_id)
-	token_cursor = token_pool.size() - 1
-	return true
+# -- 六维便捷读写（stats 是裸 Dictionary，这两个方法避免调用方到处写 get(key, 0)）----
 
-func remove_token_from_pool(token_id: String) -> bool:
-	if token_pool.size() <= 1:
-		return false
-	var index := token_pool.find(token_id)
-	if index == -1:
-		return false
-	token_pool.remove_at(index)
-	if token_cursor >= token_pool.size():
-		token_cursor = token_pool.size() - 1
-	token_cursor = max(token_cursor, 0)
-	return true
+func stat(key: String) -> int:
+	return int(stats.get(key, 0))
 
-func advance_token_cursor() -> void:
-	if token_pool.is_empty():
-		token_pool = [DEFAULT_TOKEN_ID]
-		token_cursor = 0
-		return
-	token_cursor = posmod(token_cursor + 1, token_pool.size())
+func set_stat(key: String, value: int) -> void:
+	stats[key] = value
 
-# -- bag-roll pool helpers (concrete multiset, duplicates allowed) ------------
+# -- 牌堆操作 ----------------------------------------------------------------
 
-# Append one concrete entry to the pool (duplicates allowed).
-func pool_add(token_id: String) -> void:
-	if token_id.is_empty():
-		return
-	token_pool.append(token_id)
+func board_is_full() -> bool:
+	return board_cards.size() >= BOARD_CAPACITY
 
-# Remove one entry with the given id. Returns true if an entry was removed.
-func pool_remove(token_id: String) -> bool:
-	var idx := token_pool.find(token_id)
-	if idx == -1:
-		return false
-	token_pool.remove_at(idx)
-	return true
+func bench_is_full() -> bool:
+	return bench_cards.size() >= BENCH_CAPACITY
 
-# Count how many entries with this id are in the pool.
-func pool_count(token_id: String) -> int:
-	return token_pool.count(token_id)
+# 所有持有的碎片（命盘 + 行囊），合成与投注池加权都要看全量。
+func all_cards() -> Array:
+	var result: Array = []
+	result.append_array(board_cards)
+	result.append_array(bench_cards)
+	return result
+
+func total_card_count() -> int:
+	return board_cards.size() + bench_cards.size()
+
+# -- 序列化 ------------------------------------------------------------------
 
 func to_dict() -> Dictionary:
 	return {
-		"schema_version": schema_version,
-		# 人生模拟字段
+		"schema_version": SCHEMA_VERSION,
 		"age": age,
 		"lifespan": lifespan,
-		"sanity": sanity,
-		"zodiac_birth": zodiac_birth,
 		"stage_idx": stage_idx,
+		"zodiac_birth": zodiac_birth,
+		"board_cards": _cards_to_array(board_cards),
+		"bench_cards": _cards_to_array(bench_cards),
 		"stats": stats.duplicate(true),
-		"karma_in_run": karma_in_run,
-		"token_delete_charges": token_delete_charges,
-		"relationships": relationships.duplicate(true),
 		"active_buffs": active_buffs.duplicate(),
 		"active_debuffs": active_debuffs.duplicate(),
-		# 5×5 遗留字段
-		"current_turn": current_turn,
-		"phase_index": phase_index,
-		"phase_target": phase_target,
-		"current_score": current_score,
-		"token_pool": token_pool.duplicate(),
-		"token_cursor": token_cursor,
-		"operation_history": operation_history.duplicate(true),
-		"active_modifiers": active_modifiers.duplicate(true),
+		"relationships": relationships.duplicate(true),
+		"stage_income": stage_income.duplicate(),
+		"owned_items": owned_items.duplicate(true),
+		"purchasing_power": purchasing_power,
+		"legacy_domains": legacy_domains.duplicate(true),
+		"karma_in_run": karma_in_run,
+		"death_cause": death_cause,
 	}
 
 static func from_dict(data: Dictionary) -> RunSession:
 	var session := RunSession.new()
-	session.schema_version = int(data.get("schema_version", SCHEMA_VERSION))
-	# 人生模拟字段（新存档读得到，旧存档按默认）
 	session.age = int(data.get("age", 0))
 	session.lifespan = int(data.get("lifespan", 0))
-	session.sanity = int(data.get("sanity", 50))
-	session.zodiac_birth = String(data.get("zodiac_birth", ""))
 	session.stage_idx = int(data.get("stage_idx", 0))
+	session.zodiac_birth = String(data.get("zodiac_birth", ""))
+	session.board_cards = _cards_from_array(data.get("board_cards", []))
+	session.bench_cards = _cards_from_array(data.get("bench_cards", []))
 	var incoming_stats = data.get("stats", {})
-	if incoming_stats is Dictionary:
-		session.stats = (incoming_stats as Dictionary).duplicate(true)
-	else:
-		session.stats = {}
-	session.karma_in_run = int(data.get("karma_in_run", 0))
-	session.token_delete_charges = int(data.get("token_delete_charges", 0))
-	var incoming_relationships = data.get("relationships", {})
-	if incoming_relationships is Dictionary:
-		session.relationships = (incoming_relationships as Dictionary).duplicate(true)
-	else:
-		session.relationships = {}
+	session.stats = (incoming_stats as Dictionary).duplicate(true) if incoming_stats is Dictionary else {}
 	session.active_buffs = []
 	for buff_id in data.get("active_buffs", []):
 		session.active_buffs.append(String(buff_id))
 	session.active_debuffs = []
 	for debuff_id in data.get("active_debuffs", []):
 		session.active_debuffs.append(String(debuff_id))
-	# 5×5 遗留字段
-	session.current_turn = int(data.get("current_turn", 1))
-	session.phase_index = int(data.get("phase_index", 0))
-	session.phase_target = int(data.get("phase_target", 10))
-	session.current_score = int(data.get("current_score", 0))
-	session.token_pool = []
-	for token_id in data.get("token_pool", [DEFAULT_TOKEN_ID]):
-		session.token_pool.append(String(token_id))
-	if session.token_pool.is_empty():
-		session.token_pool = [DEFAULT_TOKEN_ID]
-	session.token_cursor = clampi(int(data.get("token_cursor", 0)), 0, session.token_pool.size() - 1)
-	session.operation_history = data.get("operation_history", []).duplicate(true)
-	session.active_modifiers = data.get("active_modifiers", []).duplicate(true)
+	var incoming_relationships = data.get("relationships", {})
+	session.relationships = (incoming_relationships as Dictionary).duplicate(true) \
+		if incoming_relationships is Dictionary else {}
+	session.stage_income = []
+	for income in data.get("stage_income", []):
+		session.stage_income.append(int(income))
+	var incoming_items = data.get("owned_items", {})
+	session.owned_items = (incoming_items as Dictionary).duplicate(true) if incoming_items is Dictionary else {}
+	session.purchasing_power = float(data.get("purchasing_power", 0.0))
+	var incoming_legacy = data.get("legacy_domains", {})
+	session.legacy_domains = (incoming_legacy as Dictionary).duplicate(true) \
+		if incoming_legacy is Dictionary else {}
+	session.karma_in_run = int(data.get("karma_in_run", 0))
+	session.death_cause = String(data.get("death_cause", ""))
 	return session
+
+static func _cards_to_array(cards: Array) -> Array:
+	var result: Array = []
+	for card in cards:
+		if card != null:
+			result.append(card.to_dict())
+	return result
+
+static func _cards_from_array(raw: Array) -> Array:
+	var result: Array = []
+	for entry in raw:
+		if entry is Dictionary:
+			result.append(CardInstanceScript.from_dict(entry))
+	return result

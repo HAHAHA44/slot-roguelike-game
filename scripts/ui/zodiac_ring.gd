@@ -244,7 +244,7 @@ func _draw_highlight(center: Vector2, r_inner: float, r_outer: float) -> void:
 		draw_polyline(outline, edge, 2.0 + 3.0 * _highlight_pulse, true)
 
 # 本步联动连线：从当前格中心连到每个被影响的格，颜色按 kind。
-func _draw_links(center: Vector2, unit: float) -> void:
+func _draw_links(_center: Vector2, unit: float) -> void:
 	if _active_links.is_empty() or _highlight_slot < 0:
 		return
 	var r: float = unit * (RATIO_INNER + RATIO_MID) * 0.5
@@ -313,7 +313,7 @@ func _layout_labels() -> void:
 	var r_zodiac: float = unit * (RATIO_MID + RATIO_OUTER) * 0.5
 	var r_token: float = unit * (RATIO_INNER + RATIO_MID) * 0.5
 	# 标签框略窄于扇区在该半径处的弧长，避免视觉上压到相邻扇区。
-	var label_size := Vector2(unit * 0.14, unit * 0.08)
+	var label_size := Vector2(unit * 0.165, unit * 0.08)
 
 	for slot in RING_SIZE:
 		var angle: float = -PI * 0.5 + SECTOR_SPAN * float(slot)
@@ -332,6 +332,12 @@ func _refresh_zodiac_labels() -> void:
 		var z = _zodiac_service.get_by_order(slot)
 		_zodiac_labels[slot].text = z.get_display_name() if z != null else "?"
 
+# 碎片名从两个字到五个字都有（「凡庸」「小有积蓄」「一代宗师」），
+# 而扇区宽度是固定的。所以字号按字数缩，并且一律 clip——
+# 宁可截断，也不能让一格的名字压到隔壁格上去。
+const TOKEN_FONT_BY_LENGTH := {2: 19, 3: 16, 4: 13}
+const TOKEN_FONT_MIN := 11
+
 func _apply_token_label(slot: int, token_id: String) -> void:
 	var label := _token_labels[slot]
 	if token_id.is_empty():
@@ -339,4 +345,9 @@ func _apply_token_label(slot: int, token_id: String) -> void:
 		return
 	var def = _tokens.get(token_id, null)
 	# 查不到定义时退回显示 id，比显示空白更容易定位内容配错。
-	label.text = def.get_display_name() if def != null else token_id
+	var display: String = def.get_display_name() if def != null else token_id
+	label.text = display
+	label.clip_text = true
+	var size_key: int = clampi(display.length(), 2, 4)
+	label.add_theme_font_size_override("font_size",
+		int(TOKEN_FONT_BY_LENGTH.get(size_key, TOKEN_FONT_MIN)) if display.length() <= 4 else TOKEN_FONT_MIN)

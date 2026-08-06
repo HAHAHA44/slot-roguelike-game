@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_j25ae"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_5h7j5"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_3klkx"]
+
+[sub_resource type="Resource" id="Resource_yf12b"]
+script = ExtResource("2_5h7j5")
+amount = 7
+
+[resource]
+script = ExtResource("3_3klkx")
+id = "saving_jar"
+name = "攒钱"
+description = "为了一双鞋忍了半年。"
+rarity = "Uncommon"
+tags = PackedStringArray("wealth")
+domain = "wealth"
+stage_id = "adolescence"
+legacy_into = "legacy_wealth_1"
+base_score = 5
+effects = Array[ExtResource("1_j25ae")]([SubResource("Resource_yf12b")])
+zodiac_affinity = "dog"

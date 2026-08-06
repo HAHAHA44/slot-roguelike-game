@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_kcfeg"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_ee7ow"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="3_oyh0d"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="4_oj34a"]
+
+[sub_resource type="Resource" id="Resource_uknx5"]
+script = ExtResource("2_ee7ow")
+amount = 2
+
+[sub_resource type="Resource" id="Resource_iohk1"]
+script = ExtResource("3_oyh0d")
+amount = 1
+percent = 25
+
+[resource]
+script = ExtResource("4_oj34a")
+id = "stubborn"
+name = "倔脾气"
+description = "说不去就不去。"
+tags = PackedStringArray()
+stage_id = "childhood"
+base_score = 4
+effects = Array[ExtResource("1_kcfeg")]([SubResource("Resource_uknx5"), SubResource("Resource_iohk1")])
+zodiac_affinity = "snake"

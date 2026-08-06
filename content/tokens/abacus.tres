@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_p4381"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_0j6o2"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_2kaen"]
+
+[sub_resource type="Resource" id="Resource_7ar6m"]
+script = ExtResource("2_0j6o2")
+percent = 70
+
+[resource]
+script = ExtResource("3_2kaen")
+id = "abacus"
+name = "珠算"
+description = "指头比脑子快。"
+rarity = "Uncommon"
+tags = PackedStringArray("study")
+domain = "study"
+stage_id = "childhood"
+legacy_into = "legacy_study_1"
+base_score = 4
+effects = Array[ExtResource("1_p4381")]([SubResource("Resource_7ar6m")])
+zodiac_affinity = "ox"

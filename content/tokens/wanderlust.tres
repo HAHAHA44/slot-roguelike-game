@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_1pol7"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_sg7br"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_n37tf"]
+
+[sub_resource type="Resource" id="Resource_ycyo6"]
+script = ExtResource("2_sg7br")
+percent = 90
+
+[resource]
+script = ExtResource("3_n37tf")
+id = "wanderlust"
+name = "远行"
+description = "买了张最便宜的票。"
+rarity = "Uncommon"
+tags = PackedStringArray()
+stage_id = "youth"
+base_score = 5
+effects = Array[ExtResource("1_1pol7")]([SubResource("Resource_ycyo6")])
+zodiac_affinity = "snake"

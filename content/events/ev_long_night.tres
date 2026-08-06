@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_iw7lf"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_ou41k"]
+
+[sub_resource type="Resource" id="Resource_213s2"]
+script = ExtResource("1_iw7lf")
+text = "起来做点事。"
+spirit_delta = -1
+stat_deltas = {
+"int": 1
+}
+
+[sub_resource type="Resource" id="Resource_kvw7j"]
+script = ExtResource("1_iw7lf")
+text = "硬躺到天亮。"
+spirit_delta = 1
+
+[resource]
+script = ExtResource("2_ou41k")
+id = "ev_long_night"
+name = "睡不着的一夜"
+description = "天花板上什么也没有。"
+spirit_weights = {
+"high": 1.0,
+"low": 1.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_iw7lf")]([SubResource("Resource_213s2"), SubResource("Resource_kvw7j")])

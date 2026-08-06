@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_775mw"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_vfwtg"]
+
+[sub_resource type="Resource" id="Resource_nnsmq"]
+script = ExtResource("1_775mw")
+text = "请了长假。"
+spirit_delta = 1
+discard_cards = 1
+
+[sub_resource type="Resource" id="Resource_lrjm8"]
+script = ExtResource("1_775mw")
+text = "硬撑。"
+spirit_delta = -3
+lifespan_delta = -2
+
+[resource]
+script = ExtResource("2_vfwtg")
+id = "ev_prime_burnout"
+name = "垮了一次"
+description = "连着几个月睡不好。"
+kind = "malign"
+stage_id = "prime"
+spirit_weights = {
+"high": 0.1,
+"low": 5.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_775mw")]([SubResource("Resource_nnsmq"), SubResource("Resource_lrjm8")])

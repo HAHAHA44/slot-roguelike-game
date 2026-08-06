@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_awte8"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_uy76b"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_4lyd4"]
+
+[sub_resource type="Resource" id="Resource_xv8at"]
+script = ExtResource("2_uy76b")
+amount = 5
+
+[resource]
+script = ExtResource("3_4lyd4")
+id = "new_year_money"
+name = "压岁钱"
+description = "还没捂热就被收走了。"
+rarity = "Uncommon"
+tags = PackedStringArray("wealth")
+domain = "wealth"
+stage_id = "childhood"
+legacy_into = "legacy_wealth_1"
+base_score = 4
+effects = Array[ExtResource("1_awte8")]([SubResource("Resource_xv8at")])
+zodiac_affinity = "dragon"

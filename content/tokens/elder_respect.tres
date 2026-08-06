@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_1fhg5"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_bvaxo"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_e5kkk"]
+
+[sub_resource type="Resource" id="Resource_4ynsf"]
+script = ExtResource("2_bvaxo")
+amount = 8
+percent = 80
+radius = 2
+
+[resource]
+script = ExtResource("3_e5kkk")
+id = "elder_respect"
+name = "德高望重"
+description = "说话有人听。"
+rarity = "Rare"
+tags = PackedStringArray()
+stage_id = "senior"
+base_score = 21
+effects = Array[ExtResource("1_1fhg5")]([SubResource("Resource_4ynsf")])
+zodiac_affinity = "pig"

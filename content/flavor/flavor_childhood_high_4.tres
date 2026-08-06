@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_5dwu4"]
+
+[resource]
+script = ExtResource("1_5dwu4")
+id = "flavor_childhood_high_4"
+text = "夏天的凉席印在背上。"
+stage_id = "childhood"
+spirit_bucket = "high"

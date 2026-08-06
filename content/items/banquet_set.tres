@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_rtr5l"]
+
+[resource]
+script = ExtResource("1_rtr5l")
+id = "banquet_set"
+name = "宴客器皿"
+description = "一年用不上两回。"
+rarity = "Uncommon"
+domain = "social"
+price = 0.9
+min_stage_order = 2
+neighbor_percent = 22

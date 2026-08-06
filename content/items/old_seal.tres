@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_mw5um"]
+
+[resource]
+script = ExtResource("1_mw5um")
+id = "old_seal"
+name = "古印"
+description = "印泥的味道很旧。"
+rarity = "Rare"
+domain = "wealth"
+price = 1.6
+min_stage_order = 4
+domain_percent = 40

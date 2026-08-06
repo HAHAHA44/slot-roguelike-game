@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_jhu51"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_cckhh"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_6bux1"]
+
+[sub_resource type="Resource" id="Resource_3jt81"]
+script = ExtResource("2_cckhh")
+amount = 2
+percent = 55
+
+[resource]
+script = ExtResource("3_6bux1")
+id = "yoyo_pro"
+name = "悠悠球"
+description = "手腕一抖，全班安静。"
+rarity = "Uncommon"
+tags = PackedStringArray("sport")
+domain = "sport"
+stage_id = "adolescence"
+legacy_into = "legacy_sport_1"
+base_score = 5
+effects = Array[ExtResource("1_jhu51")]([SubResource("Resource_3jt81")])
+zodiac_affinity = "horse"

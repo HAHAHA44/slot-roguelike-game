@@ -1,11 +1,15 @@
-[gd_resource type="Resource" script_class="BuffDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BuffDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1_c5lj3"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_c5lj3")
 id = "noble_help"
-display_name = "content.buff.noble_help.name"
-description = "content.buff.noble_help.desc"
-polarity = "buff"
-magnitude = 1
+display_name = "名门相助"
+description = "有人愿意替你说话。"
+tags = PackedStringArray()
+stat_deltas = {
+"int": 2
+}
+extra_card = "playmate"
+extra_card_star = 2

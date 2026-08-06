@@ -11,6 +11,7 @@ const RingBoardServiceScript := preload("res://scripts/core/services/ring_board_
 const AddSelfScoreScript := preload("res://scripts/core/effects/add_self_score.gd")
 const ModifyNeighborScript := preload("res://scripts/core/effects/modify_neighbor.gd")
 const TriggerZodiacChainScript := preload("res://scripts/core/effects/trigger_zodiac_chain.gd")
+const CardInstanceScript := preload("res://scripts/core/value_objects/card_instance.gd")
 
 # -- helpers -----------------------------------------------------------------
 
@@ -31,10 +32,16 @@ func _registry(defs: Array) -> Dictionary:
 		result[d.id] = d
 	return result
 
+# placements: {slot -> token_id} 或 {slot -> [token_id, star]}。
+# 不传星级时默认一星，于是绝大多数断言里的数字和「没有星级」时代完全一致。
 func _board(placements: Dictionary) -> RingBoardService:
 	var board := RingBoardServiceScript.new()
 	for slot in placements.keys():
-		board.place(int(slot), String(placements[slot]))
+		var entry = placements[slot]
+		if entry is Array:
+			board.place_card(int(slot), CardInstanceScript.new(String(entry[0]), int(entry[1])))
+		else:
+			board.place_card(int(slot), CardInstanceScript.new(String(entry), 1))
 	return board
 
 # -- 空盘 --------------------------------------------------------------------

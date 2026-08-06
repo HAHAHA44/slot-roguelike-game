@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_mdfy0"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_4ur6r"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_hfpcs"]
+
+[sub_resource type="Resource" id="Resource_w5vrk"]
+script = ExtResource("2_4ur6r")
+amount = 6
+percent = 120
+
+[resource]
+script = ExtResource("3_hfpcs")
+id = "grandchild"
+name = "孙辈"
+description = "他管你叫的那个称呼很好听。"
+rarity = "Rare"
+tags = PackedStringArray("social")
+domain = "social"
+stage_id = "senior"
+legacy_into = "legacy_social_1"
+base_score = 22
+effects = Array[ExtResource("1_mdfy0")]([SubResource("Resource_w5vrk")])
+zodiac_affinity = "rooster"

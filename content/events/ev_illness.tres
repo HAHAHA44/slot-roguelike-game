@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_rnw6t"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_a5sbl"]
+
+[sub_resource type="Resource" id="Resource_g727j"]
+script = ExtResource("1_rnw6t")
+text = "硬扛过去。"
+spirit_delta = -2
+stat_deltas = {
+"end": -1
+}
+
+[sub_resource type="Resource" id="Resource_bag1e"]
+script = ExtResource("1_rnw6t")
+text = "老实住院。"
+spirit_delta = -1
+lifespan_delta = -1
+
+[resource]
+script = ExtResource("2_a5sbl")
+id = "ev_illness"
+name = "病了一场"
+description = "拖了很久才好，人瘦了一圈。"
+kind = "malign"
+spirit_weights = {
+"high": 0.1,
+"low": 5.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_rnw6t")]([SubResource("Resource_g727j"), SubResource("Resource_bag1e")])

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_8vu4u"]
+
+[resource]
+script = ExtResource("1_8vu4u")
+id = "study_room"
+name = "书房"
+description = "门一关就是另一个世界。"
+rarity = "Rare"
+domain = "study"
+price = 1.4
+min_stage_order = 3
+domain_percent = 35

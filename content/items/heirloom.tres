@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_w4pll"]
+
+[resource]
+script = ExtResource("1_w4pll")
+id = "heirloom"
+name = "传家宝"
+description = "谁也说不清它值多少。"
+rarity = "Legendary"
+price = 2.4
+min_stage_order = 5
+settle_percent = 35
+all_base_bonus = 6

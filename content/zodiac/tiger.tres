@@ -1,9 +1,12 @@
-[gd_resource type="Resource" script_class="ZodiacDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ZodiacDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1_aily2"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_aily2")
 id = "tiger"
-display_name = "content.zodiac.tiger.name"
+display_name = "虎"
 order = 2
+rule_name = "虎·威势"
+rule_description = "练成的东西今年格外唬人。"
+rule_star_percent = 70

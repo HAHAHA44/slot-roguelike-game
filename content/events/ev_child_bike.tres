@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_eut3a"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_dx4ip"]
+
+[sub_resource type="Resource" id="Resource_t2j64"]
+script = ExtResource("1_eut3a")
+text = "一直骑到天黑。"
+spirit_delta = 2
+card_reward = "running"
+
+[resource]
+script = ExtResource("2_dx4ip")
+id = "ev_child_bike"
+name = "学会骑车"
+description = "扶着后座的手松开时你没发现。"
+kind = "benign"
+stage_id = "childhood"
+spirit_weights = {
+"high": 5.0,
+"low": 0.2,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_eut3a")]([SubResource("Resource_t2j64")])

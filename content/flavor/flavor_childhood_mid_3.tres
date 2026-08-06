@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_eot4s"]
+
+[resource]
+script = ExtResource("1_eot4s")
+id = "flavor_childhood_mid_3"
+text = "学校门口新开了小卖部。"
+stage_id = "childhood"
+spirit_bucket = "mid"

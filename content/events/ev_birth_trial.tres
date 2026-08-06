@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_kxd6x"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_4jekh"]
+
+[sub_resource type="Resource" id="Resource_2euu7"]
+script = ExtResource("1_kxd6x")
+text = "低头熬过去。"
+spirit_delta = -3
+
+[sub_resource type="Resource" id="Resource_wrvl5"]
+script = ExtResource("1_kxd6x")
+text = "偏要迎上去。"
+spirit_delta = -1
+karma_delta = 2
+discard_cards = 1
+
+[resource]
+script = ExtResource("2_4jekh")
+id = "ev_birth_trial"
+name = "本命年·坎"
+description = "这一年什么都不顺。"
+kind = "malign"
+birth_year_only = true
+spirit_weights = {
+"high": 1.0,
+"low": 4.0,
+"mid": 3.0
+}
+choices = Array[ExtResource("1_kxd6x")]([SubResource("Resource_2euu7"), SubResource("Resource_wrvl5")])

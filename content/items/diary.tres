@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_n1s1o"]
+
+[resource]
+script = ExtResource("1_n1s1o")
+id = "diary"
+name = "日记本"
+description = "锁扣早就坏了。"
+domain = "study"
+max_stack = 2
+self_percent = 10

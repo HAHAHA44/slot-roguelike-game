@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_3gyxf"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_2jrjy"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_22ytp"]
+
+[sub_resource type="Resource" id="Resource_g7488"]
+script = ExtResource("2_2jrjy")
+amount = 22
+
+[resource]
+script = ExtResource("3_22ytp")
+id = "legacy_wealth_1"
+name = "小有积蓄"
+description = "腰不那么弯了。"
+rarity = "Legendary"
+tags = PackedStringArray("wealth", "legacy")
+domain = "wealth"
+legacy_into = "legacy_wealth_2"
+is_legacy = true
+draft_weight = 0.0
+base_score = 14
+effects = Array[ExtResource("1_3gyxf")]([SubResource("Resource_g7488")])
+zodiac_affinity = "rat"

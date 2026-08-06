@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_1r7h3"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_nf0fl"]
+
+[sub_resource type="Resource" id="Resource_qwrsy"]
+script = ExtResource("1_1r7h3")
+text = "回了。"
+spirit_delta = 2
+card_reward = "first_love"
+
+[sub_resource type="Resource" id="Resource_hpykr"]
+script = ExtResource("1_1r7h3")
+text = "假装没看见。"
+spirit_delta = -1
+card_reward = "best_friend"
+
+[resource]
+script = ExtResource("2_nf0fl")
+id = "ev_teen_note"
+name = "一张纸条"
+description = "折成很小的一块，从后排传过来。"
+kind = "benign"
+stage_id = "adolescence"
+spirit_weights = {
+"high": 5.0,
+"low": 0.2,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_1r7h3")]([SubResource("Resource_qwrsy"), SubResource("Resource_hpykr")])

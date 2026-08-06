@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_5tcpw"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_m4q2v"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_oki3k"]
+
+[sub_resource type="Resource" id="Resource_qatuf"]
+script = ExtResource("2_m4q2v")
+amount = 6
+
+[resource]
+script = ExtResource("3_oki3k")
+id = "exam_ace"
+name = "考试尖子"
+description = "红榜上第一个名字。"
+rarity = "Uncommon"
+tags = PackedStringArray("study")
+domain = "study"
+stage_id = "adolescence"
+legacy_into = "legacy_study_1"
+base_score = 5
+effects = Array[ExtResource("1_5tcpw")]([SubResource("Resource_qatuf")])
+zodiac_affinity = "goat"

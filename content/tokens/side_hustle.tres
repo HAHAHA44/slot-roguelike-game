@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_7w3la"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_pequb"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="3_me57w"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="4_t03gw"]
+
+[sub_resource type="Resource" id="Resource_qh0va"]
+script = ExtResource("2_pequb")
+amount = 6
+
+[sub_resource type="Resource" id="Resource_urbgk"]
+script = ExtResource("3_me57w")
+amount = 2
+percent = 40
+
+[resource]
+script = ExtResource("4_t03gw")
+id = "side_hustle"
+name = "副业"
+description = "白天一个人，晚上另一个。"
+rarity = "Uncommon"
+tags = PackedStringArray("wealth")
+domain = "wealth"
+stage_id = "youth"
+legacy_into = "legacy_wealth_1"
+base_score = 7
+effects = Array[ExtResource("1_7w3la")]([SubResource("Resource_qh0va"), SubResource("Resource_urbgk")])
+zodiac_affinity = "dragon"

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_oj564"]
+
+[resource]
+script = ExtResource("1_oj564")
+id = "flavor_adolescence_mid_1"
+text = "自行车链条掉了两次。"
+stage_id = "adolescence"
+spirit_bucket = "mid"

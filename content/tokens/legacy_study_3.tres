@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_wxayb"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_58313"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="3_cpuis"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="4_62xbk"]
+
+[sub_resource type="Resource" id="Resource_y3vg3"]
+script = ExtResource("2_58313")
+amount = 108
+
+[sub_resource type="Resource" id="Resource_hxcji"]
+script = ExtResource("3_cpuis")
+amount = 20
+percent = 95
+radius = 2
+
+[resource]
+script = ExtResource("4_62xbk")
+id = "legacy_study_3"
+name = "一代宗师"
+description = "这门学问因你分了前后。"
+rarity = "Legendary"
+tags = PackedStringArray("study", "legacy")
+domain = "study"
+is_legacy = true
+draft_weight = 0.0
+base_score = 80
+effects = Array[ExtResource("1_wxayb")]([SubResource("Resource_y3vg3"), SubResource("Resource_hxcji")])
+zodiac_affinity = "dragon"

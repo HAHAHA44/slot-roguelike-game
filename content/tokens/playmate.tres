@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_588s4"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_teurl"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_uxo3n"]
+
+[sub_resource type="Resource" id="Resource_wlj7p"]
+script = ExtResource("2_teurl")
+amount = 2
+percent = 30
+
+[resource]
+script = ExtResource("3_uxo3n")
+id = "playmate"
+name = "玩伴"
+description = "住得近就是缘分。"
+tags = PackedStringArray("social")
+domain = "social"
+stage_id = "childhood"
+legacy_into = "legacy_social_1"
+base_score = 3
+effects = Array[ExtResource("1_588s4")]([SubResource("Resource_wlj7p")])
+zodiac_affinity = "rabbit"

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_0tr70"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_v26xs"]
+
+[sub_resource type="Resource" id="Resource_yd42h"]
+script = ExtResource("1_0tr70")
+text = "喝到最后。"
+spirit_delta = 2
+stat_deltas = {
+"end": -1
+}
+
+[sub_resource type="Resource" id="Resource_s8hvw"]
+script = ExtResource("1_0tr70")
+text = "提前走了。"
+spirit_delta = -1
+
+[resource]
+script = ExtResource("2_v26xs")
+id = "ev_reunion"
+name = "同学聚会"
+description = "有人变了很多，有人一点没变。"
+spirit_weights = {
+"high": 1.0,
+"low": 1.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_0tr70")]([SubResource("Resource_yd42h"), SubResource("Resource_s8hvw")])

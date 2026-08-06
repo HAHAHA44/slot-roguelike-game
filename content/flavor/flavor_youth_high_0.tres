@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_f0c10"]
+
+[resource]
+script = ExtResource("1_f0c10")
+id = "flavor_youth_high_0"
+text = "第一次自己付房租。"
+stage_id = "youth"
+spirit_bucket = "high"

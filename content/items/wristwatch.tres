@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_jpvtl"]
+
+[resource]
+script = ExtResource("1_jpvtl")
+id = "wristwatch"
+name = "手表"
+description = "走得比心跳稳。"
+rarity = "Uncommon"
+price = 0.8
+min_stage_order = 1
+max_stack = 2
+settle_percent = 12

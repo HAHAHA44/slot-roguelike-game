@@ -1,14 +1,14 @@
 # 内容注册表：
 # - 启动时扫描 `content/` 下的各类 `.tres` 资源，并按 `id` 建立索引。
-# - 是整个项目的内容入口，`RunScreen` 和各个 service 都通过它读取 token、事件、英雄、难度等配置。
-# - 自己不负责玩法计算，只负责“加载、校验、查表、缓存”。
+# - 是整个项目的内容入口，`RunScreen` 和各个 service 都通过它读取碎片、道具、事件等配置。
+# - 自己不负责玩法计算，只负责"加载、校验、查表、缓存"。
 # - 依赖 `ContentDefinitionValidator` 过滤非法资源，坏数据会被跳过并报错，而不是直接写进运行时状态。
-# - 典型用法：`RunScreen._ready()` 调 `load_all()`，后续 reward/event/难度逻辑都从这里取资源。
 class_name ContentRegistry
 extends RefCounted
 
 const TOKEN_PATH := "res://content/tokens"
 const EVENT_PATH := "res://content/events"
+const FLAVOR_PATH := "res://content/flavor"
 const HERO_PATH := "res://content/heroes"
 const DIFFICULTY_PATH := "res://content/difficulty"
 const META_PATH := "res://content/meta"
@@ -21,6 +21,7 @@ const BUFF_PATH := "res://content/buffs"
 
 var tokens: Dictionary = {}
 var events: Dictionary = {}
+var flavor_lines: Dictionary = {}
 var heroes: Dictionary = {}
 var difficulty_modifiers: Dictionary = {}
 var meta_unlocks: Dictionary = {}
@@ -35,6 +36,7 @@ var validator := ContentDefinitionValidator.new()
 func load_all() -> void:
 	tokens.clear()
 	events.clear()
+	flavor_lines.clear()
 	heroes.clear()
 	difficulty_modifiers.clear()
 	meta_unlocks.clear()
@@ -46,6 +48,7 @@ func load_all() -> void:
 	buffs.clear()
 	_load_resources_from_dir(TOKEN_PATH, tokens)
 	_load_resources_from_dir(EVENT_PATH, events)
+	_load_resources_from_dir(FLAVOR_PATH, flavor_lines)
 	_load_resources_from_dir(HERO_PATH, heroes)
 	_load_resources_from_dir(DIFFICULTY_PATH, difficulty_modifiers)
 	_load_resources_from_dir(META_PATH, meta_unlocks)
@@ -55,6 +58,16 @@ func load_all() -> void:
 	_load_resources_from_dir(LIFE_STAGE_PATH, life_stages)
 	_load_resources_from_dir(RUN_START_PATH, starting_pools)
 	_load_resources_from_dir(BUFF_PATH, buffs)
+
+# 某个人生阶段的可抽碎片 id 列表。DraftService 每年年初问一次。
+func tokens_for_stage(stage_id: String) -> Array:
+	var result: Array = []
+	for token_id in tokens:
+		var def = tokens[token_id]
+		if def != null and String(def.stage_id) == stage_id and def.is_draftable():
+			result.append(String(token_id))
+	result.sort()
+	return result
 
 func _load_resources_from_dir(dir_path: String, target_index: Dictionary) -> void:
 	var directory := DirAccess.open(dir_path)

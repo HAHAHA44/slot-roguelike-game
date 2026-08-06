@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_7laga"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_2sdmk"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_nrtql"]
+
+[sub_resource type="Resource" id="Resource_ducd2"]
+script = ExtResource("2_2sdmk")
+amount = 9
+
+[resource]
+script = ExtResource("3_nrtql")
+id = "burnout_resist"
+name = "抗压"
+description = "撑住就过去了。"
+tags = PackedStringArray()
+stage_id = "prime"
+base_score = 8
+effects = Array[ExtResource("1_7laga")]([SubResource("Resource_ducd2")])
+zodiac_affinity = "pig"

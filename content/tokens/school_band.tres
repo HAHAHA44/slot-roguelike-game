@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_wifdi"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_05d3n"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_0pleo"]
+
+[sub_resource type="Resource" id="Resource_7iu1g"]
+script = ExtResource("2_05d3n")
+amount = 2
+percent = 70
+
+[resource]
+script = ExtResource("3_0pleo")
+id = "school_band"
+name = "校乐队"
+description = "跑调也一起跑。"
+rarity = "Uncommon"
+tags = PackedStringArray("art")
+domain = "art"
+stage_id = "adolescence"
+legacy_into = "legacy_art_1"
+base_score = 5
+effects = Array[ExtResource("1_wifdi")]([SubResource("Resource_7iu1g")])
+zodiac_affinity = "monkey"

@@ -16,9 +16,9 @@ extends Resource
 @export var narrative: String = ""
 
 func get_display_name() -> String:
-	return L10n.text(display_name, id)
+	return L10n.text(display_name, display_name)
 
 func get_narrative() -> String:
 	if narrative.is_empty():
 		return ""
-	return L10n.text(narrative)
+	return L10n.text(narrative, narrative)

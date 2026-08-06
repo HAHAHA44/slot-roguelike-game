@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/item_definition.gd" id="1_342ef"]
+
+[resource]
+script = ExtResource("1_342ef")
+id = "family_photo"
+name = "全家福"
+description = "有人已经不在了。"
+rarity = "Rare"
+domain = "social"
+price = 1.4
+min_stage_order = 3
+settle_percent = 18
+neighbor_percent = 15

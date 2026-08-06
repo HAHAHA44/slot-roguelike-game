@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_cupyy"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_2qhwo"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_3mlhe"]
+
+[sub_resource type="Resource" id="Resource_qd82b"]
+script = ExtResource("2_2qhwo")
+percent = 80
+
+[resource]
+script = ExtResource("3_3mlhe")
+id = "curiosity"
+name = "好奇心"
+description = "为什么天是蓝的。"
+rarity = "Uncommon"
+tags = PackedStringArray()
+stage_id = "childhood"
+base_score = 2
+effects = Array[ExtResource("1_cupyy")]([SubResource("Resource_qd82b")])
+zodiac_affinity = "snake"

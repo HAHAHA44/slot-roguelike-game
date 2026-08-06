@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_rposi"]
+
+[resource]
+script = ExtResource("1_rposi")
+id = "flavor_prime_low_5"
+text = "很久没有真的笑过。"
+stage_id = "prime"
+spirit_bucket = "low"

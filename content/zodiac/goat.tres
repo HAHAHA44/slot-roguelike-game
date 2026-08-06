@@ -1,9 +1,12 @@
-[gd_resource type="Resource" script_class="ZodiacDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ZodiacDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/zodiac_definition.gd" id="1_87af2"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_87af2")
 id = "goat"
-display_name = "content.zodiac.goat.name"
+display_name = "羊"
 order = 7
+rule_name = "羊·守拙"
+rule_description = "最不起眼的那一格今年翻身。"
+rule_lowest_percent = 200

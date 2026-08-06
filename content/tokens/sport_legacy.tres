@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_gimrc"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_jqnus"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_ik0xm"]
+
+[sub_resource type="Resource" id="Resource_hb3k3"]
+script = ExtResource("2_jqnus")
+amount = 8
+percent = 75
+
+[resource]
+script = ExtResource("3_ik0xm")
+id = "sport_legacy"
+name = "体坛旧事"
+description = "剪报还留着。"
+rarity = "Uncommon"
+tags = PackedStringArray("sport")
+domain = "sport"
+stage_id = "senior"
+legacy_into = "legacy_sport_1"
+base_score = 19
+effects = Array[ExtResource("1_gimrc")]([SubResource("Resource_hb3k3")])
+zodiac_affinity = "horse"

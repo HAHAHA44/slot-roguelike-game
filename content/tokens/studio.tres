@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_enpms"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_1bo6d"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_334iw"]
+
+[sub_resource type="Resource" id="Resource_72671"]
+script = ExtResource("2_1bo6d")
+amount = 5
+percent = 70
+radius = 2
+
+[resource]
+script = ExtResource("3_334iw")
+id = "studio"
+name = "工作室"
+description = "钥匙只有一把。"
+rarity = "Rare"
+tags = PackedStringArray("art")
+domain = "art"
+stage_id = "prime"
+legacy_into = "legacy_art_1"
+base_score = 12
+effects = Array[ExtResource("1_enpms")]([SubResource("Resource_72671")])
+zodiac_affinity = "monkey"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_o6fxd"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="2_74h6l"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_g1nql"]
+
+[sub_resource type="Resource" id="Resource_1ruw1"]
+script = ExtResource("2_74h6l")
+amount = 7
+percent = 55
+
+[resource]
+script = ExtResource("3_g1nql")
+id = "family_dinner"
+name = "家宴"
+description = "一年到头就这一桌。"
+tags = PackedStringArray("social")
+domain = "social"
+stage_id = "midlife"
+legacy_into = "legacy_social_1"
+base_score = 12
+effects = Array[ExtResource("1_o6fxd")]([SubResource("Resource_1ruw1")])
+zodiac_affinity = "rabbit"

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_cxwcn"]
+
+[resource]
+script = ExtResource("1_cxwcn")
+id = "flavor_youth_low_5"
+text = "同龄人都比你快。"
+stage_id = "youth"
+spirit_bucket = "low"

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_v1e52"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_25ncb"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="3_4koqx"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="4_wsnvq"]
+
+[sub_resource type="Resource" id="Resource_8j04u"]
+script = ExtResource("2_25ncb")
+amount = 16
+
+[sub_resource type="Resource" id="Resource_fj7g2"]
+script = ExtResource("3_4koqx")
+amount = 4
+percent = 60
+
+[resource]
+script = ExtResource("4_wsnvq")
+id = "legacy_sport_1"
+name = "校队主力"
+description = "名字印在秩序册上。"
+rarity = "Legendary"
+tags = PackedStringArray("sport", "legacy")
+domain = "sport"
+legacy_into = "legacy_sport_2"
+is_legacy = true
+draft_weight = 0.0
+base_score = 14
+effects = Array[ExtResource("1_v1e52")]([SubResource("Resource_8j04u"), SubResource("Resource_fj7g2")])
+zodiac_affinity = "tiger"

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_txtwd"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_v3d2s"]
+
+[sub_resource type="Resource" id="Resource_p8ybg"]
+script = ExtResource("1_txtwd")
+text = "走稳妥那条。"
+spirit_delta = 1
+
+[sub_resource type="Resource" id="Resource_57la4"]
+script = ExtResource("1_txtwd")
+text = "走没走过那条。"
+spirit_delta = -1
+item_reward = "wristwatch"
+
+[resource]
+script = ExtResource("2_v3d2s")
+id = "ev_fork"
+name = "岔路口"
+description = "两条路都看不到尽头。"
+spirit_weights = {
+"high": 1.0,
+"low": 1.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_txtwd")]([SubResource("Resource_p8ybg"), SubResource("Resource_57la4")])

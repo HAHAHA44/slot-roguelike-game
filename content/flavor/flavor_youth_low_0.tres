@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_6146i"]
+
+[resource]
+script = ExtResource("1_6146i")
+id = "flavor_youth_low_0"
+text = "面试第九次落选。"
+stage_id = "youth"
+spirit_bucket = "low"

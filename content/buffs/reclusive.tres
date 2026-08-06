@@ -1,11 +1,14 @@
-[gd_resource type="Resource" script_class="BuffDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BuffDefinition" format=3]
 
-[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/content/buff_definition.gd" id="1_an276"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_an276")
 id = "reclusive"
-display_name = "content.buff.reclusive.name"
-description = "content.buff.reclusive.desc"
+display_name = "孤僻"
+description = "人多的地方待不住。"
 polarity = "debuff"
-magnitude = 1
+tags = PackedStringArray()
+stat_deltas = {
+"spr": -1
+}

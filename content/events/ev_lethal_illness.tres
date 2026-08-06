@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_iisde"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_kolmw"]
+
+[sub_resource type="Resource" id="Resource_xwmkw"]
+script = ExtResource("1_iisde")
+text = "赌一次手术。"
+spirit_delta = -3
+lifespan_delta = -5
+
+[sub_resource type="Resource" id="Resource_gsjlr"]
+script = ExtResource("1_iisde")
+text = "回家躺着。"
+lethal = true
+
+[resource]
+script = ExtResource("2_kolmw")
+id = "ev_lethal_illness"
+name = "一场大病"
+description = "医生把家属叫到走廊上。"
+kind = "lethal"
+spirit_weights = {
+"low": 2.0
+}
+choices = Array[ExtResource("1_iisde")]([SubResource("Resource_xwmkw"), SubResource("Resource_gsjlr")])

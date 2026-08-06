@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_68loo"]
+[ext_resource type="Script" path="res://scripts/core/effects/trigger_zodiac_chain.gd" id="2_2hfdf"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_2rka0"]
+
+[sub_resource type="Resource" id="Resource_1sv1k"]
+script = ExtResource("2_2hfdf")
+amount = 8
+percent = 130
+
+[resource]
+script = ExtResource("3_2rka0")
+id = "great_grandchild"
+name = "曾孙"
+description = "抱不动了，只能摸摸头。"
+rarity = "Rare"
+tags = PackedStringArray("social")
+domain = "social"
+stage_id = "twilight"
+legacy_into = "legacy_social_1"
+base_score = 27
+effects = Array[ExtResource("1_68loo")]([SubResource("Resource_1sv1k")])
+zodiac_affinity = "rabbit"

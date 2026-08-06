@@ -1,37 +1,62 @@
 # Reelbound — Agent Reference
 
-**Engine:** Godot 4.7.1-stable / GDScript  
-**Stage:** M0 — stub yearly loop（人生模拟重设计）
+**Engine:** Godot 4.7.1-stable / GDScript
+**Stage:** 成长闭环已实装（原 M1–M6 的机制部分）；未做：转世闭环、配方合成、暮年 endless 专属内容
 
 ## What it is
 
-12 格生肖盘 + cascade 结算 + 紧张感事件的人生模拟 roguelike。**年-循环**：
+12 格生肖盘 + cascade 结算的人生模拟 roguelike。**年-循环**：
 
-1. 出生 → `RunSession` 初始化 age / lifespan / zodiac_birth / sanity 等。
-2. 每年：`ZodiacService` 给出当年生肖 → 12 格 `RingBoardService` 投盘 →
-   `SettlementService` 跑 cascade（M1 实装）→ 年末事件（M2 实装）→ age++。
-3. 死亡：恶性事件 lethal 或寿命到顶 → 累 karma → 转世（M6 实装）。
+```
+每一年：
+  三选一抽碎片（可跳过）→ 自动合成升星
+  → 洗牌投 12 格 → cascade 结算 → 年收益 → 购买力
+  → 道具商店 → 年末事件（流水年金句 / 转折年弹窗）
+  → 属性漂移 → age++ → 死亡判定
 
-旧 5×5 bag-roll 路径已 M0 退役，文件保留作 M1+ cascade 实现的参考蓝本。
-设计文档：`docs/2026-05-17-life-sim-prd.md` + `docs/2026-05-18-life-sim-fun-axes.md`
-开发计划：`docs/2026-05-18-life-sim-dev-plan.md`（M0–M7 里程碑）。
-参考：幸运房东（cascade）、Balatro（联动）、人生重开模拟器、60 Seconds。
+每 12 年（= 一个人生阶段 = 一次生肖轮回）：
+  阶段考核（没过扣精神力）→ 满星者传承 → 当期碎片清空
+```
+
+**术语一律以根目录 [`CONTEXT.md`](CONTEXT.md) 为准**（人生碎片 / 命盘 / 行囊 / 传承物 / 年度规则…）。
+写代码前先读它，别自己造词。
+
+设计文档：
+- [`docs/2026-05-17-life-sim-prd.md`](docs/2026-05-17-life-sim-prd.md) —— 是什么游戏（部分已被下面那份取代）
+- [`docs/2026-05-18-life-sim-fun-axes.md`](docs/2026-05-18-life-sim-fun-axes.md) —— 要让玩家感觉什么（**冲突时它最大**）
+- [`docs/2026-07-31-growth-loop-design.md`](docs/2026-07-31-growth-loop-design.md) —— 成长闭环的 23 条决策与理由
+- [`docs/adr/`](docs/adr/) —— 三条不可轻易推翻的架构决策
+
+参考：幸运房东（cascade）、自走棋（三合一升星）、Balatro（相对计价）、人生重开模拟器（叙事密度）。
 
 ## Hard constraints (never change)
 
-- 12 格生肖盘，固定槽位（鼠–猪 order 0-11）。不改 ring 大小。
-- 紧张感来自**精神力 + 年末事件**，不是实时血量。
-- 每年结算后必须给玩家**有意义的奖励路径**（cascade 收益 → token / item / stat 之一）。
-- cascade 是最高优先级的视听事件 —— 见 `2026-05-18-life-sim-fun-axes.md` P1/P2。
+- **12 格生肖盘**，固定槽位（鼠–猪 order 0-11）。不改 ring 大小。
+- **命盘恒 12 张**，另有行囊 6 格。不做牌库膨胀（见 ADR-0001）。
+- **每个生肖必须带一条年度规则**。生肖盘一旦退回装饰，这游戏的骨架就空了（ADR-0002）。
+- **碎片按阶段分池**，阶段末清空，唯满星者传承（ADR-0003）。
+- 紧张感只走**精神力 + 年末事件**这一条管道。别再开第二条失败线。
+- **致死事件只在低精神档**。这条由 `ContentDefinitionValidator` 在加载期强制。
+- cascade 是最高优先级的视听事件 —— 见 fun-axes P1/P2。
 - 暮年阶段（72+）endless 直到寿命耗尽。
 
 ## Architecture principles
 
 - **Services are `RefCounted` with no scene dependencies.** Data in, data out. Instantiate with `ClassName.new()` from the caller.
 - **Value objects are immutable.** Construct once; if a field needs to change, build a new object.
-- **Content lives in `.tres`, never in code.** Tokens / events / items / heroes / zodiacs / anomalies / difficulty / meta all flow through `ContentRegistry.load_all()`. No id should be hard-coded outside the `.tres` it names.
-- **The smoke test gates every commit.** `test_smoke_yearly_loop_alive` 证明出生 → 12 格 stub 投盘 → stub cascade → stub event → age++ → 自然死的年循环是通的。红了立刻停。
-- **GUT treats GDScript warnings as test errors.** If a clean refactor triggers `integer_division`, `unused_variable`, `shadowed_variable`, etc., either fix the root cause or annotate with `@warning_ignore("…")` — don't leave warnings live.
+- **Content lives in `.tres`, never in code.** 所有内容走 `ContentRegistry.load_all()`。
+  没有任何 id 该硬编码在它所属的 `.tres` 之外。
+- **所有放大集中在 `CascadeContext`。** 星级 / 年度规则 / 六维 / 道具四路修正全部折进
+  `add_self` / `link` / `neighbors` 三个出口，所以写新 effect 时不必知道它们存在，
+  查「今年为什么炸这么大」也只有一个地方要看。
+- **`YearModifiers` 是四路修正的唯一汇合点**，各路一律**加法叠加**、不连乘——
+  连乘会让来源之间指数耦合，平衡表就没法维护了。
+- **The smoke test gates every commit.** `test_smoke_yearly_loop_runs_to_death` 证明
+  出生 → 逐年循环 → 收场是通的。红了立刻停。
+- **GUT treats GDScript warnings as test errors.** 触发 `integer_division` / `unused_variable` /
+  `shadowed_variable` 时，要么修根因，要么 `@warning_ignore("…")`，别留着。
+- **GDScript lambda 按值捕获局部变量。** 要在闭包里改外层状态，用数组/字典当可变容器
+  （`run_screen.gd::_first_of` 有一条血的教训）。
 
 ## Layout
 
@@ -40,16 +65,28 @@ autoload/         ContentRegistry, RunSession, SaveService (class_name only);
                   Localization 是本项目唯一的业务 autoload。
                   （project.godot 里还有 _mcp_game_helper，是 godot_ai 插件的开发工具
                     钩子，非游戏逻辑 —— 不要往它上面挂东西。）
-scripts/core/     services/ (pure logic) + value_objects/ (immutable carriers)
-scripts/content/  Resource class definitions (data schemas only, no logic)
-scripts/ui/       run_screen.gd (yearly loop orchestrator), main_menu.gd
-content/          .tres game data (tokens, events, items, heroes, zodiac, difficulty, anomalies, meta)
+scripts/core/     services/ (纯逻辑) + value_objects/ (不可变载体) + effects/ (ScriptableEffect)
+scripts/content/  Resource 类定义（只有数据 schema，没有逻辑）
+scripts/ui/       run_screen.gd (年循环编排器) + 各面板 + zodiac_ring
+scripts/dev/      generate_content.gd + content_tables.gd —— **一次性铺量工具，已用完**
+content/          .tres 游戏数据（tokens / items / events / flavor / zodiac / buffs / …）
 scenes/           app/, menu/, run/, endless/, meta/
-tests/            unit/core/ (one file per service) + integration/test_run_screen_flow.gd
-docs/             PRD + engineering notes — content-schema.md is the authoritative resource reference
+tests/            unit/core/ (一服务一文件) + integration/test_run_screen_flow.gd
+docs/             PRD + fun-axes + growth-loop-design + adr/
 ```
 
-`RunScreen._ready()` 是入口：new() registry / session / services，然后跑 `autoplay_until_death`。它是 orchestrator，所有逻辑要 push 进 services，不要往 RunScreen 加责任。
+`RunScreen` 是 orchestrator：所有规则都在 services 里，它只负责按顺序调用与呈现。
+`step_year()`（同步全自动，测试与 autoplay 走）和 `_advance_year_interactive()`（协程，玩家走）
+**共用同一批 `_year_*` 私有方法** —— 别让两条路径分叉。
+
+## 内容怎么改
+
+`content/` 下的 `.tres` 是**唯一事实源**。`scripts/dev/generate_content.gd` 只是第一次铺量用的，
+**改数值请直接改 `.tres`，不要回去改生成器再重跑**（重跑会覆盖手改）。
+
+新增碎片时至少要填：`stage_id`（可抽碎片必填）、`domain`、`base_score`、`effects`、
+`zodiac_affinity`；想让它可传承再填 `legacy_into`。跨资源引用的完整性由
+`tests/unit/core/test_content_registry.gd` 兜底。
 
 ## Tech
 
@@ -57,7 +94,7 @@ docs/             PRD + engineering notes — content-schema.md is the authorita
 |------|---------|
 | Godot | 4.7.1-stable |
 | GUT | 9.6.0 |
-| Godot State Charts | 0.22.3（M0 起未使用；M2 事件状态机可能恢复）|
+| Godot State Charts | 0.22.3（当前未使用）|
 
 ## Testing
 
@@ -69,37 +106,42 @@ scripts/dev/run-tests.sh one res://tests/unit/core/test_xxx.gd
 scripts/dev/run-tests.sh shot res://scenes/run/run_screen.tscn   # screenshot (needs a display)
 ```
 
-`GODOT_BIN` must point at Godot 4.7.x (default `~/.local/bin/godot`; on macOS `/Applications/Godot.app/Contents/MacOS/Godot`). Screenshots need a real display — WSLg on WSL, the desktop session on macOS/Linux — so don't add `--headless` when taking them. Windows PowerShell equivalents live in `README.md`.
+截图脚本支持 `--steps=N`，先跑 N 年再截 —— 出生态盘面几乎全是「凡庸」，
+看成长曲线至少要 `--steps=30`。
+
+`GODOT_BIN` must point at Godot 4.7.x（默认 `~/.local/bin/godot`；macOS 用
+`/Applications/Godot.app/Contents/MacOS/Godot`）。截图需要真实 display，别加 `--headless`。
+
+**新增 `class_name` 后首次运行**：全局类缓存可能还没收录它，会报
+`Could not find type "X"`。跑一次 `godot --headless --path . --editor --quit` 重建缓存即可。
+
+## Active 服务
+
+| 服务 | 职责 |
+|---|---|
+| `RingBoardService` | 12 槽位 ring 数据 API + 洗牌投盘 |
+| `SettlementService` | cascade 主循环（进盘 → min-score-first → 收尾） |
+| `DraftService` | 三选一投注池（阶段分池 + 已持有/领域双重加权） |
+| `MergeService` | 三张→二星、两个二星→满星，自动触发 |
+| `DeckService` | 命盘/行囊增删换 + 阶段清空 + 传承链升格 |
+| `EconomyService` | 阶段门槛（兼计价基准）+ 购买力 |
+| `ShopService` | 道具上架与购买 |
+| `YearModifierService` | 四路修正 → `YearModifiers` |
+| `SpiritService` | 精神力读写与三档分级（住在六维里） |
+| `EventDraftService` | 转折年触发密度 + 事件/金句加权抽取 + 明牌概率 |
+| `EventResolverService` | 选项后果结算 |
+| `AttributeService` | 六维出生分配 + 年龄漂移 |
+| `BuffService` | 开局 Buff 抽取 + 出生时一次性施加 |
+| `ZodiacService` / `LifeStageService` / `AgeService` / `DeathService` | 查询与判定 |
+
+**待接线**（文件在，主流程没调）：`RelationshipService`、`KarmaService`、
+`EndlessService` + `content/anomalies/`、`RunModifierService`、`content/heroes|difficulty|meta/`。
+它们分别对应关系系统、转世闭环、暮年 endless —— 都还没做。
 
 ## Commit discipline
 
 - **Small commits, one logical change each.** If the message wants to say "and …", split it.
 - **Run the relevant tests before committing.** Red doesn't ship.
 - Conventional types: `feat / fix / refactor / docs / test / chore / perf / ci`. Never `update / wip / misc`.
-- 里程碑提交带 scope，如 `feat(M0): ...`。
 - Never `--no-verify`, never amend pushed commits, never force-push to main.
 - Chinese comments are conventional here — don't translate them to English.
-
-## Active 服务（M0 新流程）
-
-- `ZodiacService` —— 12 生肖查询 / 当年生肖 / 本命年 / 奖励格
-- `RingBoardService` —— 12 槽位 ring 数据 API（place / token_at / neighbors）
-- `RunSession` —— age / lifespan / sanity / zodiac_birth / stage_idx / stats / karma_in_run
-- `ContentRegistry` —— 内容入口（含 zodiacs）
-
-## 退役但仍在文件树（M1+ cascade 实现时清理或替换）
-
-5×5 bag-roll 时代的服务，scripts/core/services/ 里仍能编译但 RunScreen 不再调用：
-
-- `BoardService` (5×5 Vector2i) / `BoardRollService`
-- `SettlementResolver` —— M1 替换为新 SettlementService
-- `RewardOfferService` —— M3 EventResolverService 取代
-- `EventDraftService`（旧版，过程式）—— M2 重写为 sanity 加权 + 本命年池
-- `TriggerScanner` —— 看 M1 cascade 是否需要
-- `ContractService` —— 旧合约系统，待决
-- `RunModifierService` —— M3 item modifier 拿来用
-- `EndlessService` + `content/anomalies/` + `scenes/endless/` —— M5 暮年 endless 接入
-- `MetaProgressionService` + `scenes/meta/` —— M6 转世闭环
-- `run_failed` / `run_cleared` 状态 —— 当前不在主流程
-
-For resource field specs see `docs/engineering/content-schema.md`（注：仍描述 5×5 时代字段，M1 起逐步重写）。

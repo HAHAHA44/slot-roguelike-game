@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FlavorLineDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/flavor_line_definition.gd" id="1_t7b7l"]
+
+[resource]
+script = ExtResource("1_t7b7l")
+id = "flavor_childhood_low_6"
+text = "怕黑的一年。"
+stage_id = "childhood"
+spirit_bucket = "low"

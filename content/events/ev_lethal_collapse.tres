@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_q0dgq"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_c8bty"]
+
+[sub_resource type="Resource" id="Resource_jm1rw"]
+script = ExtResource("1_q0dgq")
+text = "还想再试一次。"
+spirit_delta = -2
+lifespan_delta = -3
+
+[sub_resource type="Resource" id="Resource_38j83"]
+script = ExtResource("1_q0dgq")
+text = "闭上眼睛。"
+lethal = true
+
+[resource]
+script = ExtResource("2_c8bty")
+id = "ev_lethal_collapse"
+name = "撑不住了"
+description = "这一次没有再站起来。"
+kind = "lethal"
+spirit_weights = {
+"low": 2.0
+}
+choices = Array[ExtResource("1_q0dgq")]([SubResource("Resource_jm1rw"), SubResource("Resource_38j83")])

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_5gk7c"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_gm6cr"]
+[ext_resource type="Script" path="res://scripts/core/effects/modify_neighbor.gd" id="3_tjw3v"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="4_t48bd"]
+
+[sub_resource type="Resource" id="Resource_msj34"]
+script = ExtResource("2_gm6cr")
+amount = 38
+
+[sub_resource type="Resource" id="Resource_1oiu7"]
+script = ExtResource("3_tjw3v")
+amount = 10
+percent = 80
+radius = 2
+
+[resource]
+script = ExtResource("4_t48bd")
+id = "legacy_sport_2"
+name = "职业选手"
+description = "以此为生了。"
+rarity = "Legendary"
+tags = PackedStringArray("sport", "legacy")
+domain = "sport"
+legacy_into = "legacy_sport_3"
+is_legacy = true
+draft_weight = 0.0
+base_score = 34
+effects = Array[ExtResource("1_5gk7c")]([SubResource("Resource_msj34"), SubResource("Resource_1oiu7")])
+zodiac_affinity = "tiger"

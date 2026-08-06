@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TokenDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/effects/scriptable_effect.gd" id="1_3qwnq"]
+[ext_resource type="Script" path="res://scripts/core/effects/add_self_score.gd" id="2_tkrxb"]
+[ext_resource type="Script" path="res://scripts/content/token_definition.gd" id="3_8w4tc"]
+
+[sub_resource type="Resource" id="Resource_0s6l4"]
+script = ExtResource("2_tkrxb")
+amount = 115
+
+[resource]
+script = ExtResource("3_8w4tc")
+id = "legacy_wealth_3"
+name = "富甲一方"
+description = "钱已经不是问题了。"
+rarity = "Legendary"
+tags = PackedStringArray("wealth", "legacy")
+domain = "wealth"
+is_legacy = true
+draft_weight = 0.0
+base_score = 80
+effects = Array[ExtResource("1_3qwnq")]([SubResource("Resource_0s6l4")])
+zodiac_affinity = "rat"

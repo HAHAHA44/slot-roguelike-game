@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EventDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/content/event_choice.gd" id="1_taqdx"]
+[ext_resource type="Script" path="res://scripts/content/event_definition.gd" id="2_6eiwh"]
+
+[sub_resource type="Resource" id="Resource_g5djt"]
+script = ExtResource("1_taqdx")
+text = "考得不错。"
+spirit_delta = 1
+card_reward = "exam_ace"
+
+[sub_resource type="Resource" id="Resource_704id"]
+script = ExtResource("1_taqdx")
+text = "考砸了。"
+spirit_delta = -2
+stat_deltas = {
+"int": 1
+}
+
+[resource]
+script = ExtResource("2_6eiwh")
+id = "ev_teen_exam"
+name = "一次大考"
+description = "分数出来那天走廊很吵。"
+stage_id = "adolescence"
+spirit_weights = {
+"high": 1.0,
+"low": 1.0,
+"mid": 1.0
+}
+choices = Array[ExtResource("1_taqdx")]([SubResource("Resource_g5djt"), SubResource("Resource_704id")])
