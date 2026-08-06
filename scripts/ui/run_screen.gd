@@ -60,11 +60,13 @@ const STAGE_PASS_SPIRIT_REWARD := 1
 const AUTOPLAY_SAFETY_YEARS := 200
 
 # -- 自动轮的节奏（秒） -------------------------------------------------------
-# 这几个数是整条播放的总闸，想整体快/慢只改这里，别散到各处 create_timer 里去。
-const SPIN_SECONDS := 0.7
-const CASCADE_STEP_SECONDS := 0.3
-const CASCADE_HOLD_SECONDS := 0.7
-const SCORE_FADE_SECONDS := 0.4
+# cascade 是本作最高优先级的视听事件（fun-axes P1/P2），它得**看得清**：
+# 一格一格点亮时玩家要来得及读出是哪张碎片在连谁。这几个数是整条播放的总闸，
+# 想整体快/慢只改这里，别散到各处 create_timer 里去。
+const SPIN_SECONDS := 1.2
+const CASCADE_STEP_SECONDS := 0.5
+const CASCADE_HOLD_SECONDS := 1.0
+const SCORE_FADE_SECONDS := 0.5
 
 # 模态当前在演谁。三选一是**常驻连接 + 看这个开关**，事件走 _first_of 临时连接；
 # 两者共用一个面板，不靠这个标记就会互相截胡对方的信号。
@@ -951,7 +953,7 @@ func _set_score_pop(value: int) -> void:
 	_score_pop.text = str(value)
 	_score_pop.scale = Vector2(1.18, 1.18)
 	var tw := create_tween()
-	tw.tween_property(_score_pop, "scale", Vector2.ONE, 0.15)
+	tw.tween_property(_score_pop, "scale", Vector2.ONE, 0.22)
 
 func _show_chain_banner(count: int, tier: int) -> void:
 	var style: Dictionary = COMBO_TIERS[tier]
@@ -963,7 +965,7 @@ func _show_chain_banner(count: int, tier: int) -> void:
 	var pop: float = float(style["pop"])
 	_chain_banner.scale = Vector2(pop, pop)
 	var tw := create_tween()
-	tw.tween_property(_chain_banner, "scale", Vector2.ONE, 0.22) \
+	tw.tween_property(_chain_banner, "scale", Vector2.ONE, 0.3) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _flash(intensity: float = 0.22) -> void:
