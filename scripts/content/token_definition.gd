@@ -15,6 +15,9 @@ const ALLOWED_RARITIES := ["Common", "Uncommon", "Rare", "Legendary"]
 @export var description: String = ""
 @export var rarity: String = "Common"
 @export var tags: PackedStringArray = PackedStringArray()
+# 立绘 / 图标。null = 还没画，UI 用名字首字占位（见 ModalChoicePanel 的图位）。
+# 三选一与命盘面板已经给它留好位置，填上就直接显示，不用改版式。
+@export var icon: Texture2D = null
 
 # 领域：体育 / 学业 / 艺术 / 人情 / 财富…（见 CONTEXT.md「领域」）。
 # 传承链沿领域延伸，投注池也按玩家已建树的领域加权。""=无领域（如补位碎片「凡庸」）。
