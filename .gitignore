@@ -9,3 +9,6 @@ data_*
 
 # Ad-hoc screenshots from scripts/dev/run-tests.sh shot
 screenshots/
+
+# macOS
+.DS_Store
